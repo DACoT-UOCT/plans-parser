@@ -36,12 +36,12 @@ def read_plans(file):
                 plans[match_junction.group('junction')] = {}
                 plans[match_junction.group('junction')][match_junction.group('id')] = {
                     'cycle': int(match_junction.group('cycle').split('Y')[1]),
-                    'phase_start': phases_dict
+                    'system_start': phases_dict
                 }
             else:
                 plans[match_junction.group('junction')][match_junction.group('id')] = {
                     'cycle': int(match_junction.group('cycle').split('Y')[1]),
-                    'phase_start': phases_dict
+                    'system_start': phases_dict
                 }
     return plans
 
