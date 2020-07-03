@@ -2,16 +2,17 @@ import re
 import json
 import argparse
 
+# [python:S4784]: There is no risk for a ReDoS since the input text to evaluate is not provided by users
 first_re = re.compile(r'^Plan\s+(?P<id>\d+)\s(?P<junction>J\d{6}).*(?P<cycle>CY\d{3})\s(?P<phases>[A-Z0-9\s,]+)$')
 second_re = re.compile(r'[A-Z]{1,2}\s\d{1,3}')
 
 def read_plans(file):
     plans = {}
     with open(file, encoding='iso-8859-1') as fplans:
-        for idx, line in enumerate(fplans.readlines()):
+        count = 0
+        for line in fplans.readlines():
+            count += 1
             line = line.strip()
-            if not 'Plan' in line[0:5]:
-                continue
             match_junction = first_re.match(line)
             if not match_junction:
                 print("WARN: Line [ {} ] didn't match first regex".format(line))
@@ -43,16 +44,20 @@ def read_plans(file):
                     'cycle': int(match_junction.group('cycle').split('Y')[1]),
                     'system_start': phases_dict
                 }
+        print('{} lines parsed'.format(count))
     return plans
 
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(description='Initial plans parser script')
     args_parser.add_argument('input', type=str, help='Input file')
-    args_parser.add_argument('junc', type=str, help='Junction to verify')
+    args_parser.add_argument('output', type=str, help='Output file')
+    args_parser.add_argument('--junc', type=str, help='Junction to verify')
     args = args_parser.parse_args()
     # Parse
     plans = read_plans(args.input)
-    print('\n\n{} junctions parsed'.format(len(plans.keys())))
-    print('\nExtracted data for {}:'.format(args.junc))
-    print(json.dumps(plans[args.junc], indent='\t'))
-    #json.dump(plans, open('plans.json', 'w'))
+    print('{} junctions parsed'.format(len(plans.keys())))
+    if args.junc:
+        print('\nExtracted data for {}:'.format(args.junc))
+        print(json.dumps(plans[args.junc], indent='\t'))
+    json.dump(plans, open(args.output, 'w'))
+    print('Done. Results saved to [{}]'.format(args.output))
