@@ -1,5 +1,6 @@
 import re
 import json
+import argparse
 
 first_re = re.compile(r'^Plan\s+(?P<id>\d+)\s(?P<junction>J\d{6}).*(?P<cycle>CY\d{3})\s(?P<phases>[A-Z0-9\s,]+)$')
 second_re = re.compile(r'[A-Z]{1,2}\s\d{1,3}')
@@ -45,7 +46,13 @@ def read_plans(file):
     return plans
 
 if __name__ == "__main__":
-    plans = read_plans('planes.txt')
-    print(plans['J007141'])
-    print(len(plans.keys()))
-    json.dump(plans, open('plans.json', 'w'))
+    args_parser = argparse.ArgumentParser(description='Initial plans parser script')
+    args_parser.add_argument('input', type=str, help='Input file')
+    args_parser.add_argument('junc', type=str, help='Junction to verify')
+    args = args_parser.parse_args()
+    # Parse
+    plans = read_plans(args.input)
+    print('\n\n{} junctions parsed'.format(len(plans.keys())))
+    print('\nExtracted data for {}:'.format(args.junc))
+    print(json.dumps(plans[args.junc], indent='\t'))
+    #json.dump(plans, open('plans.json', 'w'))
