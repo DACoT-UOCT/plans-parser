@@ -28,7 +28,10 @@ jobs:
                           coverage run -m unittest -v && coverage report -m
                   - name: Generate xml coverage report
                     run: |
-                          coverage xml -i
+                          coverage xml -i}
+                  - name: ls 
+                    run: |
+                          ls -lh
       sonarcloud:
           runs-on: ubuntu-latest
           steps:
