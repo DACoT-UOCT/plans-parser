@@ -28,10 +28,6 @@ jobs:
                           coverage run -m unittest -v && coverage report -m
                   - name: Generate xml coverage report
                     run: |
-                          coverage xml -i
-                  - name: ls 
-                    run: |
-                          ls -lh
                   - name: Upload xml coverage report
                     uses: actions/upload-artifact@v1
                     with:
@@ -48,10 +44,6 @@ jobs:
             uses: actions/download-artifact@v1
             with:
               name: report
-          - name: cat
-            run: |
-                  cd report
-                  ls -lh
           - name: SonarCloud Scan
             uses: sonarsource/sonarcloud-github-action@master
             env:
