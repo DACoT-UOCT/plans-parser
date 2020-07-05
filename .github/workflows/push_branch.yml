@@ -48,9 +48,9 @@ jobs:
             uses: actions/download-artifact@v1
             with:
               name: report
-          - name: ls
+          - name: cat
             run: |
-                  ls -lh
+                  cat report
           - name: SonarCloud Scan
             uses: sonarsource/sonarcloud-github-action@master
             env:
