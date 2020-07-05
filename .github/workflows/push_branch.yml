@@ -28,6 +28,7 @@ jobs:
                           coverage run -m unittest -v && coverage report -m
                   - name: Generate xml coverage report
                     run: |
+                          coverage xml -i
                   - name: Upload xml coverage report
                     uses: actions/upload-artifact@v1
                     with:
