@@ -32,9 +32,18 @@ jobs:
                   - name: ls 
                     run: |
                           ls -lh
+                  - name: Upload xml coverage report
+                    uses: actions/upload-artifact@v1
+                    with:
+                      name: report
+                      path: coverage.xml
       sonarcloud:
           runs-on: ubuntu-latest
           steps:
+          - name: Download coverage report
+            uses: actions/download-artifact@v1
+            with:
+              name: report
           - uses: actions/checkout@v2
             with:
               # Disabling shallow clone is recommended for improving relevancy of reporting
