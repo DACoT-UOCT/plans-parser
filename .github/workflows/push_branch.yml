@@ -26,6 +26,7 @@ jobs:
                           python -m pip install --upgrade pip
                           pip install coverage
                           coverage run -m unittest -v && coverage report -m
+                          coverage xml -i
       sonarcloud:
           runs-on: ubuntu-latest
           steps:
