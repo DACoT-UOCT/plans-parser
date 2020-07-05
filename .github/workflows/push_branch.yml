@@ -40,14 +40,14 @@ jobs:
       sonarcloud:
           runs-on: ubuntu-latest
           steps:
-          - name: Download coverage report
-            uses: actions/download-artifact@v1
-            with:
-              name: report
           - uses: actions/checkout@v2
             with:
               # Disabling shallow clone is recommended for improving relevancy of reporting
               fetch-depth: 0
+          - name: Download coverage report
+            uses: actions/download-artifact@v1
+            with:
+              name: report
           - name: ls
             run: |
                   ls -lh
