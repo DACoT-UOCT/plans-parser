@@ -50,7 +50,8 @@ jobs:
               name: report
           - name: cat
             run: |
-                  cat report
+                  cd report
+                  ls -lh
           - name: SonarCloud Scan
             uses: sonarsource/sonarcloud-github-action@master
             env:
