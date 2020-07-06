@@ -4,7 +4,7 @@
 
 ## Run Tests 
 
-To run all tests in the project, run this command from the root directory of the repository :
+To run all tests in the project, run this command from the root directory of the repository:
 
 ```bash
 python -m unittest -v
