@@ -30,7 +30,7 @@ class UTCPlanParser():
         plan = self.__re_plan.match(text)
         if not plan:
             return False, None
-        if not self.__re_validate_phases.findall(plan.group('phases')):
+        if not self.__re_validate_phases.match(plan.group('phases')):
             return False, None
         phases = self.__re_extract_phases.findall(plan.group('phases'))
         formatted_phases = self.__build_phases(phases)
