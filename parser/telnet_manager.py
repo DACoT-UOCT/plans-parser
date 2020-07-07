@@ -23,6 +23,13 @@ class TelnetManager():
             return False
         return True
 
+    def read_until(self, text):
+        try:
+            return self.__telnet.read_until(bytes(text, encoding='ascii'))
+        except Exception as error:
+            logging.fatal(error)
+            return False
+
     def read_all_lines(self):
         lines = []
         try:
