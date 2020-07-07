@@ -5,7 +5,7 @@ class TelnetManager():
     def __init__(self):
         self.__telnet = None
 
-    def start_session(self, host, port=23, creds=None):
+    def start(self, host, port=23, creds=None):
         try:
             logging.debug('Starting telnet session to {}:{}'.format(host, port))
             self.__telnet = telnetlib.Telnet(host, port)
@@ -15,7 +15,7 @@ class TelnetManager():
             return False
         return True
 
-    def send_line(self, text):
+    def command(self, text):
         try:
             self.__telnet.write(bytes(text + '\r\n', encoding='ascii'))
         except Exception as error:
@@ -30,7 +30,7 @@ class TelnetManager():
             logging.fatal(error)
             return False
 
-    def read_all_lines(self):
+    def read_lines(self):
         lines = []
         try:
             while True:
@@ -43,8 +43,8 @@ class TelnetManager():
             logging.fatal(error)
             return False
 
-    def end_session_with_command(self, command):
-        if self.send_line(command):
+    def terminate_command(self, command):
+        if self.command(command):
             try:
                 self.__telnet.read_all()
             except ConnectionResetError as err:
