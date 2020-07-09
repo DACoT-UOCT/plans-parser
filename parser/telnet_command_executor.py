@@ -46,6 +46,11 @@ class TelnetCommandExecutor():
         out = telnet.read_until(bytes(text, encoding='ascii'), timeout)
         self.__reads_outputs.append(out.decode('ascii'))
 
+    def reset(self):
+        self.__reads_outputs.clear()
+        self.__command_history.clear()
+        self.__commands.queue.clear()
+
     def run(self):
         # TODO: Add debug messages, method try/catch and return status code
         with telnetlib.Telnet(self.__target_host, self.__target_port, self.__conn_timeout) as tn_client:
