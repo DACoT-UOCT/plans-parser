@@ -13,7 +13,6 @@ class TestProgramParser(unittest.TestCase):
         self.assertEqual(len(programs.keys()), 5)
         self.assertEqual(programs['J099181']['S'][0], ['01:00:02','31'])
         self.assertEqual(programs['J099181']['S'][0][0], '01:00:02')
-        print(programs)
         self.assertEqual(programs['J099181']['S'][1][1], 'XS')
     
     def test_parse_invalid_program(self):

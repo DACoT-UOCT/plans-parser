@@ -32,5 +32,5 @@ class UTCProgramParser():
                         programs[junct] = {}
                         if not day in programs[junct]:
                             programs[junct][day] = []
-                        programs[junct][day].append([f_hour,f_plan])
+                    programs[junct][day].append([f_hour,f_plan])
         return programs
