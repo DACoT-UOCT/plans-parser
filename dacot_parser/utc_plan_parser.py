@@ -29,10 +29,8 @@ class UTCPlanParser():
     def parse_plan(self, text):
         plan = self.__re_plan.match(text)
         if not plan:
-            # print('PLAN FAIL!', bytes(text, 'ascii'))
             return False, None
         if not self.__re_validate_phases.match(plan.group('phases')):
-            # print('VALIDATE PHASE FAIL!', bytes(plan.group('phases'), 'ascii'))
             return False, None
         phases = self.__re_extract_phases.findall(plan.group('phases'))
         formatted_phases = self.__build_phases(phases)
