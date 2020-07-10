@@ -3,7 +3,7 @@ import re
 class UTCPlanParser():
     def __init__(self):
         # [python:S4784]: There is no risk for a ReDoS since the input text to evaluate is not provided by users
-        self.__re_plan = re.compile(r'^Plan\s+(?P<id>\d+)\s(?P<junction>J\d{6}).*(?P<cycle>CY\d{3})\s(?P<phases>[A-Z0-9\s,!]+)$')
+        self.__re_plan = re.compile(r'^\s*Plan\s+(?P<id>\d+)\s(?P<junction>J\d{6}).*(?P<cycle>CY\d{3})\s(?P<phases>[A-Z0-9\s,!]+)$')
         self.__re_validate_phases = re.compile(r'^([A-Z]+!?\s\d+,\s)+[A-Z]+!?\s\d+$')
         self.__re_extract_phases = re.compile(r'[A-Z]+!*\s\d+')
 
@@ -29,8 +29,10 @@ class UTCPlanParser():
     def parse_plan(self, text):
         plan = self.__re_plan.match(text)
         if not plan:
+            # print('PLAN FAIL!', bytes(text, 'ascii'))
             return False, None
         if not self.__re_validate_phases.match(plan.group('phases')):
+            # print('VALIDATE PHASE FAIL!', bytes(plan.group('phases'), 'ascii'))
             return False, None
         phases = self.__re_extract_phases.findall(plan.group('phases'))
         formatted_phases = self.__build_phases(phases)
