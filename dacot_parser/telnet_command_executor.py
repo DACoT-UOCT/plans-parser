@@ -14,11 +14,11 @@ class TelnetCommandExecutor():
         self.__command_history.append(command)
         self.__commands.put(lambda **kwargs: self.__command_impl(command, **kwargs))
 
-    def read_lines(self):
-        self.__commands.put(lambda **kwargs: self.__read_lines_impl(**kwargs))
+    def read_lines(self, encoding='ascii'):
+        self.__commands.put(lambda **kwargs: self.__read_lines_impl(encoding, **kwargs))
 
-    def read_until(self, text, timeout=None):
-        self.__commands.put(lambda **kwargs: self.__read_until_impl(text, timeout, **kwargs))
+    def read_until(self, text, timeout=None, encoding='ascii'):
+        self.__commands.put(lambda **kwargs: self.__read_until_impl(text, timeout, encoding, **kwargs))
 
     def get_results(self):
         return self.__reads_outputs
@@ -26,14 +26,14 @@ class TelnetCommandExecutor():
     def history(self):
         return self.__command_history
 
-    def __read_lines_impl(self, **kwargs):
+    def __read_lines_impl(self, encoding, **kwargs):
         telnet = kwargs['telnet']
         lines = []
         while True:
             l = telnet.read_until(b'\n', 1)
             if l == b'':
                 break
-            lines.append(l.decode('ascii').rstrip())
+            lines.append(l.decode(encoding).rstrip())
         self.__reads_outputs.append(lines)
 
     def __command_impl(self, command, **kwargs):
@@ -41,10 +41,10 @@ class TelnetCommandExecutor():
         comm = bytes(command + '\r\n', encoding='ascii')
         telnet.write(comm)
 
-    def __read_until_impl(self, text, timeout, **kwargs):
+    def __read_until_impl(self, text, timeout, encoding, **kwargs):
         telnet = kwargs['telnet']
-        out = telnet.read_until(bytes(text, encoding='ascii'), timeout)
-        self.__reads_outputs.append(out.decode('ascii'))
+        out = telnet.read_until(bytes(text, encoding=encoding), timeout)
+        self.__reads_outputs.append(out.decode(encoding))
 
     def reset(self):
         self.__reads_outputs.clear()
