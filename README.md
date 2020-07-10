@@ -9,3 +9,11 @@ To run all tests in the project, run this command from the root directory of the
 ```bash
 python -m unittest -v
 ```
+For security reasons, the test that connects to the UTC system in the UOCT network is ignored in CI. To run it, you have to follow this steps:
+
+```bash
+export DACOT_UOCT_CTRL_HOST='UTC system address'
+export DACOT_UOCT_CTRL_USER='UTC system username'
+export DACOT_UOCT_CTRL_PASS='UTC system user password'
+python -m unittest -v tests.test_telnet_uoct.TestTelnetExecutorUOCT
+```
