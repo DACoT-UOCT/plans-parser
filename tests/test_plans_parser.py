@@ -1,6 +1,6 @@
 import os
 import unittest
-from parser.utc_plan_parser import UTCPlanParser
+from dacot_parser.utc_plan_parser import UTCPlanParser
 
 class TestPlanParser(unittest.TestCase):
     def __init__(self, *args, **kwargs):

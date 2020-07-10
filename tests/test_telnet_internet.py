@@ -1,5 +1,5 @@
 import unittest
-from parser.telnet_command_executor import TelnetCommandExecutor
+from dacot_parser.telnet_command_executor import TelnetCommandExecutor
 
 class TestTelnetExecutorInternet(unittest.TestCase):
     def __init__(self, *args, **kwargs):

@@ -1,6 +1,6 @@
 import os
 import unittest
-from parser.utc_program_parser import UTCProgramParser
+from dacot_parser.utc_program_parser import UTCProgramParser
 
 class TestProgramParser(unittest.TestCase):
     def __init__(self, *args, **kwargs):
