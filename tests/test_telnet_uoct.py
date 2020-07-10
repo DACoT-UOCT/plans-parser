@@ -13,6 +13,7 @@ class TestTelnetExecutorUOCT(unittest.TestCase):
         self.passwd = os.environ['DACOT_UOCT_CTRL_PASS']
         self.executor = TelnetCommandExecutor(self.host)
         self.plan_parser = UTCPlanParser()
+        self.ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n')
 
     def test_control_login_success(self):
         self.executor.reset()
@@ -29,30 +30,11 @@ class TestTelnetExecutorUOCT(unittest.TestCase):
         results = self.executor.get_results()
         self.assertIn('Access Denied', results[2][0])
 
-    def test_control_parse_plans_timings(self):
-        self.executor.reset()
-        self.__login_steps(self.user, self.passwd)
-        self.executor.command('LIPT A000000 TIMINGS')
-        self.executor.read_lines(encoding='iso-8859-1')
-        self.executor.command('ENDS')
-        self.executor.run()
-        results = self.executor.get_results()
-        extracted_plans = results[3]
-        self.assertIn('Current plan Timings', extracted_plans[2])
-        self.assertIn('End of Plan Timings', extracted_plans[-1])
-        plans_sample = random.sample(extracted_plans[10:-10], 100)
-        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])')
-        for plan in plans_sample:
-            if 'Plan' in plan:
-                clear_plan = ansi_escape.sub('', plan)
-                self.assertTrue(self.plan_parser.parse_plan(clear_plan)[0])
-            elif '<BAD>' in plan:
-                clear_plan = ansi_escape.sub('', plan)
-                self.assertFalse(self.plan_parser.parse_plan(clear_plan)[0])
-            #print('ANSI_PLAN:', bytes(plan, 'ascii'))
-            clear_plan = ansi_escape.sub('', plan)
-            #print('CLEAR_PLAN:', bytes(clear_plan, 'ascii'))
-            self.assertTrue(self.plan_parser.parse_plan(clear_plan)[0])
+    def test_control_parse_single_junction_timings(self):
+        self.__helper_parse_junction_plans_timings('J001181')
+
+    def test_control_parse_all_plans_timings(self):
+        self.__helper_parse_junction_plans_timings('A000000')
 
     def __login_steps(self, user, passwd):
         self.executor.read_until('Username:', 15)
@@ -60,3 +42,22 @@ class TestTelnetExecutorUOCT(unittest.TestCase):
         self.executor.read_until('Password:', 15)
         self.executor.command(passwd)
         self.executor.read_lines(encoding='iso-8859-1')
+
+    def __helper_parse_junction_plans_timings(self, target):
+        self.executor.reset()
+        self.__login_steps(self.user, self.passwd)
+        self.executor.command('LIPT {} TIMINGS'.format(target))
+        self.executor.read_lines(encoding='iso-8859-1', line_ending=b'\x1b8\x1b7')
+        self.executor.command('ENDS')
+        self.executor.run()
+        results = self.executor.get_results()
+        extracted_plans = results[3]
+        self.assertIn('Current plan Timings', extracted_plans[0])
+        self.assertIn('End of Plan Timings', extracted_plans[-1])
+        for plan in extracted_plans[1:-1]:
+            clear_plan = self.ansi_escape.sub('', plan)
+            # print(clear_plan)
+            if '<BAD>' in plan:
+                self.assertFalse(self.plan_parser.parse_plan(clear_plan)[0])
+            else:
+                self.assertTrue(self.plan_parser.parse_plan(clear_plan)[0])
