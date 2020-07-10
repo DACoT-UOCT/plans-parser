@@ -54,10 +54,12 @@ class TestTelnetExecutorUOCT(unittest.TestCase):
         extracted_plans = results[3]
         self.assertIn('Current plan Timings', extracted_plans[0])
         self.assertIn('End of Plan Timings', extracted_plans[-1])
+        failed = []
         for plan in extracted_plans[1:-1]:
             clear_plan = self.ansi_escape.sub('', plan)
-            # print(clear_plan)
-            if '<BAD>' in plan:
-                self.assertFalse(self.plan_parser.parse_plan(clear_plan)[0])
+            if '<BAD>' in clear_plan:
+                self.assertFalse(self.plan_parser.parse_plan(clear_plan)[0], clear_plan)
             else:
-                self.assertTrue(self.plan_parser.parse_plan(clear_plan)[0])
+                if not self.plan_parser.parse_plan(clear_plan)[0]:
+                    failed.append(clear_plan)
+        self.assertListEqual([], failed, 'Found invalid plans')
