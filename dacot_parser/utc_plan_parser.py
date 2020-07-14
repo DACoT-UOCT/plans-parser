@@ -16,6 +16,7 @@ class UTCPlanParser():
         result = {}
         for k in phases_dict.keys():
             if len(k) > 1:
+                # TODO: Check special case of '*' in the identifier
                 if '!' in k: # Special case when phase id has a trailing '!' character
                     kn = ''.join([str(ord(i) - 64) for i in list(k)[:-1]]) + '!'
                 else:
