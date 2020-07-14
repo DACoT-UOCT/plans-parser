@@ -11,16 +11,43 @@ class SchedulesExtractor():
         self.__utc_passwd = passwd
         self.__executor = TelnetCommandExecutor(self.__utc_host)
         self.__plans_parser = UTCPlanParser()
-        # self.__program_parser = UTCProgramParser()
+        self.__program_parser = UTCProgramParser()
         self.__re_ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n')
 
     def build_schedules(self):
         self.__executor.reset()
-        #plans, failed_plans = self.__parse_plans('A000000')
-        return self.__parse_plans('A000000')
+        plans, failed_plans = self.__parse_plans('A000000')
+        week_programs, week_failed_programs = self.__parse_programs(1)
+        saturday_programs, saturday_failed_programs = self.__parse_programs(2)
+        sunday_programs, sunday_failed_programs = self.__parse_programs(3)
+        return [], []
+        #return self.__parse_plans('A000000')
 
     def get_results(self):
         return self.__executor.get_results()
+
+    def __parse_programs(self, table_code):
+        self.__login()
+        self.__executor.command('get-programs', 'OUTT {} E'.format(table_code))
+        self.__executor.read_lines(encoding='iso-8859-1', line_ending=b'\x1b8\x1b7')
+        self.__logout()
+        self.__executor.run()
+        results = self.__executor.get_results()
+        system_programs = results['get-plans']
+        fail = []
+        programs = {}
+        for program in system_programs[1:-1]:
+            clean_program = self.__re_ansi_escape.sub('', program)
+            ok, parsed = self.__program_parser.parse_program(clean_program) # TODO: Missing hour
+            if not ok:
+                fail.append(clean_program)
+            else:
+                junct, hour, plan_id = parsed
+                if not junct in programs:
+                    programs[junct] = {}
+                    programs[junct][table_code] = []
+                programs[junct][table_code].append([hour, plan_id])
+        return programs, fail
 
     # TODO: Check the case when there is no slots available in the system
     def __login(self):
