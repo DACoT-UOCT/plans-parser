@@ -22,5 +22,5 @@ class TestTelnetExecutorInternet(unittest.TestCase):
 
     def test_start_and_exit_session(self):
         self.executor.reset()
-        self.executor.command('exit', 'exit')
+        self.executor.command('end-session', 'exit')
         self.executor.run()
