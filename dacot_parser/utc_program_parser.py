@@ -4,7 +4,7 @@ class UTCProgramParser():
     def __init__(self):
         # [python:S4784]: There is no risk for a ReDoS since the input text to evaluate is not provided by users
         self.__re_hour = re.compile(r'(?P<hour>\d{2}:\d{2}:\d{2})\s+[A-Z]+\s+\d{3,4}\s+\(.*PLANES.*\)$')
-        self.__re_plan = re.compile(r'(?P<hour>(\d{2}:\d{2}:\d{2})?)(\d{3})?\s+PLAN\s+(?P<junction>J\d{6})\s+(?P<plan>(\d+|[A-Z]{1,2}))\s+TIMETABLE$')
+        self.__re_plan = re.compile(r'(?P<hour>(\d{2}:\d{2}:\d{2})?)(\d{3})?\s+PLAN\s+(?P<junction>[J|A]\d{6})\s+(?P<plan>(\d+|[A-Z]{1,2}))\s+TIMETABLE$')
         self.__hour = '0'
 
     def parse_program(self,text):
