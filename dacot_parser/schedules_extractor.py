@@ -17,9 +17,38 @@ class SchedulesExtractor():
     def build_schedules(self):
         self.__executor.reset()
         plans, failed_plans = self.__parse_plans('A000000')
-        week_programs, week_failed_programs = self.__parse_programs(1)
-        saturday_programs, saturday_failed_programs = self.__parse_programs(2)
+        #week_programs, week_failed_programs = self.__parse_programs(1)
+        #saturday_programs, saturday_failed_programs = self.__parse_programs(2)
         sunday_programs, sunday_failed_programs = self.__parse_programs(3)
+        table_to_day = {
+            1: 'L',
+            2: 'S',
+            3: 'D'
+        }
+        schedules = {}
+        for idx, k in enumerate(plans.keys()):
+            if idx == 3:
+                break
+            schedules[k] = {
+                'plans': plans[k],
+                'program': {
+                    'L': [],
+                    'S': [],
+                    'D': []
+                }
+            }
+        print('=======')
+        for jk in schedules:
+            for idx, k in enumerate(sunday_programs.keys()):
+                day_table_code = list(sunday_programs[k].keys())[0]
+                day = table_to_day[day_table_code]
+                if idx == 3:
+                    break
+                if k[0] == 'A':
+                    expanded_wildcard = k.rstrip('0')[1:]
+                    if jk[1:][:len(expanded_wildcard)] == expanded_wildcard:
+                        schedules[jk]['program'][day].extend(sunday_programs[k][day_table_code])
+        print(schedules)
         return [], []
         #return self.__parse_plans('A000000')
 
@@ -33,16 +62,19 @@ class SchedulesExtractor():
         self.__logout()
         self.__executor.run()
         results = self.__executor.get_results()
-        system_programs = results['get-plans']
+        system_programs = results['get-programs'][0]
         fail = []
         programs = {}
         for program in system_programs[1:-1]:
-            clean_program = self.__re_ansi_escape.sub('', program)
-            ok, parsed = self.__program_parser.parse_program(clean_program) # TODO: Missing hour
+            clean_program = self.__re_ansi_escape.sub('', program).strip()
+            ok, parsed = self.__program_parser.parse_program(clean_program)
             if not ok:
                 fail.append(clean_program)
             else:
                 junct, hour, plan_id = parsed
+                if type(hour) is list:
+                    # print(clean_program, parsed) # TODO: Why?
+                    continue
                 if not junct in programs:
                     programs[junct] = {}
                     programs[junct][table_code] = []
@@ -67,7 +99,7 @@ class SchedulesExtractor():
         self.__logout()
         self.__executor.run()
         results = self.__executor.get_results()
-        system_plans = results['get-plans']
+        system_plans = results['get-plans'][0]
         fail = []
         plans = {}
         for plan in system_plans[1:-1]:
