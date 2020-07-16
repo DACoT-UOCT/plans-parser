@@ -1,8 +1,9 @@
+import sys
 import queue
 import telnetlib
 
 class TelnetCommandExecutor():
-    def __init__(self, host, port=23, connection_timeout=7):
+    def __init__(self, host, port=23, connection_timeout=40):
         self.__commands = queue.Queue()
         self.__target_host = host
         self.__target_port = port
@@ -32,13 +33,16 @@ class TelnetCommandExecutor():
 
     def __read_lines_impl(self, encoding, line_ending, **kwargs):
         telnet = kwargs['telnet']
+        size = 0
         lines = []
         while True:
             l = telnet.read_until(line_ending, 1)
             if l == b'':
                 break
-            lines.append(l.decode(encoding).rstrip())
-        return lines
+            clean = l.decode(encoding).rstrip()
+            size += sys.getsizeof(clean)
+            lines.append(clean)
+        return lines, size
 
     def __command_impl(self, command, **kwargs):
         telnet = kwargs['telnet']
@@ -48,23 +52,32 @@ class TelnetCommandExecutor():
     def __read_until_impl(self, text, timeout, encoding, **kwargs):
         telnet = kwargs['telnet']
         out = telnet.read_until(bytes(text, encoding=encoding), timeout)
-        return out.decode(encoding)
+        out = out.decode(encoding)
+        return out, sys.getsizeof(out)
 
     def reset(self):
         self.__reads_outputs.clear()
         self.__command_history.clear()
         self.__commands.queue.clear()
 
-    def run(self):
-        # TODO: Add debug messages, method try/catch and return status code
+    def run(self, debug=False):
+        # TODO: method try/catch and return status code
+        if debug:
+            print('Starting telnet session to {}:{} with a timeout of {}s'.format(self.__target_host, self.__target_port, self.__conn_timeout))
         with telnetlib.Telnet(self.__target_host, self.__target_port, self.__conn_timeout) as tn_client:
             while not self.__commands.empty():
                 cmd = self.__commands.get()
+                if debug:
+                    print('Executing command {} -> {}'.format(cmd[0], cmd[1]))
                 if 'read' in cmd[0]:
                     if not self.__current_command in self.__reads_outputs:
                         self.__reads_outputs[self.__current_command] = []
-                    output = cmd[1](telnet=tn_client)
+                    output, size = cmd[1](telnet=tn_client)
+                    if debug:
+                        print('Adding output of size {} bytes to command {}'.format(size, cmd[0]))
                     self.__reads_outputs[self.__current_command].append(output)
                 else:
                     self.__current_command = cmd[0]
                     cmd[1](telnet=tn_client)
+        if debug:
+            print('End session to {}:{}'.format(self.__target_host, self.__target_port))
