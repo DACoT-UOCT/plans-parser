@@ -118,20 +118,20 @@ class SchedulesExtractor():
         plans = {}
         for plan in system_plans:
             clean_plan = self.__re_ansi_escape.sub('', plan)
-            if not '<BAD>' in clean_plan:
-                ok, parsed = self.__plans_parser.parse_plan(clean_plan)
-                if not ok:
-                    fail.append(clean_plan)
-                    if self.__debug_enabled:
-                        print('PARSE FAILED', bytes(clean_plan, 'ascii'))
-                else:
-                    success += 1
-                    junct, plan_id, plan_timings = parsed
-                    if not junct in plans:
-                        plans[junct] = {}
-                    plans[junct][plan_id] = plan_timings
-            else:
+            if '<BAD>' in clean_plan:
                 ignored += 1
+                continue
+            ok, parsed = self.__plans_parser.parse_plan(clean_plan)
+            if not ok:
+                fail.append(clean_plan)
+                if self.__debug_enabled:
+                    print('PARSE FAILED', bytes(clean_plan, 'ascii'))
+            else:
+                success += 1
+                junct, plan_id, plan_timings = parsed
+                if not junct in plans:
+                    plans[junct] = {}
+                plans[junct][plan_id] = plan_timings
         if self.__debug_enabled:
             print('From a total of {} plans, we parsed {}, {} have problems and {} were ignored'.format(len(system_plans), success, len(fail), ignored))
         return plans, fail
