@@ -12,7 +12,7 @@ class SchedulesExtractor():
         self.__plans_parser = UTCPlanParser()
         self.__program_parser = UTCProgramParser()
         self.__re_ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n')
-        self.__debug_enabled = True #debug
+        self.__debug_enabled = debug
 
     def build_schedules(self):
         self.__executor.reset()
@@ -25,9 +25,7 @@ class SchedulesExtractor():
         schedules = self.__add_programs_to_schedules(week_programs, 'L', schedules)
         schedules = self.__add_programs_to_schedules(saturday_programs, 'S', schedules)
         schedules = self.__add_programs_to_schedules(sunday_programs, 'D', schedules)
-        print('\n\n')
-        print(schedules['J001331'])
-        return [], []
+        return schedules, [failed_plans, failed_week_programs, failed_saturday_programs, failed_sunday_programs]
 
     def __build_schedules_dict(self, junctions):
         schedules = {}
@@ -56,16 +54,17 @@ class SchedulesExtractor():
             elif p[0] in schedules:
                 schedules[p[0]]['program'][day].append([p[1], p[2]])
             else:
-                print(p[0], 'not in schedules')
+                if self.__debug_enabled:
+                    print(p[0], 'is not in schedules (no plans for this junction?)', 'day:', day, 'parsed:', p)
         return schedules
 
     def __expand_wildcard(self, wildcard):
         pattern = wildcard.rstrip('0')[1:]
         lendiff = (6 - len(pattern))
-        max = 10 ** lendiff
+        limit = 10 ** lendiff
         n = 0
         formatstr = 'J{}{:0' + str(lendiff) + 'd}'
-        while n < max:
+        while n < limit:
             yield formatstr.format(pattern, n)
             n += 1
 
@@ -75,7 +74,7 @@ class SchedulesExtractor():
     def __parse_programs(self, table_code):
         self.__login()
         self.__executor.command('get-programs', 'OUTT {} E'.format(table_code))
-        self.__executor.sleep(15)
+        self.__executor.sleep(40)
         self.__executor.read_lines(encoding='iso-8859-1', line_ending=b'\x1b8\x1b7')
         self.__logout()
         self.__executor.run(self.__debug_enabled)
@@ -83,22 +82,15 @@ class SchedulesExtractor():
         system_programs = results['get-programs'][0][1:-1]
         fail = []
         programs = []
-        success, ignored = 0, 0
         for program in system_programs:
             clean_program = self.__re_ansi_escape.sub('', program).strip()
             ok, parsed = self.__program_parser.parse_program(clean_program)
             if not ok:
                 fail.append(clean_program)
             else:
-                success += 1
-                junct, hour, plan_id = parsed
-                if type(hour) is list:
-                    print('IGNORED', clean_program, parsed) # TODO: Why?
-                    ignored += 1
-                    continue
                 programs.append(parsed)
         if self.__debug_enabled:
-            print('From a total of {} plans, we parsed {}, {} have problems and {} were ignored'.format(len(system_programs), success, len(fail), ignored))
+            print('From a total of {} plans, we parsed {} and {} have problems'.format(len(system_programs), len(programs), len(fail)))
         return programs, fail
 
     # TODO: Check the case when there is no slots available in the system
@@ -115,7 +107,7 @@ class SchedulesExtractor():
     def __parse_plans(self, junction):
         self.__login()
         self.__executor.command('get-plans', 'LIPT {} TIMINGS'.format(junction))
-        self.__executor.sleep(15)
+        self.__executor.sleep(40)
         self.__executor.read_lines(encoding='iso-8859-1', line_ending=b'\x1b8\x1b7')
         self.__logout()
         self.__executor.run(self.__debug_enabled)
@@ -130,6 +122,8 @@ class SchedulesExtractor():
                 ok, parsed = self.__plans_parser.parse_plan(clean_plan)
                 if not ok:
                     fail.append(clean_plan)
+                    if self.__debug_enabled:
+                        print('PARSE FAILED', bytes(clean_plan, 'ascii'))
                 else:
                     success += 1
                     junct, plan_id, plan_timings = parsed
