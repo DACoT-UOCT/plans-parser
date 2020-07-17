@@ -5,52 +5,69 @@ from dacot_parser.utc_plan_parser import UTCPlanParser
 from dacot_parser.utc_program_parser import UTCProgramParser
 
 class SchedulesExtractor():
-    def __init__(self, host, user, passwd):
-        self.__utc_host = host
+    def __init__(self, host, user, passwd, debug=False):
         self.__utc_user = user
         self.__utc_passwd = passwd
-        self.__executor = TelnetCommandExecutor(self.__utc_host)
+        self.__executor = TelnetCommandExecutor(host)
         self.__plans_parser = UTCPlanParser()
         self.__program_parser = UTCProgramParser()
         self.__re_ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n')
+        self.__debug_enabled = True #debug
 
     def build_schedules(self):
         self.__executor.reset()
         plans, failed_plans = self.__parse_plans('A000000')
-        #week_programs, week_failed_programs = self.__parse_programs(1)
-        #saturday_programs, saturday_failed_programs = self.__parse_programs(2)
-        sunday_programs, sunday_failed_programs = self.__parse_programs(3)
-        table_to_day = {
-            1: 'L',
-            2: 'S',
-            3: 'D'
-        }
+        week_programs, failed_week_programs = self.__parse_programs(1)
+        saturday_programs, failed_saturday_programs = self.__parse_programs(2)
+        sunday_programs, failed_sunday_programs = self.__parse_programs(3)
+        schedules = self.__build_schedules_dict(plans)
+        schedules = self.__add_plans_to_schedules(plans, schedules)
+        schedules = self.__add_programs_to_schedules(week_programs, 'L', schedules)
+        schedules = self.__add_programs_to_schedules(saturday_programs, 'S', schedules)
+        schedules = self.__add_programs_to_schedules(sunday_programs, 'D', schedules)
+        print('\n\n')
+        print(schedules['J001331'])
+        return [], []
+
+    def __build_schedules_dict(self, junctions):
         schedules = {}
-        for idx, k in enumerate(plans.keys()):
-            if idx == 3:
-                break
-            schedules[k] = {
-                'plans': plans[k],
+        for j in junctions:
+            schedules[j] = {
+                'plans': None,
                 'program': {
                     'L': [],
                     'S': [],
-                    'D': []
+                    'D': [],
                 }
             }
-        print('=======')
-        for jk in schedules:
-            for idx, k in enumerate(sunday_programs.keys()):
-                day_table_code = list(sunday_programs[k].keys())[0]
-                day = table_to_day[day_table_code]
-                if idx == 3:
-                    break
-                if k[0] == 'A':
-                    expanded_wildcard = k.rstrip('0')[1:]
-                    if jk[1:][:len(expanded_wildcard)] == expanded_wildcard:
-                        schedules[jk]['program'][day].extend(sunday_programs[k][day_table_code])
-        print(schedules)
-        return [], []
-        #return self.__parse_plans('A000000')
+        return schedules
+
+    def __add_plans_to_schedules(self, plans, schedules):
+        for p in plans:
+            schedules[p]['plans'] = plans[p]
+        return schedules
+
+    def __add_programs_to_schedules(self, programs, day, schedules):
+        for p in programs:
+            if p[0][0] == 'A':
+                for possible in self.__expand_wildcard(p[0]):
+                    if possible in schedules:
+                        schedules[possible]['program'][day].append([p[1], p[2]])
+            elif p[0] in schedules:
+                schedules[p[0]]['program'][day].append([p[1], p[2]])
+            else:
+                print(p[0], 'not in schedules')
+        return schedules
+
+    def __expand_wildcard(self, wildcard):
+        pattern = wildcard.rstrip('0')[1:]
+        lendiff = (6 - len(pattern))
+        max = 10 ** lendiff
+        n = 0
+        formatstr = 'J{}{:0' + str(lendiff) + 'd}'
+        while n < max:
+            yield formatstr.format(pattern, n)
+            n += 1
 
     def get_results(self):
         return self.__executor.get_results()
@@ -58,27 +75,30 @@ class SchedulesExtractor():
     def __parse_programs(self, table_code):
         self.__login()
         self.__executor.command('get-programs', 'OUTT {} E'.format(table_code))
+        self.__executor.sleep(15)
         self.__executor.read_lines(encoding='iso-8859-1', line_ending=b'\x1b8\x1b7')
         self.__logout()
-        self.__executor.run()
+        self.__executor.run(self.__debug_enabled)
         results = self.__executor.get_results()
-        system_programs = results['get-programs'][0]
+        system_programs = results['get-programs'][0][1:-1]
         fail = []
-        programs = {}
-        for program in system_programs[1:-1]:
+        programs = []
+        success, ignored = 0, 0
+        for program in system_programs:
             clean_program = self.__re_ansi_escape.sub('', program).strip()
             ok, parsed = self.__program_parser.parse_program(clean_program)
             if not ok:
                 fail.append(clean_program)
             else:
+                success += 1
                 junct, hour, plan_id = parsed
                 if type(hour) is list:
-                    # print(clean_program, parsed) # TODO: Why?
+                    print('IGNORED', clean_program, parsed) # TODO: Why?
+                    ignored += 1
                     continue
-                if not junct in programs:
-                    programs[junct] = {}
-                    programs[junct][table_code] = []
-                programs[junct][table_code].append([hour, plan_id])
+                programs.append(parsed)
+        if self.__debug_enabled:
+            print('From a total of {} plans, we parsed {}, {} have problems and {} were ignored'.format(len(system_programs), success, len(fail), ignored))
         return programs, fail
 
     # TODO: Check the case when there is no slots available in the system
@@ -95,22 +115,29 @@ class SchedulesExtractor():
     def __parse_plans(self, junction):
         self.__login()
         self.__executor.command('get-plans', 'LIPT {} TIMINGS'.format(junction))
+        self.__executor.sleep(15)
         self.__executor.read_lines(encoding='iso-8859-1', line_ending=b'\x1b8\x1b7')
         self.__logout()
-        self.__executor.run()
+        self.__executor.run(self.__debug_enabled)
         results = self.__executor.get_results()
-        system_plans = results['get-plans'][0]
+        system_plans = results['get-plans'][0][1:-1]
         fail = []
+        ignored, success = 0, 0
         plans = {}
-        for plan in system_plans[1:-1]:
+        for plan in system_plans:
             clean_plan = self.__re_ansi_escape.sub('', plan)
             if not '<BAD>' in clean_plan:
                 ok, parsed = self.__plans_parser.parse_plan(clean_plan)
                 if not ok:
                     fail.append(clean_plan)
                 else:
+                    success += 1
                     junct, plan_id, plan_timings = parsed
                     if not junct in plans:
                         plans[junct] = {}
                     plans[junct][plan_id] = plan_timings
+            else:
+                ignored += 1
+        if self.__debug_enabled:
+            print('From a total of {} plans, we parsed {}, {} have problems and {} were ignored'.format(len(system_plans), success, len(fail), ignored))
         return plans, fail
