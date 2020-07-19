@@ -20,7 +20,7 @@ services:
     expose:
     - 27017
     ports:
-      - 27011:27017
+      - 30001:27017
     restart: always
     volumes:
       - ./deploy/mongo-data/data1:/data/db
@@ -32,7 +32,7 @@ services:
     expose:
     - 27017
     ports:
-    - 27012:27017
+    - 30002:27017
     restart: always
     volumes:
       - ./deploy/mongo-data/data2:/data/db
@@ -44,7 +44,7 @@ services:
     expose:
     - 27017
     ports:
-    - 27013:27017
+    - 30003:27017
     restart: always
     volumes:
       - ./deploy/mongo-data/data3:/data/db
