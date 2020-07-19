@@ -22,6 +22,8 @@ services:
     ports:
       - 27011:27017
     restart: always
+    volumes:
+      - ./deploy/mongo-data/data1:/data/db
     entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rsuoct" ]
   mongo2:
     hostname: mongo2
@@ -32,6 +34,8 @@ services:
     ports:
     - 27012:27017
     restart: always
+    volumes:
+      - ./deploy/mongo-data/data2:/data/db
     entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rsuoct" ]
   mongo3:
     hostname: mongo3
@@ -42,4 +46,6 @@ services:
     ports:
     - 27013:27017
     restart: always
+    volumes:
+      - ./deploy/mongo-data/data3:/data/db
     entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rsuoct" ]
