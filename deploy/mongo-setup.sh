@@ -4,6 +4,7 @@ set -euxo pipefail
 MONGODB1=mongo1
 MONGODB2=mongo2
 MONGODB3=mongo3
+MONGODB_PUBLIC_ADDR=${DOCKER_MONGO_PUBLIC_ADDR}
 
 echo "Waiting for startup.."
 sleep 10
@@ -17,17 +18,17 @@ var cfg = {
     "members": [
         {
             "_id": 0,
-            "host": "${MONGODB1}:27017",
+            "host": "${MONGODB_PUBLIC_ADDR}:30001",
             "priority": 2
         },
         {
             "_id": 1,
-            "host": "${MONGODB2}:27017",
+            "host": "${MONGODB_PUBLIC_ADDR}:30002",
             "priority": 0
         },
         {
             "_id": 2,
-            "host": "${MONGODB3}:27017",
+            "host": "${MONGODB_PUBLIC_ADDR}:30003",
             "priority": 0
         }
     ],settings: {chainingAllowed: true}

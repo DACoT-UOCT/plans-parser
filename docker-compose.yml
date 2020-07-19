@@ -4,6 +4,8 @@ services:
     container_name: mongo-setup
     image: mongo:4.0.19-xenial
     restart: on-failure
+    environment:
+      - DOCKER_MONGO_PUBLIC_ADDR
     networks:
       default:
     volumes:
