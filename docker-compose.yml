@@ -1,5 +1,18 @@
 version: "3"
 services:
+  mongo-setup:
+    container_name: mongo-setup
+    image: mongo:4.0.19-xenial
+    restart: on-failure
+    networks:
+      default:
+    volumes:
+      - ./deploy:/scripts
+    entrypoint: [ "/scripts/mongo-setup.sh" ]
+    depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
   mongo1:
     hostname: mongo1
     container_name: localmongo1
