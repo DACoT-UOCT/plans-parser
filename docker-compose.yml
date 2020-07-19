@@ -1,0 +1,51 @@
+version: "3"
+services:
+  mongo-setup:
+    container_name: mongo-setup
+    image: mongo:4.0.19-xenial
+    restart: on-failure
+    networks:
+      default:
+    volumes:
+      - ./deploy:/scripts
+    entrypoint: [ "/scripts/mongo-setup.sh" ]
+    depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
+  mongo1:
+    hostname: mongo1
+    container_name: localmongo1
+    image: mongo:4.0.19-xenial
+    expose:
+    - 27017
+    ports:
+      - 27011:27017
+    restart: always
+    volumes:
+      - ./deploy/mongo-data/data1:/data/db
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rsuoct" ]
+  mongo2:
+    hostname: mongo2
+    container_name: localmongo2
+    image: mongo:4.0.19-xenial
+    expose:
+    - 27017
+    ports:
+    - 27012:27017
+    restart: always
+    volumes:
+      - ./deploy/mongo-data/data2:/data/db
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rsuoct" ]
+  mongo3:
+    hostname: mongo3
+    container_name: localmongo3
+    image: mongo:4.0.19-xenial
+    expose:
+    - 27017
+    ports:
+    - 27013:27017
+    restart: always
+    volumes:
+      - ./deploy/mongo-data/data3:/data/db
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rsuoct" ]
