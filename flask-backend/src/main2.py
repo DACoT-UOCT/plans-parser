@@ -5,10 +5,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from bson import json_util 
 from bson.objectid import ObjectId
 
-from .extensions import mongo
+from .extensions import client
 
 main2 = Blueprint('main2', __name__)
 
+
+dacot = client.dacot
 
 @main2.route('/dsadsa')
 def index():
@@ -27,7 +29,7 @@ def create_user():
 
     if username and email and password:
         hashed_password = generate_password_hash(password)
-        id = mongo.db.users.insert(
+        id = dacot.users.insert(
             {'username':username, 'email':email, 'password': hashed_password}
         )
         response = {
@@ -44,19 +46,19 @@ def create_user():
 
 @main2.route('/users2', methods=['GET'])
 def get_users():
-    users = mongo.db.users.find()
+    users = dacot.users.find()
     response = json_util.dumps(users)
     return Response(response, mimetype='application/json')
 
 @main2.route('/users2/<id>', methods=['GET'])
 def get_user(id):
-    user = mongo.db.users.find_one({'_id': ObjectId(id)})
+    user = dacot.users.find_one({'_id': ObjectId(id)})
     response = json_util.dumps(user)
     return Response(response, mimetype="application/json")
 
 @main2.route('/users2/<id>', methods=['DELETE'])
 def delete_user(id):
-    mongo.db.users.delete_one({'_id': ObjectId(id)})
+    dacot.users.delete_one({'_id': ObjectId(id)})
     response = jsonify({'message': 'User ' + id + ' was Deleted successfully'})
     return response
 
@@ -68,7 +70,7 @@ def update_user(id):
 
     if username and email and password:
         hashed_password = generate_password_hash(password)
-        mongo.db.users.update_one({'_id': ObjectId(id)}, {'$set': {
+        dacot.users.update_one({'_id': ObjectId(id)}, {'$set': {
             'username': username,
             'password': hashed_password,
             'email': email

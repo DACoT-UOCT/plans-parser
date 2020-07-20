@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from bson import json_util 
 from bson.objectid import ObjectId
 
-from .extensions import mongo
+
 from .extensions import client
 
 petitions = Blueprint('petitions', __name__)

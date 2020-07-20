@@ -6,7 +6,6 @@ from bson import json_util
 from bson.objectid import ObjectId
 
 
-from .extensions import mongo
 from .extensions import client
 
 def confirm_form():
