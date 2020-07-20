@@ -4,8 +4,11 @@ from flask_pymongo import PyMongo
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson import json_util 
 from bson.objectid import ObjectId
+from pymongo import MongoClient
+
 
 from .extensions import mongo
+from .extensions import db
 
 def confirm_form():
     if True:
@@ -16,11 +19,18 @@ def confirm_form():
 def check_junction():
     return True
 
+dacot = db.dacot
+junctions_c = db.junctions
+
 junction = Blueprint('junction', __name__)
 
 #cambiar users a junctions
 @junction.route('/')
 def index():
+    print(db.node)
+    print(db)
+    #response = json_util.dumps(status)
+    #return Response(response, mimetype='application/json')
     return '<h1>DACoT<h1>'
 
 @junction.route('/junction',methods=['POST'])
@@ -30,15 +40,15 @@ def create_junction():
     #    'etc': request.json['etc']
     # })
     # Receiving data
-    test = request.json['plans']
-    print(test)
+    #test = request.json['plans']
+    #print(test)
     ##password = request.json['password']
     ##email = request.json['email']
 
-    if False:
-        id = mongo.db.junctions.insert({
+    if True:
+        db.junctions_c.insert({
             'fver': '0.1',
-            'junction': 'J001331',
+            '_id': 'J001332',
             'meta': {
                 'ver': 4,
                 'date': '09/2019',
@@ -198,19 +208,19 @@ def create_junction():
 
 @junction.route('/junction', methods=['GET'])
 def get_junctions():
-    junctions = mongo.db.junctions.find()
+    junctions = db.junctions_c.find()
     response = json_util.dumps(junctions)
     return Response(response, mimetype='application/json')
 
 @junction.route('/junction/<id>', methods=['GET'])
 def get_junction(id):
-    junction = mongo.db.junctions.find_one({'_id': ObjectId(id)})
+    junction = db.junctions_c.find_one({'_id': id})
     response = json_util.dumps(junction)
     return Response(response, mimetype="application/json")
 
 @junction.route('/junction/<id>', methods=['DELETE'])
 def delete_junction(id):
-    mongo.db.junctions.delete_one({'_id': ObjectId(id)})
+    db.junctions_c.delete_one({'_id': id})
     response = jsonify({'message': 'Junction ' + id + ' was Deleted successfully'})
     return response
 
@@ -222,7 +232,7 @@ def update_junction(id):
 
     if check_junction():
         hashed_password = generate_password_hash(password)
-        mongo.db.junctions.update_one({'_id': ObjectId(id)}, {'$set': {
+        mongo.db.junctions.update_one({'_id': id}, {'$set': {
             'username': username,
             'password': hashed_password,
             'email': email

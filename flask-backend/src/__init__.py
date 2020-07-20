@@ -4,7 +4,7 @@ from .extensions import mongo
 
 from .junction import junction
 
-from .main2 import main2
+from  .main2 import main2
 
 def create_app(config_object='src.settings'):
     app = Flask(__name__)
