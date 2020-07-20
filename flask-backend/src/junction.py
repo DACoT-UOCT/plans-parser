@@ -4,7 +4,6 @@ from flask_pymongo import PyMongo
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson import json_util 
 from bson.objectid import ObjectId
-from pymongo import MongoClient
 
 
 from .extensions import mongo
@@ -203,8 +202,6 @@ def create_junction():
         return {'message': 'received'}   
     else:
         return not_found()
-
-    return {'message': 'received'}
 
 @junction.route('/junction', methods=['GET'])
 def get_junctions():
