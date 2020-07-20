@@ -8,7 +8,7 @@ from pymongo import MongoClient
 
 
 from .extensions import mongo
-from .extensions import db
+from .extensions import client
 
 def confirm_form():
     if True:
@@ -19,16 +19,16 @@ def confirm_form():
 def check_junction():
     return True
 
-dacot = db.dacot
-junctions_c = db.junctions
+dacot = client.dacot
 
 junction = Blueprint('junction', __name__)
 
 #cambiar users a junctions
 @junction.route('/')
 def index():
-    print(db.node)
-    print(db)
+    print(client.node)
+    print(client)
+    print(client.admin.command('replSetGetStatus'))
     #response = json_util.dumps(status)
     #return Response(response, mimetype='application/json')
     return '<h1>DACoT<h1>'
@@ -45,8 +45,8 @@ def create_junction():
     ##password = request.json['password']
     ##email = request.json['email']
 
-    if True:
-        db.junctions_c.insert({
+    if False:
+        dacot.junction.insert({
             'fver': '0.1',
             '_id': 'J001332',
             'meta': {
@@ -208,19 +208,22 @@ def create_junction():
 
 @junction.route('/junction', methods=['GET'])
 def get_junctions():
-    junctions = db.junctions_c.find()
+    junctions = dacot.junction.find()   
     response = json_util.dumps(junctions)
     return Response(response, mimetype='application/json')
 
 @junction.route('/junction/<id>', methods=['GET'])
 def get_junction(id):
-    junction = db.junctions_c.find_one({'_id': id})
-    response = json_util.dumps(junction)
-    return Response(response, mimetype="application/json")
+    s_junction = dacot.junction.find_one({'_id': id})
+    response = json_util.dumps(s_junction)
+    if response == 'null': 
+        return not_found()
+    else:
+        return Response(response, mimetype="application/json")
 
 @junction.route('/junction/<id>', methods=['DELETE'])
 def delete_junction(id):
-    db.junctions_c.delete_one({'_id': id})
+    dacot.junction.delete_one({'_id': id})
     response = jsonify({'message': 'Junction ' + id + ' was Deleted successfully'})
     return response
 
