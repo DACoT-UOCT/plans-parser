@@ -28,12 +28,12 @@ for k in jsondata:
     item.update(jsondata[k])
     print('Inserting {} progress {:.2f}%'.format(k, p))
     try:
-        result = client.db.dacot.insert_one(item)
+        result = client.dacot.junction.insert_one(item)
         print('Inserted id: {}'.format(result.inserted_id))
     except pymongo.errors.DuplicateKeyError as err:
         print('Key is duplicated, deleting and retrying')
-        client.db.dacot.delete_one({'_id': k})
-        result = client.db.dacot.insert_one(item)
+        client.dacot.junction.delete_one({'_id': k})
+        result = client.dacot.junction.insert_one(item)
         print('Inserted id: {}'.format(result.inserted_id))
 
 print('DONE')
