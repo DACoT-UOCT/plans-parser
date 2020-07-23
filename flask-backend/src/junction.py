@@ -202,7 +202,7 @@ def create_junction():
     else:
         return not_found()
 
-@junction.route('/junction', methods=['GET'])
+#@junction.route('/junction', methods=['GET'])
 def get_junctions():
     junctions = dacot.junction.find()   
     response = json_util.dumps(junctions)
