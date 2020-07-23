@@ -15,14 +15,9 @@ dacot = client.dacot
 @petitions.route('/petition',methods=['POST'])
 def create_pettition():
     
-    petition = 'Esta es una peticion'
-    id = dacot.petitions.insert(
-            {'petition': petition}
-        )
-    response = {
-            'id': str(id),
-            'petition': petition
-        }
+    body = request.json
+    id = dacot.petitions.insert(body)
+    response = id
     return response  
 
 #@petitions.route('/petition', methods=['GET'])

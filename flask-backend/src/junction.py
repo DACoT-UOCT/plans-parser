@@ -26,7 +26,6 @@ junction = Blueprint('junction', __name__)
 def index():
     print(client.node)
     print(client)
-    print(client.admin.command('replSetGetStatus'))
     #response = json_util.dumps(status)
     #return Response(response, mimetype='application/json')
     return '<h1>DACoT<h1>'
@@ -42,7 +41,7 @@ def create_junction():
     #print(test)
     ##password = request.json['password']
     ##email = request.json['email']
-
+    req = request.json
     if False:
         dacot.junction.insert({
             'fver': '0.1',
