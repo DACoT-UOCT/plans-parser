@@ -15,6 +15,8 @@ dacot = client.dacot
 @petitions.route('/petition',methods=['POST'])
 def create_pettition():
     body = request.json
+    if not body:
+        return "Empty body", 400
     _id = dacot.petitions.insert(body)
     return str(_id)
 
