@@ -14,11 +14,11 @@ dacot = client.dacot
 
 @petitions.route('/petition',methods=['POST'])
 def create_pettition():
-    
     body = request.json
-    id = dacot.petitions.insert(body)
-    response = id
-    return response  
+    if not body:
+        return "Empty body", 400
+    _id = dacot.petitions.insert(body)
+    return str(_id)
 
 #@petitions.route('/petition', methods=['GET'])
 def get_petitions():
