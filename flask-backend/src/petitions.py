@@ -17,7 +17,7 @@ def create_pettition():
     
     body = request.json
     id = dacot.petitions.insert(body)
-    response = body
+    response = id
     return response  
 
 #@petitions.route('/petition', methods=['GET'])
