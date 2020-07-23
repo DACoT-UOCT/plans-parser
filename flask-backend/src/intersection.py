@@ -70,7 +70,7 @@ def not_found(error=None):
     response.status_code = 404
     return response
 
-@petitions.errorhandler(400)
+@intersection.errorhandler(400)
 def bad_request(error=None):
     response = jsonify({
         'message': 'Bad request: ' + request.url,
