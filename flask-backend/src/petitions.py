@@ -25,7 +25,7 @@ def create_pettition():
         }
     return response  
 
-@petitions.route('/petition', methods=['GET'])
+#@petitions.route('/petition', methods=['GET'])
 def get_petitions():
     petitions = dacot.petitions.find()
     response = json_util.dumps(petitions)
