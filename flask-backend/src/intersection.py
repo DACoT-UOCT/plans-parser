@@ -30,7 +30,7 @@ def get_intersection(id):
         return bad_request()
     k = 0
     for junction in intersection['junctions']:
-        junctions[k] = dacot.junction.find_one({'_id': i['id']})
+        junctions[k] = dacot.junction.find_one({'_id': junction['id']})
         junction['programacion'] = junctions[k]['plans']
         k+= 1
 
