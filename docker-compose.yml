@@ -1,5 +1,21 @@
 version: "3"
 services:
+  backend:
+    container_name: backend
+    image: backend:0
+    restart: on-failure
+    environment:
+      - MONGO_URI
+    networks:
+      default:
+    depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
+    expose:
+      - 5000
+    ports:
+      - 80:5000
   mongo-setup:
     container_name: mongo-setup
     image: mongo:4.0.19-xenial
@@ -20,7 +36,7 @@ services:
     container_name: localmongo1
     image: mongo:4.0.19-xenial
     expose:
-    - 27017
+      - 27017
     ports:
       - 30001:27017
     restart: always
@@ -32,9 +48,9 @@ services:
     container_name: localmongo2
     image: mongo:4.0.19-xenial
     expose:
-    - 27017
+      - 27017
     ports:
-    - 30002:27017
+      - 30002:27017
     restart: always
     volumes:
       - ./deploy/mongo-data/data2:/data/db
@@ -44,9 +60,9 @@ services:
     container_name: localmongo3
     image: mongo:4.0.19-xenial
     expose:
-    - 27017
+      - 27017
     ports:
-    - 30003:27017
+      - 30003:27017
     restart: always
     volumes:
       - ./deploy/mongo-data/data3:/data/db
