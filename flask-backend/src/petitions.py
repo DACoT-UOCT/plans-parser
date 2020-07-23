@@ -16,7 +16,7 @@ dacot = client.dacot
 def create_pettition():
     body = request.json
     if not body:
-        return "Empty body", 400
+        return bad_request()
     _id = dacot.petitions.insert(body)
     return str(_id)
 
@@ -28,6 +28,8 @@ def get_petitions():
 
 @petitions.route('/petition/<id>', methods=['GET'])
 def get_petition(id):
+    if len(id) != 24:
+        return bad_request()
     s_petition = dacot.petitions.find_one({'_id': ObjectId(id)})
     if s_petition != 'null':
         response = json_util.dumps(s_petition)
@@ -64,4 +66,13 @@ def not_found(error=None):
         'status': 404
     })
     response.status_code = 404
+    return response
+
+@petitions.errorhandler(400)
+def bad_request(error=None):
+    response = jsonify({
+        'message': 'Bad request: ' + request.url,
+        'status': 400
+    })
+    response.status_code = 400
     return response
