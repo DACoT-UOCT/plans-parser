@@ -28,10 +28,11 @@ def get_intersection(id):
     junctions = []
     if intersection == 'null':
         return bad_request()
-        
+    k = 0
     for junction in intersection['junctions']:
         junctions.append(dacot.junction.find_one({'_id': junction['id']}) )
         junction['programacion'] = junctions[k]['plans']
+        k+= 1
 
     preview= {
         "_id": id,
