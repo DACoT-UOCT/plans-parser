@@ -14,7 +14,11 @@ dacot = client.dacot
 
 @intersection.route('/intersection',methods=['POST'])
 def create_intersection():
-    return {'message': 'received'}
+    body = request.json
+    if not body:
+        return bad_request()
+    _id = dacot.intersections.insert(body)
+    return str(_id)
 
 #@intersection.route('/intersections2', methods=['GET'])
 def get_intersections():
