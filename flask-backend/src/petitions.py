@@ -25,7 +25,7 @@ def create_pettition():
         }
     return response  
 
-@petitions.route('/petition', methods=['GET'])
+#@petitions.route('/petition', methods=['GET'])
 def get_petitions():
     petitions = dacot.petitions.find()
     response = json_util.dumps(petitions)
@@ -34,7 +34,10 @@ def get_petitions():
 @petitions.route('/petition/<id>', methods=['GET'])
 def get_petition(id):
     s_petition = dacot.petitions.find_one({'_id': ObjectId(id)})
-    response = json_util.dumps(s_petition)
+    if s_petition != 'null':
+        response = json_util.dumps(s_petition)
+    else:
+        return not_found()
     return Response(response, mimetype="application/json")
 
 @petitions.route('/petition/<id>', methods=['DELETE'])
