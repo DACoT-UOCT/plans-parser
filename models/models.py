@@ -1,6 +1,7 @@
 from mongoengine import EmbeddedDocument, IntField, EmbeddedDocumentListField
 from mongoengine import Document, PointField, StringField, ListField, DateTimeField
 from mongoengine import EmbeddedDocumentField, EmailField, FileField, LongField, ReferenceField
+from mongoengine import GenericReferenceField, DictField
 from datetime import datetime
 
 # Junction Model ====
@@ -84,7 +85,7 @@ class OTUMeta(EmbeddedDocument):
     controller = StringField(required=True) # TODO: Make this an embedded document
     observations = ListField(StringField(max_length=255))
     imgs = ListField(FileField())
-    original_data = FileField() # required=True
+    original_data = FileField(required=True)
 
 class OTU(Document):
     meta = {'collection': 'OTU'}
@@ -92,5 +93,13 @@ class OTU(Document):
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
     program = EmbeddedDocumentListField(OTUProgramItem, required=True)
     sequence = EmbeddedDocumentListField(OTUSequenceItem, required=True)
-    intergreens = ListField(IntField(min_value=0, required=True)) # row major oder, TODO: check size has square root (should be a n*n matrix)
+    intergreens = ListField(IntField(min_value=0, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = ListField(ReferenceField(Junction), required=True)
+
+# JsonPatch changes Model ====
+
+class ChangeSet(Document):
+    meta = {'collection': 'ChangeSets'}
+    apply_to = GenericReferenceField(choices=[OTU, Junction], required=True)
+    order = LongField(min_value=1, required=True)
+    changes = ListField(DictField, required=True)

@@ -7,6 +7,13 @@ from models import ExternalCompany, UOCTUser
 
 connect('dacot-dev', host=os.environ['MONGO_URI'])
 
+# Drop existing data
+
+Junction.drop_collection()
+UOCTUser.drop_collection()
+OTU.drop_collection()
+
+
 # data for J001331
 
 j1 = Junction(jid='J001331', plans=[
@@ -379,18 +386,19 @@ intergreens = [
 auter = ExternalCompany(name='Auter SPA')
 
 cponce = UOCTUser(uid=10, full_name='Carlos Andres Ponce Godoy', email='cponce@gmail.com', area='TIC', rut='19664296-K')
+cponce = cponce.save().reload()
 
 otu_meta = OTUMeta(version=0, installed_by=auter, maintainer=auter, status='NEW', status_user=cponce,
         location=(-33.41849, -70.603594), address='Av. Luis Thayer Ojeda 42-18', address_reference='Providencia - Luis Thayer Ojeda - Nueva Providencia',
         commune='Providencia', controller='A4F')
 
-cponce.save()
-
 OTU = OTU(program=programs, iid='X001330', sequence=sequence, intergreens=intergreens, metadata=otu_meta)
 OTU.junctions = [j1, j2]
 OTU.validate()
-
 OTU = OTU.save().reload()
 
-print(OTU.to_json())
+updated = OTU.from_json(OTU.to_json())
+updated.validate()
+print(updated.to_json())
+
 print('Done')
