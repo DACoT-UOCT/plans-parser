@@ -1,6 +1,11 @@
+import os
+from mongoengine import connect
+
 from models import Junction, JunctionPlan, JunctionPlanPhaseValue, JunctionPlanIntergreenValue, JunctionMeta
 from models import OTU, OTUProgramItem, OTUSequenceItem, OTUPhasesItem, OTUStagesItem, OTUMeta
 from models import ExternalCompany, UOCTUser
+
+connect('dacot-dev', host=os.environ['MONGO_URI'])
 
 # data for J001331
 
@@ -322,6 +327,9 @@ j2 = Junction(jid='J001332', plans=[
 
 j2.validate()
 
+j1 = j1.save().reload()
+j2 = j2.save().reload()
+
 # data for X001330
 
 programs = [
@@ -369,14 +377,20 @@ intergreens = [
 # OTU Meta
 
 auter = ExternalCompany(name='Auter SPA')
+
 cponce = UOCTUser(uid=10, full_name='Carlos Andres Ponce Godoy', email='cponce@gmail.com', area='TIC', rut='19664296-K')
 
 otu_meta = OTUMeta(version=0, installed_by=auter, maintainer=auter, status='NEW', status_user=cponce,
         location=(-33.41849, -70.603594), address='Av. Luis Thayer Ojeda 42-18', address_reference='Providencia - Luis Thayer Ojeda - Nueva Providencia',
         commune='Providencia', controller='A4F')
 
+cponce.save()
+
 OTU = OTU(program=programs, iid='X001330', sequence=sequence, intergreens=intergreens, metadata=otu_meta)
 OTU.junctions = [j1, j2]
 OTU.validate()
 
+OTU = OTU.save().reload()
+
 print(OTU.to_json())
+print('Done')
