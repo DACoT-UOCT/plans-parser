@@ -1,4 +1,6 @@
-from models import *
+from models import Junction, JunctionPlan, JunctionPlanPhaseValue, JunctionPlanIntergreenValue, JunctionMeta
+from models import OTU, OTUProgramItem, OTUSequenceItem, OTUPhasesItem, OTUStagesItem, OTUMeta
+from models import ExternalCompany, UOCTUser
 
 # data for J001331
 

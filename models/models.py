@@ -1,4 +1,6 @@
-from mongoengine import *
+from mongoengine import EmbeddedDocument, IntField, EmbeddedDocumentListField
+from mongoengine import Document, PointField, StringField, ListField, DateTimeField
+from mongoengine import EmbeddedDocumentField, EmailField, FileField, LongField
 from datetime import datetime
 
 # Junction Model ====
