@@ -1,6 +1,6 @@
 from mongoengine import EmbeddedDocument, IntField, EmbeddedDocumentListField
 from mongoengine import Document, PointField, StringField, ListField, DateTimeField
-from mongoengine import EmbeddedDocumentField, EmailField, FileField, LongField
+from mongoengine import EmbeddedDocumentField, EmailField, FileField, LongField, ReferenceField
 from datetime import datetime
 
 # Junction Model ====
@@ -28,8 +28,9 @@ class JunctionPlan(EmbeddedDocument):
 class JunctionMeta(EmbeddedDocument):
     location = PointField(required=True)
 
-class Junction(EmbeddedDocument): # class Junction(Document):
-    jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, db_field='_id', required=True)
+class Junction(Document):
+    meta = {'collection': 'Junction'}
+    jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan, required=True)
 
@@ -40,8 +41,9 @@ class ExternalCompany(EmbeddedDocument):
 
 # User Model ====
 
-class UOCTUser(EmbeddedDocument): # class UOCTUser(Document):
-    uid = IntField(min_value=0, required=True)
+class UOCTUser(Document):
+    meta = {'collection': 'UOCTUser'}
+    uid = IntField(min_value=0, required=True, unique=True)
     full_name = StringField(min_length=5, required=True)
     email = EmailField(required=True)
     area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC'], required=True)
@@ -73,7 +75,7 @@ class OTUMeta(EmbeddedDocument):
     maintainer = EmbeddedDocumentField(ExternalCompany, required=True)
     status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True)
     status_date = DateTimeField(default=datetime.utcnow, required=True)
-    status_user = EmbeddedDocumentField(UOCTUser, required=True)
+    status_user = ReferenceField(UOCTUser, required=True)
     installation_date = DateTimeField(default=datetime.utcnow, required=True)
     location = PointField(required=True)
     address = StringField(required=True)
@@ -85,9 +87,10 @@ class OTUMeta(EmbeddedDocument):
     original_data = FileField() # required=True
 
 class OTU(Document):
-    iid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, db_field='_id', required=True)
+    meta = {'collection': 'OTU'}
+    iid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True)
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
     program = EmbeddedDocumentListField(OTUProgramItem, required=True)
     sequence = EmbeddedDocumentListField(OTUSequenceItem, required=True)
     intergreens = ListField(IntField(min_value=0, required=True)) # row major oder, TODO: check size has square root (should be a n*n matrix)
-    junctions = ListField(EmbeddedDocumentField(Junction), required=True) # ReferenceField(Junction), required=True)
+    junctions = ListField(ReferenceField(Junction), required=True)
