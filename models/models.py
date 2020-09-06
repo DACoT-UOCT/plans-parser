@@ -71,7 +71,7 @@ class OTUSequenceItem(EmbeddedDocument):
     phases = EmbeddedDocumentListField(OTUPhasesItem, required=True)
 
 class OTUMeta(EmbeddedDocument):
-    version = LongField(min_value=0, required=True)
+    version = LongField(min_value=0, required=True) # Change for 'base' or 'latest'
     installed_by = EmbeddedDocumentField(ExternalCompany, required=True)
     maintainer = EmbeddedDocumentField(ExternalCompany, required=True)
     status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True)
@@ -83,13 +83,13 @@ class OTUMeta(EmbeddedDocument):
     address_reference = StringField(required=True)
     commune = StringField(required=True)
     controller = StringField(required=True) # TODO: Make this an embedded document
-    observations = ListField(StringField(max_length=255))
+    observations = ListField(StringField(max_length=255)) #Add a timestamp
     imgs = ListField(FileField())
     original_data = FileField(required=True)
 
 class OTU(Document):
     meta = {'collection': 'OTU'}
-    iid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True)
+    iid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
     program = EmbeddedDocumentListField(OTUProgramItem, required=True)
     sequence = EmbeddedDocumentListField(OTUSequenceItem, required=True)

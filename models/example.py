@@ -1,4 +1,7 @@
 import os
+import json
+import jsonpatch
+
 from mongoengine import connect
 
 from models import Junction, JunctionPlan, JunctionPlanPhaseValue, JunctionPlanIntergreenValue, JunctionMeta
@@ -392,13 +395,29 @@ otu_meta = OTUMeta(version=0, installed_by=auter, maintainer=auter, status='NEW'
         location=(-33.41849, -70.603594), address='Av. Luis Thayer Ojeda 42-18', address_reference='Providencia - Luis Thayer Ojeda - Nueva Providencia',
         commune='Providencia', controller='A4F')
 
-OTU = OTU(program=programs, iid='X001330', sequence=sequence, intergreens=intergreens, metadata=otu_meta)
-OTU.junctions = [j1, j2]
-OTU.validate()
-OTU = OTU.save().reload()
+otu = OTU(program=programs, iid='X001330', sequence=sequence, intergreens=intergreens, metadata=otu_meta)
+otu.junctions = [j1, j2]
+otu.validate()
+otu = otu.save().reload()
 
-updated = OTU.from_json(OTU.to_json())
+updated = otu.from_json(otu.to_json())
+updated.metadata.version = updated.metadata.version + 1
+updated.program[10].day = 'V'
+updated.program[10].time = '33:33'
+updated.program[10].plan = 'XS'
+updated.metadata.observations.append('Actualizado desde Script de prueba')
 updated.validate()
-print(updated.to_json())
+
+# This to_json() and loads() is stupid, but there is no better way to do this.
+updated_dict = json.loads(updated.to_json())
+otu_dict = json.loads(otu.to_json())
+
+patch = jsonpatch.make_patch(otu_dict, updated_dict)
+
+jsonpatch.apply_patch(otu_dict, patch, in_place=True)
+del otu_dict['_id']
+otu = OTU.from_json(json.dumps(otu_dict))
+otu = otu.save().reload()
 
 print('Done')
+
