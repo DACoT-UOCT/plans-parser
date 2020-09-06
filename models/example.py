@@ -6,7 +6,7 @@ from mongoengine import connect
 
 from models import Junction, JunctionPlan, JunctionPlanPhaseValue, JunctionPlanIntergreenValue, JunctionMeta
 from models import OTU, OTUProgramItem, OTUSequenceItem, OTUPhasesItem, OTUStagesItem, OTUMeta
-from models import ExternalCompany, UOCTUser
+from models import ExternalCompany, UOCTUser, ChangeSet
 
 connect('dacot-dev', host=os.environ['MONGO_URI'])
 
@@ -413,11 +413,17 @@ updated_dict = json.loads(updated.to_json())
 otu_dict = json.loads(otu.to_json())
 
 patch = jsonpatch.make_patch(otu_dict, updated_dict)
+changeset = ChangeSet(apply_to=otu, changes=patch)
+changeset.validate()
 
 jsonpatch.apply_patch(otu_dict, patch, in_place=True)
 del otu_dict['_id']
 otu = OTU.from_json(json.dumps(otu_dict))
+otu.validate()
+
+changeset = changeset.save().reload()
 otu = otu.save().reload()
 
-print('Done')
+print(changeset.to_json())
 
+print('Done')

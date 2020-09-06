@@ -101,5 +101,5 @@ class OTU(Document):
 class ChangeSet(Document):
     meta = {'collection': 'ChangeSets'}
     apply_to = GenericReferenceField(choices=[OTU, Junction], required=True)
-    order = LongField(min_value=1, required=True)
-    changes = ListField(DictField, required=True)
+    date = DateTimeField(default=datetime.utcnow, required=True)
+    changes = ListField(DictField(), required=True)
