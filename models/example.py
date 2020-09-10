@@ -383,6 +383,7 @@ intergreens = [
 # OTU Meta
 
 auter = ExternalCompany(name='Auter SPA')
+auter.save()
 
 cponce = UOCTUser(uid=10, full_name='Carlos Andres Ponce Godoy', email='cponce@gmail.com', area='TIC', rut='19664296-K')
 cponce = cponce.save().reload()

@@ -38,7 +38,7 @@ class Junction(Document):
 
 # External Company Model ====
 
-class ExternalCompany(EmbeddedDocument):
+class ExternalCompany(Document):
     name = StringField(min_length=2, required=True)
 
 # User Model ====
@@ -90,8 +90,8 @@ class OTUSequenceItem(EmbeddedDocument):
 
 class OTUMeta(EmbeddedDocument):
     version = StringField(choices=['base', 'latest'], required=True)
-    installed_by = EmbeddedDocumentField(ExternalCompany, required=True)
-    maintainer = EmbeddedDocumentField(ExternalCompany, required=True)
+    installed_by = ReferenceField(ExternalCompany, required=True)
+    maintainer = ReferenceField(ExternalCompany, required=True)
     status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True)
     status_date = DateTimeField(default=datetime.utcnow, required=True)
     status_user = ReferenceField(UOCTUser, required=True)
