@@ -196,8 +196,6 @@ j1 = Junction(jid='J001331', plans=[
     ])
 ], metadata=JunctionMeta(location=(-33.4187140, -70.6027238)))
 
-j1.validate()
-
 # data for J001332
 
 j2 = Junction(jid='J001332', plans=[
@@ -335,8 +333,6 @@ j2 = Junction(jid='J001332', plans=[
     ])
 ], metadata=JunctionMeta(location=(-33.4183259, -70.6029155)))
 
-j2.validate()
-
 j1 = j1.save().reload()
 j2 = j2.save().reload()
 
@@ -400,7 +396,6 @@ otu_meta = OTUMeta(version=0, installed_by=auter, maintainer=auter, status='NEW'
 
 otu = OTU(program=programs, iid='X001330', sequence=sequence, intergreens=intergreens, metadata=otu_meta)
 otu.junctions = [j1, j2]
-otu.validate()
 otu = otu.save().reload()
 
 updated = otu.from_json(otu.to_json())
@@ -409,14 +404,9 @@ updated.program[10].day = 'V'
 updated.program[10].time = '33:33'
 updated.program[10].plan = 'XS'
 updated.metadata.observations = [Comment(message='Actualizado desde Script de prueba')]
-updated.validate()
 
-def clean_dolar_symbols(json_patch):
-    for operation in json_patch:
-        for k, v in operation.items():
-            if type(v) == dict:
-                clean_dolar_symbols(v)
-            print(k, v)
+def escape_dolar_symbols_patch(patch):
+    return jsonpatch.JsonPatch.from_string(patch.to_string().replace('$', '%$'))
 
 # This to_json() and loads() is stupid, but there is no better way to do this.
 updated_dict = json.loads(updated.to_json())
@@ -424,18 +414,14 @@ otu_dict = json.loads(otu.to_json())
 
 patch = jsonpatch.make_patch(otu_dict, updated_dict)
 
-clean_dolar_symbols(patch)
-
-changeset = ChangeSet(apply_to=otu, changes=patch)
-changeset.validate()
-
 jsonpatch.apply_patch(otu_dict, patch, in_place=True)
 del otu_dict['_id']
 otu = OTU.from_json(json.dumps(otu_dict))
-otu.validate()
-
-changeset = changeset.save().reload()
 otu = otu.save().reload()
+
+patch = escape_dolar_symbols_patch(patch)
+changeset = ChangeSet(apply_to=otu, changes=patch)
+changeset = changeset.save().reload()
 
 print(changeset.to_json())
 
