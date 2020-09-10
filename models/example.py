@@ -403,7 +403,7 @@ updated.metadata.version = updated.metadata.version + 1
 updated.program[10].day = 'V'
 updated.program[10].time = '33:33'
 updated.program[10].plan = 'XS'
-updated.metadata.observations = [Comment(message='Actualizado desde Script de prueba')]
+updated.metadata.observations = [Comment(message='Actualizado desde Script de prueba', author=cponce)]
 
 # This to_json() and loads() is stupid, but there is no better way to do this.
 updated_dict = json.loads(updated.to_json())
@@ -418,7 +418,5 @@ otu = otu.save().reload()
 
 changeset = ChangeSet(apply_to=otu, changes=patch)
 changeset = changeset.save().reload()
-
-print(changeset.to_json())
 
 print('Done')

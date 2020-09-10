@@ -56,6 +56,7 @@ class UOCTUser(Document):
 class Comment(EmbeddedDocument):
     date = DateTimeField(default=datetime.utcnow, required=True)
     message = StringField(max_length=255, required=True)
+    author = ReferenceField(UOCTUser, required=True)
 
 # OTU Controller Model ====
 
