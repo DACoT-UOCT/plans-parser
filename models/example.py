@@ -6,7 +6,7 @@ from mongoengine import connect
 
 from models import Junction, JunctionPlan, JunctionPlanPhaseValue, JunctionPlanIntergreenValue, JunctionMeta
 from models import OTU, OTUProgramItem, OTUSequenceItem, OTUPhasesItem, OTUStagesItem, OTUMeta
-from models import ExternalCompany, UOCTUser, ChangeSet
+from models import ExternalCompany, UOCTUser, ChangeSet, Comment, OTUController
 
 connect('dacot-dev', host=os.environ['MONGO_URI'])
 
@@ -391,9 +391,12 @@ auter = ExternalCompany(name='Auter SPA')
 cponce = UOCTUser(uid=10, full_name='Carlos Andres Ponce Godoy', email='cponce@gmail.com', area='TIC', rut='19664296-K')
 cponce = cponce.save().reload()
 
+otu_controller = OTUController(company='Auter S.A.', model='A25-A5', firmware_version='4', checksum='7721')
+otu_controller = otu_controller.save().reload()
+
 otu_meta = OTUMeta(version=0, installed_by=auter, maintainer=auter, status='NEW', status_user=cponce,
         location=(-33.41849, -70.603594), address='Av. Luis Thayer Ojeda 42-18', address_reference='Providencia - Luis Thayer Ojeda - Nueva Providencia',
-        commune='Providencia', controller='A4F')
+        commune='Providencia', controller=otu_controller)
 
 otu = OTU(program=programs, iid='X001330', sequence=sequence, intergreens=intergreens, metadata=otu_meta)
 otu.junctions = [j1, j2]
@@ -405,14 +408,24 @@ updated.metadata.version = updated.metadata.version + 1
 updated.program[10].day = 'V'
 updated.program[10].time = '33:33'
 updated.program[10].plan = 'XS'
-updated.metadata.observations.append('Actualizado desde Script de prueba')
+updated.metadata.observations = [Comment(message='Actualizado desde Script de prueba')]
 updated.validate()
+
+def clean_dolar_symbols(json_patch):
+    for operation in json_patch:
+        for k, v in operation.items():
+            if type(v) == dict:
+                clean_dolar_symbols(v)
+            print(k, v)
 
 # This to_json() and loads() is stupid, but there is no better way to do this.
 updated_dict = json.loads(updated.to_json())
 otu_dict = json.loads(otu.to_json())
 
 patch = jsonpatch.make_patch(otu_dict, updated_dict)
+
+clean_dolar_symbols(patch)
+
 changeset = ChangeSet(apply_to=otu, changes=patch)
 changeset.validate()
 

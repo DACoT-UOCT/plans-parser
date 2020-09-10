@@ -50,6 +50,22 @@ class UOCTUser(Document):
     area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC'], required=True)
     rut = StringField(min_length=10, required=True) # TODO: validation
 
+# Comment Model ====
+
+class Comment(EmbeddedDocument):
+    date = DateTimeField(default=datetime.utcnow, required=True)
+    message = StringField(max_length=255, required=True)
+
+# OTU Controller Model ====
+
+class OTUController(Document):
+    meta = {'collection': 'OTUController'}
+    company = StringField(required=True)
+    model = StringField(required=True)
+    firmware_version = StringField(required=True)
+    checksum = StringField(required=True)
+    date = DateTimeField(default=datetime.utcnow, required=True)
+
 # OTU Model ====
 
 class OTUProgramItem(EmbeddedDocument):
@@ -82,8 +98,8 @@ class OTUMeta(EmbeddedDocument):
     address = StringField(required=True)
     address_reference = StringField(required=True)
     commune = StringField(required=True)
-    controller = StringField(required=True) # TODO: Make this an embedded document
-    observations = ListField(StringField(max_length=255)) #Add a timestamp
+    controller = ReferenceField(OTUController, required=True)
+    observations = EmbeddedDocumentListField(Comment)
     imgs = ListField(FileField())
     original_data = FileField(required=True)
 
