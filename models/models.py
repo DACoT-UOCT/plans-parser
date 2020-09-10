@@ -89,7 +89,7 @@ class OTUSequenceItem(EmbeddedDocument):
     phases = EmbeddedDocumentListField(OTUPhasesItem, required=True)
 
 class OTUMeta(EmbeddedDocument):
-    version = LongField(min_value=0, required=True) # Change for 'base' or 'latest'
+    version = StringField(choices=['base', 'latest'], required=True)
     installed_by = EmbeddedDocumentField(ExternalCompany, required=True)
     maintainer = EmbeddedDocumentField(ExternalCompany, required=True)
     status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True)

@@ -390,7 +390,7 @@ cponce = cponce.save().reload()
 otu_controller = OTUController(company='Auter S.A.', model='A25-A5', firmware_version='4', checksum='7721')
 otu_controller = otu_controller.save().reload()
 
-otu_meta = OTUMeta(version=0, installed_by=auter, maintainer=auter, status='NEW', status_user=cponce,
+otu_meta = OTUMeta(version='base', installed_by=auter, maintainer=auter, status='NEW', status_user=cponce,
         location=(-33.41849, -70.603594), address='Av. Luis Thayer Ojeda 42-18', address_reference='Providencia - Luis Thayer Ojeda - Nueva Providencia',
         commune='Providencia', controller=otu_controller)
 
@@ -399,7 +399,7 @@ otu.junctions = [j1, j2]
 otu = otu.save().reload()
 
 updated = otu.from_json(otu.to_json())
-updated.metadata.version = updated.metadata.version + 1
+updated.metadata.version = 'latest'
 updated.program[10].day = 'V'
 updated.program[10].time = '33:33'
 updated.program[10].plan = 'XS'
