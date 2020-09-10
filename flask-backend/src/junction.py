@@ -238,6 +238,7 @@ def update_junction(id):
         response = jsonify({'message': 'Junction ' + id + 'was updated successfully'})
         return response
 
+
 @junction.errorhandler(404)
 def not_found(error=None):
     response = jsonify({
