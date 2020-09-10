@@ -405,9 +405,6 @@ updated.program[10].time = '33:33'
 updated.program[10].plan = 'XS'
 updated.metadata.observations = [Comment(message='Actualizado desde Script de prueba')]
 
-def escape_dolar_symbols_patch(patch):
-    return jsonpatch.JsonPatch.from_string(patch.to_string().replace('$', '%$'))
-
 # This to_json() and loads() is stupid, but there is no better way to do this.
 updated_dict = json.loads(updated.to_json())
 otu_dict = json.loads(otu.to_json())
@@ -419,7 +416,6 @@ del otu_dict['_id']
 otu = OTU.from_json(json.dumps(otu_dict))
 otu = otu.save().reload()
 
-patch = escape_dolar_symbols_patch(patch)
 changeset = ChangeSet(apply_to=otu, changes=patch)
 changeset = changeset.save().reload()
 

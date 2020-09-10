@@ -1,3 +1,4 @@
+import json
 from mongoengine import EmbeddedDocument, IntField, EmbeddedDocumentListField
 from mongoengine import Document, PointField, StringField, ListField, DateTimeField
 from mongoengine import EmbeddedDocumentField, EmailField, FileField, LongField, ReferenceField
@@ -119,3 +120,10 @@ class ChangeSet(Document):
     apply_to = GenericReferenceField(choices=[OTU, Junction], required=True)
     date = DateTimeField(default=datetime.utcnow, required=True)
     changes = ListField(DictField(), required=True)
+
+    def __clean_special_chars_patch(self):
+        self.changes = json.loads(json.dumps(self.changes).replace('$', '%$'))
+
+    def save(self):
+        self.__clean_special_chars_patch()
+        return super(ChangeSet, self).save()
