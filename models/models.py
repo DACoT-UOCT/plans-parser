@@ -19,16 +19,17 @@ class JunctionPlanPhaseValue(EmbeddedDocument):
 class JunctionPlan(EmbeddedDocument):
     plid = IntField(min_value=1, required=True)
     cycle = IntField(min_value=1, required=True)
-    phase_start = EmbeddedDocumentListField(JunctionPlanPhaseValue, required=True)
-    vehicle_intergreen = EmbeddedDocumentListField(JunctionPlanIntergreenValue, required=True)
-    green_start = EmbeddedDocumentListField(JunctionPlanPhaseValue, required=True)
-    vehicle_green = EmbeddedDocumentListField(JunctionPlanPhaseValue, required=True)
-    pedestrian_green = EmbeddedDocumentListField(JunctionPlanPhaseValue, required=True)
-    pedestrian_intergreen = EmbeddedDocumentListField(JunctionPlanIntergreenValue, required=True)
+    # TODO: Make all of this fields requiered
+    phase_start = EmbeddedDocumentListField(JunctionPlanPhaseValue) #, required=True)
+    vehicle_intergreen = EmbeddedDocumentListField(JunctionPlanIntergreenValue) #, required=True)
+    green_start = EmbeddedDocumentListField(JunctionPlanPhaseValue) #, required=True)
+    vehicle_green = EmbeddedDocumentListField(JunctionPlanPhaseValue) #, required=True)
+    pedestrian_green = EmbeddedDocumentListField(JunctionPlanPhaseValue) #, required=True)
+    pedestrian_intergreen = EmbeddedDocumentListField(JunctionPlanIntergreenValue) #, required=True)
     system_start = EmbeddedDocumentListField(JunctionPlanPhaseValue, required=True)
 
 class JunctionMeta(EmbeddedDocument):
-    location = PointField(required=True)
+    location = PointField()
 
 class Junction(Document):
     meta = {'collection': 'Junction'}
@@ -39,6 +40,7 @@ class Junction(Document):
 # External Company Model ====
 
 class ExternalCompany(Document):
+    meta = {'collection': 'ExternalCompany'}
     name = StringField(min_length=2, required=True)
 
 # User Model ====
@@ -90,28 +92,28 @@ class OTUSequenceItem(EmbeddedDocument):
 
 class OTUMeta(EmbeddedDocument):
     version = StringField(choices=['base', 'latest'], required=True)
-    installed_by = ReferenceField(ExternalCompany, required=True)
-    maintainer = ReferenceField(ExternalCompany, required=True)
+    installed_by = ReferenceField(ExternalCompany)# , required=True)
+    maintainer = ReferenceField(ExternalCompany)# , required=True)
     status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True)
     status_date = DateTimeField(default=datetime.utcnow, required=True)
     status_user = ReferenceField(UOCTUser, required=True)
-    installation_date = DateTimeField(default=datetime.utcnow, required=True)
-    location = PointField(required=True)
-    address = StringField(required=True)
-    address_reference = StringField(required=True)
-    commune = StringField(required=True)
-    controller = ReferenceField(OTUController, required=True)
+    installation_date = DateTimeField(default=datetime.utcnow)# , required=True)
+    location = PointField()# required=True)
+    address = StringField()# required=True)
+    address_reference = StringField()# required=True)
+    commune = StringField()# required=True)
+    controller = ReferenceField(OTUController)# , required=True)
     observations = EmbeddedDocumentListField(Comment)
     imgs = ListField(FileField())
-    original_data = FileField(required=True)
+    original_data = FileField()# required=True)
 
 class OTU(Document):
     meta = {'collection': 'OTU'}
-    iid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
+    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
     program = EmbeddedDocumentListField(OTUProgramItem, required=True)
-    sequence = EmbeddedDocumentListField(OTUSequenceItem, required=True)
-    intergreens = ListField(IntField(min_value=0, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
+    sequence = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
+    intergreens = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = ListField(ReferenceField(Junction), required=True)
 
 # JsonPatch changes Model ====

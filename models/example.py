@@ -395,7 +395,7 @@ otu_meta = OTUMeta(version='base', installed_by=auter, maintainer=auter, status=
         location=(-33.41849, -70.603594), address='Av. Luis Thayer Ojeda 42-18', address_reference='Providencia - Luis Thayer Ojeda - Nueva Providencia',
         commune='Providencia', controller=otu_controller)
 
-otu = OTU(program=programs, iid='X001330', sequence=sequence, intergreens=intergreens, metadata=otu_meta)
+otu = OTU(program=programs, oid='X001330', sequence=sequence, intergreens=intergreens, metadata=otu_meta)
 otu.junctions = [j1, j2]
 otu = otu.save().reload()
 
