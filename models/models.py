@@ -3,6 +3,9 @@ from mongoengine import EmbeddedDocument, IntField, EmbeddedDocumentListField
 from mongoengine import Document, PointField, StringField, ListField, DateTimeField
 from mongoengine import EmbeddedDocumentField, EmailField, FileField, LongField, ReferenceField
 from mongoengine import GenericReferenceField, DictField
+
+from mongoengine_mate import ExtendedDocument
+
 from datetime import datetime
 
 # Junction Model ====
@@ -13,7 +16,7 @@ class JunctionPlanIntergreenValue(EmbeddedDocument):
     value = IntField(min_value=0, required=True)
 
 class JunctionPlanPhaseValue(EmbeddedDocument):
-    phid = IntField(min_value=1, required=True)
+    phid = StringField(regex=r'^\d{1,4}!?$', required=True)
     value = IntField(min_value=0, required=True)
 
 class JunctionPlan(EmbeddedDocument):
@@ -34,7 +37,7 @@ class JunctionMeta(EmbeddedDocument):
     first_access = StringField()# required=True)
     second_access = StringField()# required=True)
 
-class Junction(Document):
+class Junction(ExtendedDocument):
     meta = {'collection': 'Junction'}
     jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
@@ -42,13 +45,13 @@ class Junction(Document):
 
 # External Company Model ====
 
-class ExternalCompany(Document):
+class ExternalCompany(ExtendedDocument):
     meta = {'collection': 'ExternalCompany'}
     name = StringField(min_length=2, required=True)
 
 # User Model ====
 
-class UOCTUser(Document):
+class UOCTUser(ExtendedDocument): #TODO: add is_admin flag
     meta = {'collection': 'UOCTUser'}
     uid = IntField(min_value=0, required=True, unique=True)
     full_name = StringField(min_length=5, required=True)
@@ -65,7 +68,7 @@ class Comment(EmbeddedDocument):
 
 # OTU Controller Model ====
 
-class OTUController(Document):
+class OTUController(ExtendedDocument):
     meta = {'collection': 'OTUController'}
     company = StringField(required=True)
     model = StringField(required=True)
@@ -110,7 +113,7 @@ class OTUMeta(EmbeddedDocument):
     imgs = ListField(FileField())
     original_data = FileField()# required=True)
 
-class OTU(Document):
+class OTU(ExtendedDocument):
     meta = {'collection': 'OTU'}
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
@@ -121,7 +124,7 @@ class OTU(Document):
 
 # JsonPatch changes Model ====
 
-class ChangeSet(Document):
+class ChangeSet(ExtendedDocument):
     meta = {'collection': 'ChangeSets'}
     apply_to = GenericReferenceField(choices=[OTU, Junction], required=True)
     date = DateTimeField(default=datetime.utcnow, required=True)
