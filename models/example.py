@@ -8,7 +8,7 @@ from models import Junction, JunctionPlan, JunctionPlanPhaseValue, JunctionPlanI
 from models import OTU, OTUProgramItem, OTUSequenceItem, OTUPhasesItem, OTUStagesItem, OTUMeta
 from models import ExternalCompany, UOCTUser, ChangeSet, Comment, OTUController
 
-connect('dacot-dev', host=os.environ['MONGO_URI'])
+connect('dacot-sample', host=os.environ['MONGO_URI'])
 
 # Drop existing data
 
