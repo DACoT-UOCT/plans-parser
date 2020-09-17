@@ -84,7 +84,7 @@ def phase1(jsdata):
     log.info('Done inserting junctions')
     return otus
 
-def phase2(csvindex):
+def phase2(otus, csvindex):
     global log
     log.info('=' * 60)
     log.info('Phase 2. Update created objects with CSV index')
@@ -98,12 +98,27 @@ def read_args_params(args):
     with open(args.input, 'r') as jdf:
         jsdata = json.load(jdf)
     log.info('We have {} keys to upload from JSON'.format(len(jsdata)))
-    csvindex = []
+    csvindex = {}
     with open(args.index, 'r', encoding='utf-8-sig') as fp:
         reader = csv.reader(fp, delimiter=';')
         for line in reader:
             if line[0] != '' and line[1] != '' and line[2] != '' and pattern.match(line[3]):
-                csvindex.append(line)
+                csvindex[line[1]] = {
+                    'sales_id': int(line[0]),
+                    'first_access': line[4],
+                    'second_access': line[5],
+                    'commune': line[6],
+                    'maintainer': line[7],
+                    'controller_model': (line[9], line[8]),
+                    'latitude': float(line[10].replace(',', '.')),
+                    'longitude': float(line[11].replace(',', '.')),
+                    'otu_type': line[12],
+                    'tcc': line[13],
+                    'ip_address': line[14],
+                    'isp': line[15],
+                    'has_ups': line[16], # Change to boolean
+                    'head_type': line[19]
+                }
     log.info('We have {} junctions in the CSV index'.format(len(csvindex)))
     return jsdata, csvindex
 
@@ -113,6 +128,8 @@ if __name__ == "__main__":
     log.info('Started seed-db script')
     args = setup_args()
     jsdata, csvindex = read_args_params(args)
-    # connect('dacot-dev', host=args.mongo)
-    phase2(csvindex)
+    connect('dacot-dev', host=args.mongo)
+    #drop_data()
+    #otus = phase1(jsdata)
+    #phase2(otus, csvindex)
     log.info('DONE SEEDING THE DB')
