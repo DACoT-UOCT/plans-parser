@@ -114,5 +114,5 @@ if __name__ == "__main__":
     args = setup_args()
     jsdata, csvindex = read_args_params(args)
     # connect('dacot-dev', host=args.mongo)
-    phase2()
+    phase2(csvindex)
     log.info('DONE SEEDING THE DB')

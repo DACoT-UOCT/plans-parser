@@ -194,7 +194,7 @@ j1 = Junction(jid='J001331', plans=[
         JunctionPlanPhaseValue(phid=2, value=66),
         JunctionPlanPhaseValue(phid=3, value=85)
     ])
-], metadata=JunctionMeta(location=(-33.4187140, -70.6027238)))
+], metadata=JunctionMeta(location=(-33.4187140, -70.6027238), sales_id=1126))
 
 # data for J001332
 
@@ -331,7 +331,7 @@ j2 = Junction(jid='J001332', plans=[
         JunctionPlanPhaseValue(phid=4, value=8),
         JunctionPlanPhaseValue(phid=5, value=27)
     ])
-], metadata=JunctionMeta(location=(-33.4183259, -70.6029155)))
+], metadata=JunctionMeta(location=(-33.4183259, -70.6029155), sales_id=1127))
 
 j1 = j1.save().reload()
 j2 = j2.save().reload()
