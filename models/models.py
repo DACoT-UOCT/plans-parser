@@ -31,6 +31,8 @@ class JunctionPlan(EmbeddedDocument):
 class JunctionMeta(EmbeddedDocument):
     location = PointField()#required=True)
     sales_id = IntField(min_value=0)#, required=True)
+    first_access = StringField()# required=True)
+    second_access = StringField()# required=True)
 
 class Junction(Document):
     meta = {'collection': 'Junction'}
@@ -103,8 +105,6 @@ class OTUMeta(EmbeddedDocument):
     address = StringField()# required=True)
     address_reference = StringField()# required=True)
     commune = StringField()# required=True)
-    first_access = StringField()# required=True)
-    second_access = StringField()# required=True)
     controller = ReferenceField(OTUController)# , required=True)
     observations = EmbeddedDocumentListField(Comment)
     imgs = ListField(FileField())
