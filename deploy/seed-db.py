@@ -66,7 +66,9 @@ def phase1(jsdata):
             for phid, phvalue in plan['system_start'].items():
                 system_start.append(JunctionPlanPhaseValue(phid=phid, value=phvalue))
             plans.append(JunctionPlan(plid=plid, cycle=plan['cycle'], system_start=system_start))
-        junctions.append(Junction(jid=k, plans=plans, metadata=JunctionMeta()))
+        new_junc = Junction(jid=k, plans=plans, metadata=JunctionMeta())
+        new_junc.validate()
+        junctions.append(new_junc)
     log.info('Bulk inserting {} junctions in the remote mongo database, this can take a while...'.format(len(junctions)))
     junctions = Junction.objects.insert(junctions)
     log.info('Done inserting junctions')
@@ -109,11 +111,10 @@ def phase2(otus, junctions, csvindex):
             log.warning('Missing location data for jid={} from the CSV index'.format(junc['jid']))
         junc.metadata.first_access = index_data['first_access']
         junc.metadata.second_access = index_data['second_access']
+        junc.validate()
     log.info('Bulk updating {} junctions in the remote mongo database, this can take a while...'.format(len(junctions)))
-    log.info(junctions[0].to_json())
-    junctions = Junction.update(junctions)
+    junctions = Junction.smart_update(junctions)
     log.info('Done updating junctions')
-    log.info(junctions[0].to_json())
     #for otu in otus:
     #    #print(otu.to_json())
     #    break
@@ -123,7 +124,8 @@ def phase2(otus, junctions, csvindex):
 
 def read_args_params(args):
     global log
-    pattern = re.compile(r'J\d{6}\-\d{8}')
+    valid_data_pattern = re.compile(r'J\d{6}\-\d{8}')
+    lat_lon_pattern = re.compile(r'^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$')
     with open(args.input, 'r') as jdf:
         jsdata = json.load(jdf)
     log.info('We have {} keys to upload from JSON'.format(len(jsdata)))
@@ -131,7 +133,7 @@ def read_args_params(args):
     with open(args.index, 'r', encoding='utf-8-sig') as fp:
         reader = csv.reader(fp, delimiter=';')
         for line in reader:
-            if line[0] != '' and line[1] != '' and line[2] != '' and pattern.match(line[3]):
+            if line[0] != '' and line[1] != '' and line[2] != '' and valid_data_pattern.match(line[3]):
                 # csvindex[OTU][JUNCTION]
                 if line[2] not in csvindex:
                     csvindex[line[2]] = {}
@@ -148,7 +150,7 @@ def read_args_params(args):
                     'isp': line[15],
                     'head_type': line[19]
                 }
-                if line[10] != '' and line[11] != '':
+                if line[10] != '' and line[11] != '' and lat_lon_pattern.match(line[10]) and lat_lon_pattern.match(line[11]):
                     csvindex[line[2]][line[1]]['latitude'] = float(line[10].replace(',', '.'))
                     csvindex[line[2]][line[1]]['longitude'] = float(line[11].replace(',', '.'))
                 if line[16] == 'SI':
