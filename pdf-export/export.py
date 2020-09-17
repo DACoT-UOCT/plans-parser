@@ -30,7 +30,8 @@ def parse_text(pages_text):
     global log
     if pages_text[0] == '':
         res = 'ONLY IMGS'
-    elif pages_text[0][0:24] == 'CONTROLADOR DE SEMAFOROS':
+    elif pages_text[0][0:39] == 'CONTROLADOR DE SEMAFOROS MODELO TEK I B':
+        print(pages_text[0].encode('utf-8'))
         res = 'OK'
     else:
         res = 'UNKNOWN FORMAT'
