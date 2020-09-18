@@ -4,8 +4,6 @@ from mongoengine import Document, PointField, StringField, ListField, DateTimeFi
 from mongoengine import EmbeddedDocumentField, EmailField, FileField, LongField, ReferenceField
 from mongoengine import GenericReferenceField, DictField
 
-from mongoengine_mate import ExtendedDocument
-
 from datetime import datetime
 
 # Junction Model ====
@@ -37,7 +35,7 @@ class JunctionMeta(EmbeddedDocument):
     first_access = StringField()
     second_access = StringField()
 
-class Junction(ExtendedDocument):
+class Junction(Document):
     meta = {'collection': 'Junction'}
     jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
@@ -45,13 +43,13 @@ class Junction(ExtendedDocument):
 
 # External Company Model ====
 
-class ExternalCompany(ExtendedDocument):
+class ExternalCompany(Document):
     meta = {'collection': 'ExternalCompany'}
     name = StringField(min_length=2, required=True, unique=True)
 
 # User Model ====
 
-class UOCTUser(ExtendedDocument): #TODO: add is_admin flag
+class UOCTUser(Document): #TODO: add is_admin flag
     meta = {'collection': 'UOCTUser'}
     uid = IntField(min_value=0, required=True, unique=True)
     full_name = StringField(min_length=5, required=True)
@@ -68,7 +66,7 @@ class Comment(EmbeddedDocument):
 
 # OTU Controller Model ====
 
-class OTUController(ExtendedDocument):
+class OTUController(Document):
     meta = {'collection': 'OTUController'}
     company = ReferenceField(ExternalCompany, required=True, unique_with='model')
     model = StringField(required=True)
@@ -112,7 +110,7 @@ class OTUMeta(EmbeddedDocument):
     imgs = ListField(FileField())
     original_data = FileField()# required=True)
 
-class OTU(ExtendedDocument):
+class OTU(Document):
     meta = {'collection': 'OTU'}
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
@@ -123,7 +121,7 @@ class OTU(ExtendedDocument):
 
 # JsonPatch changes Model ====
 
-class ChangeSet(ExtendedDocument):
+class ChangeSet(Document):
     meta = {'collection': 'ChangeSets'}
     apply_to = GenericReferenceField(choices=[OTU, Junction], required=True)
     date = DateTimeField(default=datetime.utcnow, required=True)
