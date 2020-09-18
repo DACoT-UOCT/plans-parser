@@ -66,9 +66,7 @@ def phase1(jsdata):
             for phid, phvalue in plan['system_start'].items():
                 system_start.append(JunctionPlanPhaseValue(phid=phid, value=phvalue))
             plans.append(JunctionPlan(plid=plid, cycle=plan['cycle'], system_start=system_start))
-        new_junc = Junction(jid=k, plans=plans, metadata=JunctionMeta())
-        new_junc.validate()
-        junctions.append(new_junc)
+        junctions.append(Junction(jid=k, plans=plans, metadata=JunctionMeta()))
     log.info('Bulk inserting {} junctions in the remote mongo database, this can take a while...'.format(len(junctions)))
     junctions = Junction.objects.insert(junctions)
     log.info('Done inserting junctions')
@@ -111,15 +109,21 @@ def phase2(otus, junctions, csvindex):
             log.warning('Missing location data for jid={} from the CSV index'.format(junc['jid']))
         junc.metadata.first_access = index_data['first_access']
         junc.metadata.second_access = index_data['second_access']
-        junc.validate()
     log.info('Bulk updating {} junctions in the remote mongo database, this can take a while...'.format(len(junctions)))
     junctions = Junction.smart_update(junctions)
     log.info('Done updating junctions')
     log.info('Updatig existing OTUs with CSV metadata')
     for otu in otus:
-        pass
+        oid = otu['oid']
+        if oid not in csvindex:
+            log.warning('We have OTU oid={} from JSON file but does not exists in the CSV index'.format(oid))
+            continue
+        index_data = csvindex[oid]
+        index_data_junc = list(csvindex[oid].values())[0]
+        if 'maintainer' in index_data_junc:
+            otu.metadata.maintainer = index_data_junc['maintainer']
     log.info('Bulk updating {} OTUs in the remote mongo database, this can take a while...'.format(len(otus)))
-    # otus = OTU.smart_update(otus)
+    otus = OTU.smart_update(otus)
     log.info('Done updating OTUs')
     log.info('=' * 60)
     log.info('Phase 2. DONE')
@@ -146,14 +150,13 @@ def read_args_params(args):
                     'first_access': line[4],
                     'second_access': line[5],
                     'commune': line[6],
-                    'maintainer': line[7],
                     'otu_type': line[12],
                     'tcc': line[13],
                     'ip_address': line[14],
                     'isp': line[15],
                     'head_type': line[19]
                 }
-                if line[9] != '' and line[9] != '':
+                if line[9] != '' and line[8] != '':
                     if (line[9], line[8]) not in controller_models:
                         if line[9] not in external_companies:
                             new_company = ExternalCompany(name=line[9]).save().reload()
@@ -161,6 +164,11 @@ def read_args_params(args):
                         otu_ctrl = OTUController(company=external_companies[line[9]], model=line[8]).save().reload()
                         controller_models[(line[9], line[8])] = otu_ctrl
                     csvindex[line[2]][line[1]]['controller_model'] = controller_models[(line[9], line[8])]
+                    if line[7] != '':
+                        if line[7] not in external_companies:
+                            new_company = ExternalCompany(name=line[7]).save().reload()
+                            external_companies[line[7]] = new_company
+                        csvindex[line[2]][line[1]]['maintainer'] = external_companies[line[7]]
                 if line[10] != '' and line[11] != '' and lat_lon_pattern.match(line[10]) and lat_lon_pattern.match(line[11]):
                     csvindex[line[2]][line[1]]['latitude'] = float(line[10].replace(',', '.'))
                     csvindex[line[2]][line[1]]['longitude'] = float(line[11].replace(',', '.'))
@@ -170,7 +178,6 @@ def read_args_params(args):
                     csvindex[line[2]][line[1]]['has_ups'] = False
                 # TODO: Add IP Address
     log.info('We have {} junctions in the CSV index'.format(len(csvindex)))
-    print(controller_models)
     return jsdata, csvindex
 
 if __name__ == "__main__":
@@ -181,6 +188,6 @@ if __name__ == "__main__":
     connect('dacot-dev', host=args.mongo)
     drop_data()
     jsdata, csvindex = read_args_params(args)
-    # otus, junctions = phase1(jsdata)
-    # phase2(otus, junctions, csvindex)
+    otus, junctions = phase1(jsdata)
+    phase2(otus, junctions, csvindex)
     log.info('DONE SEEDING THE DB')

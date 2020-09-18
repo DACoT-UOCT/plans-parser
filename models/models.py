@@ -33,9 +33,9 @@ class JunctionPlan(EmbeddedDocument):
 
 class JunctionMeta(EmbeddedDocument):
     location = PointField()
-    sales_id = IntField(min_value=0, required=True)
-    first_access = StringField(required=True)
-    second_access = StringField(required=True)
+    sales_id = IntField(min_value=0)
+    first_access = StringField()
+    second_access = StringField()
 
 class Junction(ExtendedDocument):
     meta = {'collection': 'Junction'}
@@ -98,7 +98,7 @@ class OTUSequenceItem(EmbeddedDocument):
 
 class OTUMeta(EmbeddedDocument):
     version = StringField(choices=['base', 'latest'], required=True)
-    maintainer = ReferenceField(ExternalCompany)# , required=True)
+    maintainer = ReferenceField(ExternalCompany)
     status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True)
     status_date = DateTimeField(default=datetime.utcnow, required=True)
     status_user = ReferenceField(UOCTUser, required=True)
