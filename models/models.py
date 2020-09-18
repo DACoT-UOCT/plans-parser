@@ -32,10 +32,10 @@ class JunctionPlan(EmbeddedDocument):
     system_start = EmbeddedDocumentListField(JunctionPlanPhaseValue, required=True)
 
 class JunctionMeta(EmbeddedDocument):
-    location = PointField()#required=True)
-    sales_id = IntField(min_value=0)#, required=True)
-    first_access = StringField()# required=True)
-    second_access = StringField()# required=True)
+    location = PointField(required=True)
+    sales_id = IntField(min_value=0, required=True)
+    first_access = StringField(required=True)
+    second_access = StringField(required=True)
 
 class Junction(ExtendedDocument):
     meta = {'collection': 'Junction'}
