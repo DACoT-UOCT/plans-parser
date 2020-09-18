@@ -5,12 +5,24 @@ import argparse
 import json
 import logging
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from mongoengine import connect
 
 from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
 from dacot_models import ExternalCompany, UOCTUser, OTUController, ChangeSet, OTUMeta
 
 global log
+
+def save_async_thread_pool(objects):
+    results = []
+    with ThreadPoolExecutor(max_workers=100) as executor:
+        futures = []
+        for obj in objects:
+            futures.append(executor.submit(lambda: obj.save().reload()))
+        for fut in as_completed(futures):
+            results.append(fut.result())
+    return results
 
 def setup_logging():
     global log
@@ -110,7 +122,7 @@ def phase2(otus, junctions, csvindex):
         junc.metadata.first_access = index_data['first_access']
         junc.metadata.second_access = index_data['second_access']
     log.info('Bulk updating {} junctions in the remote mongo database, this can take a while...'.format(len(junctions)))
-    junctions = Junction.smart_update(junctions)
+    save_async_thread_pool(junctions)
     log.info('Done updating junctions')
     log.info('Updatig existing OTUs with CSV metadata')
     for otu in otus:
@@ -123,7 +135,7 @@ def phase2(otus, junctions, csvindex):
         if 'maintainer' in index_data_junc:
             otu.metadata.maintainer = index_data_junc['maintainer']
     log.info('Bulk updating {} OTUs in the remote mongo database, this can take a while...'.format(len(otus)))
-    otus = OTU.smart_update(otus)
+    save_async_thread_pool(otus)
     log.info('Done updating OTUs')
     log.info('=' * 60)
     log.info('Phase 2. DONE')
