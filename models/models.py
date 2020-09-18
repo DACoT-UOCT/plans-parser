@@ -72,8 +72,8 @@ class OTUController(ExtendedDocument):
     meta = {'collection': 'OTUController'}
     company = StringField(required=True)
     model = StringField(required=True)
-    firmware_version = StringField(required=True)
-    checksum = StringField(required=True)
+    firmware_version = StringField()#required=True)
+    checksum = StringField()#required=True)
     date = DateTimeField(default=datetime.utcnow, required=True)
 
 # OTU Model ====
@@ -98,7 +98,6 @@ class OTUSequenceItem(EmbeddedDocument):
 
 class OTUMeta(EmbeddedDocument):
     version = StringField(choices=['base', 'latest'], required=True)
-    installed_by = ReferenceField(ExternalCompany)# , required=True)
     maintainer = ReferenceField(ExternalCompany)# , required=True)
     status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True)
     status_date = DateTimeField(default=datetime.utcnow, required=True)
