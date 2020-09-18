@@ -134,11 +134,11 @@ def read_args_params(args):
     log.info('We have {} keys to upload from JSON'.format(len(jsdata)))
     csvindex = {}
     controller_models = {}
+    external_companies = {}
     with open(args.index, 'r', encoding='utf-8-sig') as fp:
         reader = csv.reader(fp, delimiter=';')
         for line in reader:
             if line[0] != '' and line[1] != '' and line[2] != '' and valid_data_pattern.match(line[3]):
-                # csvindex[OTU][JUNCTION]
                 if line[2] not in csvindex:
                     csvindex[line[2]] = {}
                 csvindex[line[2]][line[1]] = {
@@ -155,7 +155,10 @@ def read_args_params(args):
                 }
                 if line[9] != '' and line[9] != '':
                     if (line[9], line[8]) not in controller_models:
-                        otu_ctrl = OTUController(company=line[9], model=line[8]).save().reload()
+                        if line[9] not in external_companies:
+                            new_company = ExternalCompany(name=line[9]).save().reload()
+                            external_companies[line[9]] = new_company
+                        otu_ctrl = OTUController(company=external_companies[line[9]], model=line[8]).save().reload()
                         controller_models[(line[9], line[8])] = otu_ctrl
                     csvindex[line[2]][line[1]]['controller_model'] = controller_models[(line[9], line[8])]
                 if line[10] != '' and line[11] != '' and lat_lon_pattern.match(line[10]) and lat_lon_pattern.match(line[11]):

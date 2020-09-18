@@ -47,7 +47,7 @@ class Junction(ExtendedDocument):
 
 class ExternalCompany(ExtendedDocument):
     meta = {'collection': 'ExternalCompany'}
-    name = StringField(min_length=2, required=True)
+    name = StringField(min_length=2, required=True, unique=True)
 
 # User Model ====
 
@@ -70,7 +70,7 @@ class Comment(EmbeddedDocument):
 
 class OTUController(ExtendedDocument):
     meta = {'collection': 'OTUController'}
-    company = StringField(required=True)
+    company = ReferenceField(ExternalCompany, required=True, unique_with='model')
     model = StringField(required=True)
     firmware_version = StringField()#required=True)
     checksum = StringField()#required=True)
