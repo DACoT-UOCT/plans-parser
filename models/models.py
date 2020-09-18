@@ -101,14 +101,14 @@ class OTUMeta(EmbeddedDocument):
     status_date = DateTimeField(default=datetime.utcnow, required=True)
     status_user = ReferenceField(UOCTUser, required=True)
     installation_date = DateTimeField(default=datetime.utcnow)# , required=True)
-    location = PointField()# required=True)
-    address = StringField()# required=True)
-    address_reference = StringField()# required=True)
-    commune = StringField()# required=True)
-    controller = ReferenceField(OTUController)# , required=True)
+    location = PointField()
+    address = StringField()
+    address_reference = StringField()
+    commune = StringField()
+    controller = ReferenceField(OTUController)
     observations = EmbeddedDocumentListField(Comment)
     imgs = ListField(FileField())
-    original_data = FileField()# required=True)
+    original_data = FileField()
 
 class OTU(Document):
     meta = {'collection': 'OTU'}

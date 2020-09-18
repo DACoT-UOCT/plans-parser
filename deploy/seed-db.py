@@ -134,6 +134,10 @@ def phase2(otus, junctions, csvindex):
         index_data_junc = list(csvindex[oid].values())[0]
         if 'maintainer' in index_data_junc:
             otu.metadata.maintainer = index_data_junc['maintainer']
+        if 'commune' in index_data_junc:
+            otu.metadata.commune = index_data_junc['commune']
+        if 'controller_model' in index_data_junc:
+            otu.metadata.controller = index_data_junc['controller_model']
     log.info('Bulk updating {} OTUs in the remote mongo database, this can take a while...'.format(len(otus)))
     save_async_thread_pool(otus)
     log.info('Done updating OTUs')
