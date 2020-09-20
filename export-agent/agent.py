@@ -32,6 +32,16 @@ def build_schedules():
     except Exception as excep:
         log.fatal('Exception ocurred in the SchedulesExtractor.build_schedules() call: {}'.format(excep), exc_info=True)
         return
+    log.info('Done extracting data from control. Dumping JSON files')
+    with open('schedules.json', 'w') as fp:
+        json.dump(schedules, fp)
+    log.info('Written {} junctions in schedules.json file'.format(len(schedules)))
+    with open('failed.json', 'w') as fp:
+        json.dump(failed, fp)
+    log.info('Written {} failed plans, {} failed program lines for L table, {} failed program lines for S table and {} failed program lines for D table in failed.json file'
+        .format(len(failed['failed_plans']), len(failed['failed_program_tables']['L']), len(failed['failed_program_tables']['S']),
+        len(failed['failed_program_tables']['D'])))
+
 
 if __name__ == "__main__":
     global log
