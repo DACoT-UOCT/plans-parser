@@ -108,10 +108,10 @@ def phase2(otus, junctions, csvindex):
     for junc in junctions:
         oid = 'X' + junc['jid'][1:6] + '0'
         if oid not in csvindex:
-            log.warning('We have OTU oid={} from JSON file but does not exists in the CSV index'.format(oid))
+            log.warning('We have the OTU oid={} from the JSON file, but it does not exists in the CSV index'.format(oid))
             continue
         elif junc['jid'] not in csvindex[oid]:
-            log.warning('We have JUNCTION jid={} from JSON file but does not exists in the CSV index'.format(junc['jid']))
+            log.warning('We have the JUNCTION jid={} from the JSON file, but it does not exists in the CSV index'.format(junc['jid']))
             continue
         index_data = csvindex[oid][junc['jid']]
         junc.metadata.sales_id = index_data['sales_id']
