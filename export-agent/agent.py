@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from ..dacot_parser import SchedulesExtractor
+from dacot_parser import SchedulesExtractor
 
 global log
 
