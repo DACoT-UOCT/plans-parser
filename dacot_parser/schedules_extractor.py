@@ -80,6 +80,7 @@ class SchedulesExtractor():
         return self.__executor.get_results()
 
     def __parse_programs(self, table_code):
+        self.__log_print('Starting call to __parse_programs with table_code={}'.format(table_code))
         self.__login()
         self.__executor.command('get-programs', 'OUTT {} E'.format(table_code))
         self.__executor.sleep(40)
@@ -113,6 +114,7 @@ class SchedulesExtractor():
         self.__executor.command('end-session', 'ENDS')
 
     def __parse_plans(self, junction):
+        self.__log_print('Staring call to __parse_plans')
         self.__login()
         self.__executor.command('get-plans', 'LIPT {} TIMINGS'.format(junction))
         self.__executor.sleep(40)
