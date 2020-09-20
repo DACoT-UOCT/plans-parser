@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from dacot_parser import SchedulesExtractor
+from ..dacot_parser import SchedulesExtractor
 
 global log
 
@@ -26,8 +26,12 @@ def build_schedules():
         log.fatal('Missing params: {}'.format(excep), exc_info=True)
         return
     log.info('Extracting data from {} with env-supplied credentials'.format(ctrl_host))
-    extractor = SchedulesExtractor(ctrl_host, ctrl_user, ctrl_pass, debug=True)
-    schedules, failed = extractor.build_schedules()
+    extractor = SchedulesExtractor(ctrl_host, ctrl_user, ctrl_pass, debug=True, logger=log)
+    try:
+        schedules, failed = extractor.build_schedules()
+    except Exception as excep:
+        log.fatal('Exception ocurred in the SchedulesExtractor.build_schedules() call: {}'.format(excep), exc_info=True)
+        return
 
 if __name__ == "__main__":
     global log

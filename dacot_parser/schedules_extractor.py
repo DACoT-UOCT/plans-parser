@@ -5,16 +5,24 @@ from dacot_parser.utc_plan_parser import UTCPlanParser
 from dacot_parser.utc_program_parser import UTCProgramParser
 
 class SchedulesExtractor():
-    def __init__(self, host, user, passwd, debug=False):
+    def __init__(self, host, user, passwd, debug=False, logger=None):
+        self.__logger = logger
         self.__utc_user = user
         self.__utc_passwd = passwd
-        self.__executor = TelnetCommandExecutor(host)
+        self.__executor = TelnetCommandExecutor(host, logger=self.__logger)
         self.__plans_parser = UTCPlanParser()
         self.__program_parser = UTCProgramParser()
         self.__re_ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n')
         self.__debug_enabled = debug
 
+    def __log_print(self, msg):
+        if self.__logger:
+            self.__logger.info(msg)
+        else:
+            print(msg)
+
     def build_schedules(self):
+        self.__log_print('Resetting the TelnetCommandExecutor instance')
         self.__executor.reset()
         plans, failed_plans = self.__parse_plans('A000000')
         week_programs, failed_week_programs = self.__parse_programs(1)
@@ -55,7 +63,7 @@ class SchedulesExtractor():
                 schedules[p[0]]['program'][day].append([p[1], p[2]])
             else:
                 if self.__debug_enabled:
-                    print(p[0], 'is not in schedules (no plans for this junction?)', 'day:', day, 'parsed:', p)
+                    self.__log_print('{} is not in schedules (no plans for this junction?) day: {} parsed: {}'.format(p[0], day, p))
         return schedules
 
     def __expand_wildcard(self, wildcard):
@@ -90,7 +98,7 @@ class SchedulesExtractor():
             else:
                 programs.append(parsed)
         if self.__debug_enabled:
-            print('From a total of {} plans, we parsed {} and {} have problems'.format(len(system_programs), len(programs), len(fail)))
+            self.__log_print('From a total of {} plans, we parsed {} and {} have problems'.format(len(system_programs), len(programs), len(fail)))
         return programs, fail
 
     # TODO: Check the case when there is no slots available in the system
@@ -125,7 +133,7 @@ class SchedulesExtractor():
             if not ok:
                 fail.append(clean_plan)
                 if self.__debug_enabled:
-                    print('PARSE FAILED', bytes(clean_plan, 'ascii'))
+                    self.__log_print('PARSE FAILED: {}'.format(bytes(clean_plan, 'ascii')))
             else:
                 success += 1
                 junct, plan_id, plan_timings = parsed
@@ -133,5 +141,5 @@ class SchedulesExtractor():
                     plans[junct] = {}
                 plans[junct][plan_id] = plan_timings
         if self.__debug_enabled:
-            print('From a total of {} plans, we parsed {}, {} have problems and {} were ignored'.format(len(system_plans), success, len(fail), ignored))
+            self.__log_print('From a total of {} plans, we parsed {}, {} have problems and {} were ignored'.format(len(system_plans), success, len(fail), ignored))
         return plans, fail
