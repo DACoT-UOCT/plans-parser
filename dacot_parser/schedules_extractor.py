@@ -33,7 +33,18 @@ class SchedulesExtractor():
         schedules = self.__add_programs_to_schedules(week_programs, 'L', schedules)
         schedules = self.__add_programs_to_schedules(saturday_programs, 'S', schedules)
         schedules = self.__add_programs_to_schedules(sunday_programs, 'D', schedules)
-        return schedules, [failed_plans, failed_week_programs, failed_saturday_programs, failed_sunday_programs]
+        failed_dict = self.__build_failed_results_dict(failed_plans, [failed_week_programs, failed_saturday_programs, failed_sunday_programs])
+        return schedules, failed_dict
+
+    def __build_failed_results_dict(self, fplans, ftables):
+        return {
+            'failed_plans': fplans,
+            'failed_program_tables': {
+                'L': ftables[0],
+                'S': ftables[1],
+                'D': ftables[2]
+            }
+        }
 
     def __build_schedules_dict(self, junctions):
         schedules = {}
