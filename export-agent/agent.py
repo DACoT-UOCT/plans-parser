@@ -1,5 +1,6 @@
 import os
 import json
+import argparse
 import logging
 from dacot_parser import SchedulesExtractor
 
@@ -15,17 +16,22 @@ def setup_logging():
     log.setLevel(logging.INFO)
     log.addHandler(fout)
 
-def build_schedules():
+def build_schedules(from_env=False):
     global log
-    log.info('Reading environment for target and credentials')
-    try:
-        ctrl_host = os.environ['DACOT_UOCT_CTRL_HOST']
-        ctrl_user = os.environ['DACOT_UOCT_CTRL_USER']
-        ctrl_pass = os.environ['DACOT_UOCT_CTRL_PASS']
-    except KeyError as excep:
-        log.fatal('Missing params: {}'.format(excep), exc_info=True)
-        return
-    log.info('Extracting data from {} with env-supplied credentials'.format(ctrl_host))
+    if from_env:
+        log.info('Reading environment for target and credentials')
+        try:
+            ctrl_host = os.environ['DACOT_UOCT_CTRL_HOST']
+            ctrl_user = os.environ['DACOT_UOCT_CTRL_USER']
+            ctrl_pass = os.environ['DACOT_UOCT_CTRL_PASS']
+        except KeyError as excep:
+            log.fatal('Missing params: {}'.format(excep), exc_info=True)
+            return
+        log.info('Extracting data from {} with env-supplied credentials'.format(ctrl_host))
+    else:
+        log.info('Reading command line arguments for target and credentials')
+        ctrl_host, ctrl_user, ctrl_pass = read_params()
+        log.info('Extracting data from {} with command line-supplied credentials'.format(ctrl_host))
     extractor = SchedulesExtractor(ctrl_host, ctrl_user, ctrl_pass, debug=True, logger=log)
     try:
         schedules, failed = extractor.build_schedules()
@@ -42,6 +48,13 @@ def build_schedules():
         .format(len(failed['failed_plans']), len(failed['failed_program_tables']['L']), len(failed['failed_program_tables']['S']),
         len(failed['failed_program_tables']['D'])))
 
+def read_params():
+    parser = argparse.ArgumentParser(description='Seed the mongo db')
+    parser.add_argument('host', type=str, help='UOCT control system address')
+    parser.add_argument('user', type=str, help='UOCT control system user name')
+    parser.add_argument('passwd', type=str, help='UOCT control system user password')
+    args = parser.parse_args()
+    return args.host, args.user, args.passwd
 
 if __name__ == "__main__":
     global log
