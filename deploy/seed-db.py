@@ -35,6 +35,7 @@ def setup_args():
     parser.add_argument('input', type=str, help='input schedules.json file')
     parser.add_argument('index', type=str, help='CSV index file with relevant columns')
     parser.add_argument('mongo', type=str, help='mongo server url')
+    parser.add_argument('--rebuild', action='store_true', help='drop existing data and rebuild collections')
     return parser.parse_args()
 
 def drop_data():
@@ -202,8 +203,9 @@ if __name__ == "__main__":
     log.info('Started seed-db script')
     args = setup_args()
     connect('dacot-dev', host=args.mongo)
-    drop_data()
-    jsdata, csvindex = read_args_params(args)
-    otus, junctions = phase1(jsdata)
-    phase2(otus, junctions, csvindex)
+    if args.rebuild:
+        drop_data()
+        jsdata, csvindex = read_args_params(args)
+        otus, junctions = phase1(jsdata)
+        phase2(otus, junctions, csvindex)
     log.info('DONE SEEDING THE DB')
