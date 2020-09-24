@@ -1,3 +1,4 @@
+import re
 import glob
 import logging
 import argparse
@@ -31,7 +32,16 @@ def parse_text(pages_text):
     if pages_text[0] == '':
         res = 'ONLY IMGS'
     elif pages_text[0][0:39] == 'CONTROLADOR DE SEMAFOROS MODELO TEK I B':
-        print(pages_text[0].encode('utf-8'))
+        stages_types = re.compile(r'(?P<id>[A-Z])(?P<type>VEH|PEA)')
+        stages_page_tag = re.compile('.*Definición de etapas.*', re.IGNORECASE)
+        intergreens_page_tag = re.compile('.*Definición de entreverdes.*', re.IGNORECASE)
+        for page in pages_text:
+            if stages_page_tag.match(page):
+                stages = stages_types.findall(pages_text[14])
+                print(stages)
+            elif intergreens_page_tag.match(page):
+                print(page.encode('utf-8'))
+                break
         res = 'OK'
     else:
         res = 'UNKNOWN FORMAT'
@@ -49,6 +59,7 @@ def parse_files(files):
         result = parse_text(text)
         if result:
             done += 1
+            break
         else:
             failed += 1
     log.info('RESULTS => Ok: {} Failed: {}'.format(done, failed))
