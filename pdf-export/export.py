@@ -2,6 +2,7 @@ import re
 import glob
 import logging
 import argparse
+import numpy as np
 from pathlib import Path
 from pdfminer.high_level import extract_text, extract_pages
 from pdfminer.layout import LTTextBoxHorizontal
@@ -22,24 +23,35 @@ def find_files(args):
     globstr = str(Path(args.folder).joinpath('*.pdf'))
     return glob.glob(globstr)
 
+def __matrix_util_rebuild_row_delta(row, delta):
+    new_map = {}
+    vals = sorted(row)
+    new_map[vals[0]] = vals[0]
+    result = [vals[0]]
+    for iid, v in enumerate(vals[:-1]):
+        if vals[iid + 1] - v > delta:
+            result.append(vals[iid + 1])
+        new_map[vals[iid + 1]] = result[-1]
+    index_map = {}
+    for iid, i in enumerate(result):
+        index_map[i] = iid
+    return result, new_map, index_map
+
 def process_pages(pages):
     global log
     first_page_items = list(pages[0])
-    # for page_layout in pages:
-    #     for element in page_layout:
-    #         if isinstance(element, LTTextBoxHorizontal):
-    #             # print(element.get_text())
-    #             break
     if pages[0].is_empty():
         res = 1
     elif isinstance(first_page_items[0], LTTextBoxHorizontal) and first_page_items[0].get_text().strip() == 'CONTROLADOR DE SEMAFOROS':
         if first_page_items[1].get_text().strip() == 'MODELO TEK I B':
             stages_page_tag = re.compile('.*Definición de etapas.*', re.IGNORECASE)
             stages = None
+            intergrees_page_tag = re.compile('.*Definición de entreverdes.*', re.IGNORECASE)
+            intergreens = None
             for pid, layout in enumerate(pages):
                 for element in layout:
                     if isinstance(element, LTTextBoxHorizontal):
-                        if not stages and stages_page_tag.match(element.get_text().strip()):
+                        if stages is None and stages_page_tag.match(element.get_text().strip()):
                             first_stages_re = re.compile(r'([A-Z]\n)+')
                             second_stages_re = re.compile(r'(((VEH)|(PEA))\n)+')
                             text_box_elements = [element_ for element_ in pages[pid] if isinstance(element_, LTTextBoxHorizontal)]
@@ -50,8 +62,26 @@ def process_pages(pages):
                                     types = second_stages_re.match(text_box_elements[tid + 1].get_text()).group(0).strip().split()
                                     stages = zip(stages_list, types)
                                     break
-            print(list(stages))
-        return True
+                        if intergreens is None and intergrees_page_tag.match(element.get_text().strip()):
+                            item_re = re.compile(r'[A-Z]\n|[0-9]{1,2}\n')
+                            text_box_elements = [element_ for element_ in pages[pid] if isinstance(element_, LTTextBoxHorizontal)]
+                            matrix_items = []
+                            for element_ in text_box_elements:
+                                letter_match = item_re.match(element_.get_text())
+                                if letter_match:
+                                    matrix_items.append((int(element_.x0), int(element_.y0), element_.get_text().strip()))
+                            new_x, x_map, x_index = __matrix_util_rebuild_row_delta([i[0] for i in matrix_items], 6) # TODO: Get delta from document
+                            new_y, y_map, y_index = __matrix_util_rebuild_row_delta([i[1] for i in matrix_items], 6)
+                            intergreens = np.zeros((len(new_x), len(new_y))).astype(np.str)
+                            for mitem in matrix_items:
+                                intergreens[x_index[x_map[mitem[0]]]][y_index[y_map[mitem[1]]]] = mitem[2]
+                            intergreens = np.flipud(intergreens.T)
+            if stages is None or intergreens is None:
+                res = -1
+            else:
+                print(list(stages))
+                print(intergreens)
+                res = 0
     else:
         res = -1
     log.info('Result => {}'.format(res))
@@ -63,6 +93,7 @@ def parse_files(files, unique=False):
     global log
     done, failed = 0, 0
     if unique:
+        lfiles = 1
         log.info('Parsing file {}'.format(files))
         pages = list(extract_pages(files))
         result = process_pages(pages)
@@ -80,7 +111,7 @@ def parse_files(files, unique=False):
                 done += 1
             else:
                 failed += 1
-    log.info('RESULTS => Ok: {} Failed: {}'.format(done, failed))
+    log.info('RESULTS => Ok: {} Failed: {} | Progress = {:.2f}%'.format(done, failed, 100 * float(done) / float(lfiles)))
 
 if __name__ == "__main__":
     global log
