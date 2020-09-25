@@ -19,8 +19,8 @@ def setup_logging():
     log.setLevel(logging.INFO)
     log.addHandler(fout)
 
-def find_files(args):
-    globstr = str(Path(args.folder).joinpath('*.pdf'))
+def find_files(fpath):
+    globstr = str(Path(fpath).joinpath('*.pdf'))
     return glob.glob(globstr)
 
 def __matrix_util_rebuild_row_delta(row, delta):
@@ -40,6 +40,7 @@ def __matrix_util_rebuild_row_delta(row, delta):
 def process_pages(pages):
     global log
     first_page_items = list(pages[0])
+    res = -1
     if pages[0].is_empty():
         res = 1
     elif isinstance(first_page_items[0], LTTextBoxHorizontal) and first_page_items[0].get_text().strip() == 'CONTROLADOR DE SEMAFOROS':
@@ -82,8 +83,6 @@ def process_pages(pages):
                 print(list(stages))
                 print(intergreens)
                 res = 0
-    else:
-        res = -1
     log.info('Result => {}'.format(res))
     if res == 0:
         return True
@@ -124,6 +123,6 @@ if __name__ == "__main__":
     if args.unique:
         parse_files(args.path, unique=True)
     else:
-        pdfs = find_files(args)
+        pdfs = find_files(args.path)
         log.info('Found {} PDF files in {}'.format(len(pdfs), args.path))
         parse_files(pdfs)
