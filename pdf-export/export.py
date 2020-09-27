@@ -27,8 +27,8 @@ def setup_logging(tofile=True):
         log.addHandler(fout)
 
 def find_files(fpath):
-    globstr = str(Path(fpath).joinpath('*.pdf'))
-    return glob.glob(globstr)
+    globstr = str(Path(fpath).joinpath('**/*.pdf'))
+    return glob.glob(globstr, recursive=True)
 
 def parse_pdf_tek_i_b_1_singlej(pages):
     def __matrix_util_rebuild_row_delta(row, delta):
@@ -171,8 +171,8 @@ def parse_files(files, unique=False, debug_results=False):
                 results[result[0]] = 0
             results[result[0]] += 1
             results_types[pdf] = result[1]
-            if len(result) == 3:
-                print(result[2])
+            # if len(result) == 3:
+            #     print(result[2])
     log.info('RESULTS => Ok: {} Failed: {} | Progress = {:.2f}%'.format(done, failed, 100 * float(done) / float(lfiles)))
     log.info('RESULTS => {}'.format(results))
     if debug_results:
