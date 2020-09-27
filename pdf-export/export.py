@@ -261,6 +261,9 @@ def process_pages(pages, pdf_fname):
                             res = (RESULT_INCOMPLETE_PARSING, 'AUTER A5')
                     else:
                         res = (RESULT_OK, 'AUTER A5', {junction_name: {'stages': stages, 'inters': intergreens}})
+    elif __util_find_text_element(first_page_items, 'CONTROLADOR DE SEMAFORO'):
+        if __util_find_text_element(first_page_items, 'MODELO  A4F'):
+            print('A4F!!')
     log.info('Result => {}'.format(res[:2]))
     return res
 
