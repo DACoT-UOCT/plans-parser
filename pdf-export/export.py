@@ -32,6 +32,19 @@ def find_files(fpath):
     return glob.glob(globstr, recursive=True)
 
 def parse_pdf_auter_a5_1(pages):
+    def __matrix_util_rebuild_row_delta(row, delta):
+        new_map = {}
+        vals = sorted(row)
+        new_map[vals[0]] = vals[0]
+        result = [vals[0]]
+        for iid, v in enumerate(vals[:-1]):
+            if vals[iid + 1] - v > delta:
+                result.append(vals[iid + 1])
+            new_map[vals[iid + 1]] = result[-1]
+        index_map = {}
+        for iid, i in enumerate(result):
+            index_map[i] = iid
+        return result, new_map, index_map
     stages = None
     intergreens = None
     stages_page_tag = re.compile('.*ETAPAS.*')
@@ -48,11 +61,20 @@ def parse_pdf_auter_a5_1(pages):
                     sid = first_stages_re.match(_text_elem.get_text())
                     stype = second_stages_re.match(_text_elem.get_text())
                     if sid:
-                        stage_id.append(sid.group(1))
+                        stage_id.append((_text_elem.x0, _text_elem.y0, sid.group(1)))
                     elif stype:
-                        stage_type.append(stype.group(1))
+                        stage_type.append((_text_elem.x0, _text_elem.y0, stype.group(1)))
                 if len(stage_id) == len(stage_type) * 2:
-                    stages = list(zip(stage_id, stage_type[:len(stage_id)]))
+                    matrix_objects = stage_id[:len(stage_type)] + stage_type
+                    # tmp_stages = list(zip(stage_id, stage_type[:len(stage_id)]))
+                    # TODO: Get delta from document (how?)
+                    _delta = 6
+                    new_x, x_map, x_index = __matrix_util_rebuild_row_delta([i[0] for i in matrix_objects], _delta)
+                    new_y, y_map, y_index = __matrix_util_rebuild_row_delta([i[1] for i in matrix_objects], _delta)
+                    stages = np.zeros((len(new_x), len(new_y))).astype(np.str)
+                    for mitem in matrix_objects:
+                        stages[x_index[x_map[mitem[0]]]][y_index[y_map[mitem[1]]]] = mitem[2]
+                    stages = np.flipud(stages.T)
                     break
     print(stages)
     return stages, intergreens
