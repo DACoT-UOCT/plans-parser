@@ -48,7 +48,7 @@ def parse_pdf_auter_a5_1(pages):
     stages = None
     intergreens = None
     stages_page_tag = re.compile('.*ETAPAS.*')
-    # intergrees_page_tag = re.compile('.*Definición de entreverdes.*', re.IGNORECASE)
+    intergrees_page_tag = re.compile('.*MATRIZ DE ENTREVERDES.*', re.IGNORECASE)
     for pid, layout in enumerate(pages):
         text_box_elements = [element_ for element_ in layout if isinstance(element_, LTTextBoxHorizontal)]
         for text_elem in text_box_elements:
@@ -76,7 +76,20 @@ def parse_pdf_auter_a5_1(pages):
                         stages[x_index[x_map[mitem[0]]]][y_index[y_map[mitem[1]]]] = mitem[2]
                     stages = np.flipud(stages.T)
                     break
-    print(stages)
+            if intergreens is None and intergrees_page_tag.match(text_elem.get_text().strip()):
+                find_stages_re = re.compile(r'^([A-Z]|[A-E]\d?)\s*\n$')
+                find_junction_id_re = re.compile(r'^(\d)\s*\n$')
+                find_intergreen_re = re.compile(r'^(\d{1,2}\-\d{1,2}\s*\n){2}$')
+                for _text_elem in text_box_elements:
+                    sid = find_stages_re.match(_text_elem.get_text())
+                    jid = find_junction_id_re.match(_text_elem.get_text())
+                    intergval = find_intergreen_re.match(_text_elem.get_text())
+                    if sid:
+                        print('SID', (_text_elem.x0, _text_elem.y0, sid.group(1)))
+                    if jid:
+                        print('JID', (_text_elem.x0, _text_elem.y0, jid.group(1)))
+                    if intergval:
+                        print('INT', (_text_elem.x0, _text_elem.y0, intergval.group(0)))
     return stages, intergreens
 
 def parse_pdf_tek_i_b_1_singlej(pages):
