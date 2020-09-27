@@ -31,6 +31,32 @@ def find_files(fpath):
     globstr = str(Path(fpath).joinpath('**/*.pdf'))
     return glob.glob(globstr, recursive=True)
 
+def parse_pdf_auter_a5_1(pages):
+    stages = None
+    intergreens = None
+    stages_page_tag = re.compile('.*ETAPAS.*')
+    # intergrees_page_tag = re.compile('.*Definición de entreverdes.*', re.IGNORECASE)
+    for pid, layout in enumerate(pages):
+        text_box_elements = [element_ for element_ in layout if isinstance(element_, LTTextBoxHorizontal)]
+        for text_elem in text_box_elements:
+            if stages is None and stages_page_tag.match(text_elem.get_text().strip()):
+                stage_id = []
+                stage_type = []
+                first_stages_re = re.compile(r'^([A-Z])\s*\n$')
+                second_stages_re = re.compile(r'((VH)|(PT)|(DM))\s*\n')
+                for _text_elem in text_box_elements:
+                    sid = first_stages_re.match(_text_elem.get_text())
+                    stype = second_stages_re.match(_text_elem.get_text())
+                    if sid:
+                        stage_id.append(sid.group(1))
+                    elif stype:
+                        stage_type.append(stype.group(1))
+                if len(stage_id) == len(stage_type) * 2:
+                    stages = list(zip(stage_id, stage_type[:len(stage_id)]))
+                    break
+    print(stages)
+    return stages, intergreens
+
 def parse_pdf_tek_i_b_1_singlej(pages):
     def __matrix_util_rebuild_row_delta(row, delta):
         new_map = {}
@@ -119,7 +145,7 @@ def process_pages(pages, pdf_fname):
     res = (RESULT_UNKNOWN, RESULT_UNKNOWN)
     if pages[0].is_empty():
         res = (RESULT_EMPTY, RESULT_UNKNOWN)
-    elif isinstance(first_page_items[0], LTTextBoxHorizontal) and first_page_items[0].get_text().strip() == 'CONTROLADOR DE SEMAFOROS':
+    elif __util_find_text_element(first_page_items, 'CONTROLADOR DE SEMAFOROS'):
         if __util_find_text_element(first_page_items, 'MODELO TEK I B'):
             multiple_junctions = False
             text_box_elements = [element_ for element_ in first_page_items if isinstance(element_, LTTextBoxHorizontal)]
@@ -147,6 +173,14 @@ def process_pages(pages, pdf_fname):
             res = (RESULT_ONLY_IMAGES, RESULT_UNKNOWN)
         else:
             print(first_page_items[1])
+    elif __util_find_text_element(first_page_items, 'CONFIGURACIÓN DE CONTROLADOR'):
+        if __util_find_text_element(first_page_items, 'Marca AUTER'):
+            if __util_find_text_element(first_page_items, 'Modelo A5'):
+                stages, intergreens = parse_pdf_auter_a5_1(pages)
+                if stages is None or intergreens is None or junction_name is None:
+                    res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
+                else:
+                    res = (RESULT_OK, 'AUTER A5', {junction_name: {'stages': stages, 'inters': intergreens}})
     log.info('Result => {}'.format(res[:2]))
     return res
 
