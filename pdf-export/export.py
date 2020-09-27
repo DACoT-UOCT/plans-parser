@@ -83,7 +83,7 @@ def parse_pdf_tek_i_b_1_singlej(pages):
                     intergreens = np.flipud(intergreens.T)
     return list(stages), intergreens
 
-def process_pages(pages):
+def process_pages(pages, pdf_fname):
     global log
     first_page_items = list(pages[0])
     res = (RESULT_UNKNOWN, RESULT_UNKNOWN)
@@ -93,17 +93,20 @@ def process_pages(pages):
         if first_page_items[1].get_text().strip() == 'MODELO TEK I B':
             multiple_junctions = False
             text_box_elements = [element_ for element_ in first_page_items if isinstance(element_, LTTextBoxHorizontal)]
-            # single_junction_re = re.compile(r'^J\d{6}$')
+            single_junction_re = re.compile(r'.*(J\d{6}).*')
             multiple_junction_re = re.compile(r'^(J\d{6}\s/\s)+J\d{6}$')
+            junction_name = None
             for element in text_box_elements:
                 if multiple_junction_re.match(element.get_text().strip()):
                     multiple_junctions = True
+                    junction_name = element.get_text().strip().split(' / ')
                     break
             if multiple_junctions:
                 stages, intergreens = None, None
             else:
+                junction_name = single_junction_re.match(pdf_fname).group(1)
                 stages, intergreens = parse_pdf_tek_i_b_1_singlej(pages)
-            if stages is None or intergreens is None:
+            if stages is None or intergreens is None or junction_name is None:
                 res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
             else:
                 res = (RESULT_OK, 'TEK I B', {'stages': stages, 'inters': intergreens})
@@ -119,7 +122,7 @@ def parse_files(files, unique=False, debug_results=False):
         lfiles = 1
         log.info('Parsing file {}'.format(files))
         pages = list(extract_pages(files))
-        result = process_pages(pages)
+        result = process_pages(pages, files)
         if result[0] == RESULT_OK:
             done += 1
         else:
@@ -133,7 +136,7 @@ def parse_files(files, unique=False, debug_results=False):
         for idx, pdf in enumerate(files):
             log.info('Parsing file {}/{} => {}'.format(idx + 1, lfiles, pdf))
             pages = list(extract_pages(pdf))
-            result = process_pages(pages)
+            result = process_pages(pages, pdf)
             if result[0] == RESULT_OK:
                 done += 1
             else:
