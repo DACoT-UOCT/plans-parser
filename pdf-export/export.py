@@ -55,8 +55,9 @@ def parse_pdf_auter_a5_1(pages):
             if stages is None and stages_page_tag.match(text_elem.get_text().strip()):
                 stage_id = []
                 stage_type = []
-                first_stages_re = re.compile(r'^([A-Z])\s*\n$')
-                second_stages_re = re.compile(r'((VH)|(PT)|(DM))\s*\n')
+                # Skip 'F' in first regex, since is used for phases (is there a better way to do this?)
+                first_stages_re = re.compile(r'^([A-Z]|[A-E]\d?)\s*\n$')
+                second_stages_re = re.compile(r'((VH)|(PT)|(DM)|(PW))\s*\n')
                 for _text_elem in text_box_elements:
                     sid = first_stages_re.match(_text_elem.get_text())
                     stype = second_stages_re.match(_text_elem.get_text())
@@ -66,7 +67,6 @@ def parse_pdf_auter_a5_1(pages):
                         stage_type.append((_text_elem.x0, _text_elem.y0, stype.group(1)))
                 if len(stage_id) == len(stage_type) * 2:
                     matrix_objects = stage_id[:len(stage_type)] + stage_type
-                    # tmp_stages = list(zip(stage_id, stage_type[:len(stage_id)]))
                     # TODO: Get delta from document (how?)
                     _delta = 6
                     new_x, x_map, x_index = __matrix_util_rebuild_row_delta([i[0] for i in matrix_objects], _delta)
