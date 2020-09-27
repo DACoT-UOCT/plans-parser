@@ -31,7 +31,7 @@ def find_files(fpath):
     globstr = str(Path(fpath).joinpath('**/*.pdf'))
     return glob.glob(globstr, recursive=True)
 
-def parse_pdf_auter_a5_1(pages):
+def parse_pdf_auter_a5_1_singlej(pages):
     def __matrix_util_rebuild_row_delta(row, delta):
         new_map = {}
         vals = sorted(row)
@@ -49,7 +49,7 @@ def parse_pdf_auter_a5_1(pages):
     intergreens = None
     stages_page_tag = re.compile('.*ETAPAS.*')
     intergrees_page_tag = re.compile('.*MATRIZ DE ENTREVERDES.*', re.IGNORECASE)
-    for pid, layout in enumerate(pages):
+    for layout in pages:
         text_box_elements = [element_ for element_ in layout if isinstance(element_, LTTextBoxHorizontal)]
         for text_elem in text_box_elements:
             if stages is None and stages_page_tag.match(text_elem.get_text().strip()):
@@ -104,7 +104,6 @@ def parse_pdf_auter_a5_1(pages):
                     if len(set(row[2:])) != 1:
                         intergreens.append(row.tolist())
                 intergreens = np.array(intergreens)
-                intergreens = np.insert(intergreens, 0, np.array(['0.0'] * 2 + intergreens[:, 1].tolist()), 0) 
                 break
     return stages, intergreens
 
@@ -227,12 +226,23 @@ def process_pages(pages, pdf_fname):
     elif __util_find_text_element(first_page_items, 'CONFIGURACIÓN DE CONTROLADOR'):
         if __util_find_text_element(first_page_items, 'Marca AUTER'):
             if __util_find_text_element(first_page_items, 'Modelo A5'):
-                stages, intergreens = parse_pdf_auter_a5_1(pages)
-                junction_name = None #TODO: Extract this
+                single_junction_re = re.compile(r'.*(J\d{6}).*')
+                text_box_elements = [element_ for element_ in first_page_items if isinstance(element_, LTTextBoxHorizontal)]
+                found_junctions_ids = []
+                for text_element in text_box_elements:
+                    junc_match = single_junction_re.match(text_element.get_text().strip())
+                    if junc_match:
+                        found_junctions_ids.append(junc_match.group(1))
+                # if len(found_junctions_ids) == 1:
+                junction_name = found_junctions_ids[0]
+                stages, intergreens = parse_pdf_auter_a5_1_singlej(pages)
                 if stages is None or intergreens is None or junction_name is None:
                     res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
+                    print(stages, intergreens, junction_name)
                 else:
                     res = (RESULT_OK, 'AUTER A5', {junction_name: {'stages': stages, 'inters': intergreens}})
+                    print(res)
+
     log.info('Result => {}'.format(res[:2]))
     return res
 
@@ -268,8 +278,6 @@ def parse_files(files, unique=False, debug_results=False):
                 results[result[0]] = 0
             results[result[0]] += 1
             results_types[pdf] = result[1]
-            if len(result) == 3:
-                print(result[2])
     log.info('RESULTS => Ok: {} Failed: {} | Progress = {:.2f}%'.format(done, failed, 100 * float(done) / float(lfiles)))
     log.info('RESULTS => {}'.format(results))
     if debug_results:
