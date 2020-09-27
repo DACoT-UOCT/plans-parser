@@ -83,6 +83,29 @@ def parse_pdf_tek_i_b_1_singlej(pages):
                     intergreens = np.flipud(intergreens.T)
     return list(stages), intergreens
 
+def parse_pdf_tek_i_b_1_multiple(pages, junctions_names):
+    junctions_regexs = [re.compile(r'^\s*NODO {}:'.format(j[-1])) for j in junctions_names]
+    junction_pages_found = {}
+    for idx, j in enumerate(junctions_names):
+        junction_pages_found[j] = {}
+        junction_pages_found[j]['regex'] = junctions_regexs[idx]
+        junction_pages_found[j]['pages'] = []
+    for page in pages:
+        text_box_elements = [element_ for element_ in page if isinstance(element_, LTTextBoxHorizontal)]
+        for element in text_box_elements:
+            if 'NODO' in element.get_text():
+                for v in junction_pages_found.values():
+                    if v['regex'].match(element.get_text().strip()):
+                        v['pages'].append(page)
+                        break
+                break
+    results = {}
+    for k, v in junction_pages_found.items():
+        stages, intergreens = parse_pdf_tek_i_b_1_singlej(v['pages'])
+        results[k] = {'stages': stages, 'inters': intergreens}
+    return results
+
+
 def process_pages(pages, pdf_fname):
     global log
     first_page_items = list(pages[0])
@@ -102,18 +125,17 @@ def process_pages(pages, pdf_fname):
                     junction_name = element.get_text().strip().split(' / ')
                     break
             if multiple_junctions:
-                stages, intergreens = None, None
+                multiple_results = parse_pdf_tek_i_b_1_multiple(pages, junction_name)
+                res = (RESULT_OK, 'TEK I B', multiple_results) #TODO: Check everything is here
             else:
                 junction_name = single_junction_re.match(pdf_fname)
                 if junction_name:
                     junction_name = junction_name.group(1)
                 stages, intergreens = parse_pdf_tek_i_b_1_singlej(pages)
-            if stages is None or intergreens is None or junction_name is None:
-                res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
-            elif multiple_junctions:
-                pass
-            else:
-                res = (RESULT_OK, 'TEK I B', {junction_name: {'stages': stages, 'inters': intergreens}})
+                if stages is None or intergreens is None or junction_name is None:
+                    res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
+                else:
+                    res = (RESULT_OK, 'TEK I B', {junction_name: {'stages': stages, 'inters': intergreens}})
     log.info('Result => {}'.format(res[:2]))
     return res
 
