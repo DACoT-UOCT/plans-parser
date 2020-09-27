@@ -100,6 +100,7 @@ def parse_pdf_auter_a5_1_singlej(pages):
                 tmp_intergreens = np.flipud(tmp_intergreens.T)
                 tmp_intergreens[:, 2:][tmp_intergreens[:, 2:] == 'X'] = '0.0'
                 tmp_intergreens[:, 2:][tmp_intergreens[:, 2:] == 'I'] = '0.0'
+                tmp_intergreens[:, 2:][tmp_intergreens[:, 2:] == 'J'] = '0.0'
                 intergreens = []
                 for row in tmp_intergreens:
                     if len(set(row[2:])) != 1:
@@ -236,16 +237,30 @@ def process_pages(pages, pdf_fname):
                         found_junctions_ids.append(junc_match.group(1))
                 if not found_junctions_ids:
                     found_junctions_ids = [single_junction_re.match(pdf_fname).group(1)]
-                # if len(found_junctions_ids) == 1:
                 junction_name = found_junctions_ids[0]
                 stages, intergreens = parse_pdf_auter_a5_1_singlej(pages)
+                multiple_junctions = False
+                if len(found_junctions_ids) > 1:
+                    multiple_junctions = True
                 if stages is None or intergreens is None or junction_name is None:
                     res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
-                    print(stages, intergreens, junction_name)
                 else:
-                    res = (RESULT_OK, 'AUTER A5', {junction_name: {'stages': stages, 'inters': intergreens}})
-                    print(res)
-
+                    if multiple_junctions:
+                        stage_map = {}
+                        results = {}
+                        for j in found_junctions_ids:
+                            results[j] = {'stages': [], 'inters': []}
+                        for row in intergreens:
+                            results[j[:-1] + row[0]]['inters'].append(row.tolist())
+                            stage_map[row[1]] = j[:-1] + row[0]
+                        try:
+                            for stage in stages:
+                                results[stage_map[stage[0]]]['stages'].append(tuple(stage))
+                            res = (RESULT_OK, 'AUTER A5', results)
+                        except KeyError:
+                            res = (RESULT_INCOMPLETE_PARSING, 'AUTER A5')
+                    else:
+                        res = (RESULT_OK, 'AUTER A5', {junction_name: {'stages': stages, 'inters': intergreens}})
     log.info('Result => {}'.format(res[:2]))
     return res
 
