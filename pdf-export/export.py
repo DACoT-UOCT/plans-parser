@@ -234,6 +234,8 @@ def process_pages(pages, pdf_fname):
                     junc_match = single_junction_re.match(text_element.get_text().strip())
                     if junc_match:
                         found_junctions_ids.append(junc_match.group(1))
+                if not found_junctions_ids:
+                    found_junctions_ids = [single_junction_re.match(pdf_fname).group(1)]
                 # if len(found_junctions_ids) == 1:
                 junction_name = found_junctions_ids[0]
                 stages, intergreens = parse_pdf_auter_a5_1_singlej(pages)
