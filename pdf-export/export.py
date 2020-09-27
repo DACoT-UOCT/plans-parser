@@ -57,7 +57,7 @@ def parse_pdf_auter_a5_1_singlej(pages):
                 stage_type = []
                 # Skip 'F' in first regex, since is used for phases (is there a better way to do this?)
                 first_stages_re = re.compile(r'^([A-Z]|[A-E]\d?)\s*\n$')
-                second_stages_re = re.compile(r'((VH)|(PT)|(DM)|(PW)|(GI))\s*\n')
+                second_stages_re = re.compile(r'((VH)|(PT)|(DM)|(PW)|(GI)|(GO))\s*\n')
                 for _text_elem in text_box_elements:
                     sid = first_stages_re.match(_text_elem.get_text())
                     stype = second_stages_re.match(_text_elem.get_text())
@@ -98,7 +98,8 @@ def parse_pdf_auter_a5_1_singlej(pages):
                 for mitem in matrix_objects:
                     tmp_intergreens[x_index[x_map[mitem[0]]]][y_index[y_map[mitem[1]]]] = mitem[2]
                 tmp_intergreens = np.flipud(tmp_intergreens.T)
-                tmp_intergreens[tmp_intergreens == 'X'] = '0.0'
+                tmp_intergreens[:, 2:][tmp_intergreens[:, 2:] == 'X'] = '0.0'
+                tmp_intergreens[:, 2:][tmp_intergreens[:, 2:] == 'I'] = '0.0'
                 intergreens = []
                 for row in tmp_intergreens:
                     if len(set(row[2:])) != 1:
