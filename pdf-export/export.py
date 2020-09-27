@@ -53,7 +53,7 @@ def parse_pdf_tek_i_b_1_singlej(pages):
             if isinstance(element, LTTextBoxHorizontal):
                 if stages is None and stages_page_tag.match(element.get_text().strip()):
                     first_stages_re = re.compile(r'([A-Z]\n){2,}')
-                    second_stages_re = re.compile(r'(((VEH)|(PEA))\n)+')
+                    second_stages_re = re.compile(r'(((VEH)|(PEA)|(FLE)|(DUM))\n)+')
                     text_box_elements = [element_ for element_ in pages[pid] if isinstance(element_, LTTextBoxHorizontal)]
                     for tid, text_box in enumerate(text_box_elements):
                         first_match = first_stages_re.match(text_box.get_text())
