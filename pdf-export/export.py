@@ -52,8 +52,8 @@ def parse_pdf_tek_i_b_1_singlej(pages):
         for element in layout:
             if isinstance(element, LTTextBoxHorizontal):
                 if stages is None and stages_page_tag.match(element.get_text().strip()):
-                    first_stages_re = re.compile(r'([A-Z]\n){2,}')
-                    second_stages_re = re.compile(r'(((VEH)|(PEA)|(FLE)|(DUM))\n)+')
+                    first_stages_re = re.compile(r'([A-Z]\s*\n){2,}')
+                    second_stages_re = re.compile(r'(((VEH)|(PEA)|(FLE)|(DUM))\s*\n)+')
                     text_box_elements = [element_ for element_ in pages[pid] if isinstance(element_, LTTextBoxHorizontal)]
                     for tid, text_box in enumerate(text_box_elements):
                         first_match = first_stages_re.match(text_box.get_text())
@@ -66,7 +66,7 @@ def parse_pdf_tek_i_b_1_singlej(pages):
                             stages = zip(stages_list, types)
                             break
                 if intergreens is None and intergrees_page_tag.match(element.get_text().strip()):
-                    item_re = re.compile(r'[A-Z]\n|[0-9]{1,2}\n')
+                    item_re = re.compile(r'^([A-Z]\s*\n)$|^([0-9]{1,2}\s*\n)$')
                     text_box_elements = [element_ for element_ in pages[pid] if isinstance(element_, LTTextBoxHorizontal)]
                     matrix_items = []
                     for element_ in text_box_elements:
@@ -105,6 +105,12 @@ def parse_pdf_tek_i_b_1_multiple(pages, junctions_names):
         results[k] = {'stages': stages, 'inters': intergreens}
     return results
 
+def __util_find_text_element(page, element_text):
+    text_box_elements = [element_ for element_ in page if isinstance(element_, LTTextBoxHorizontal)]
+    for text_elem in text_box_elements:
+        if text_elem.get_text().strip() == element_text:
+            return True
+    return False
 
 def process_pages(pages, pdf_fname):
     global log
@@ -113,7 +119,8 @@ def process_pages(pages, pdf_fname):
     if pages[0].is_empty():
         res = (RESULT_EMPTY, RESULT_UNKNOWN)
     elif isinstance(first_page_items[0], LTTextBoxHorizontal) and first_page_items[0].get_text().strip() == 'CONTROLADOR DE SEMAFOROS':
-        if first_page_items[1].get_text().strip() == 'MODELO TEK I B':
+        #if first_page_items[1].get_text().strip() == 'MODELO TEK I B':
+        if __util_find_text_element(first_page_items, 'MODELO TEK I B'):
             multiple_junctions = False
             text_box_elements = [element_ for element_ in first_page_items if isinstance(element_, LTTextBoxHorizontal)]
             single_junction_re = re.compile(r'.*(J\d{6}).*')
@@ -136,6 +143,8 @@ def process_pages(pages, pdf_fname):
                     res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
                 else:
                     res = (RESULT_OK, 'TEK I B', {junction_name: {'stages': stages, 'inters': intergreens}})
+        else:
+            print(first_page_items[1])
     log.info('Result => {}'.format(res[:2]))
     return res
 
