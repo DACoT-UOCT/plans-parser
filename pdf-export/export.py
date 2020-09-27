@@ -80,16 +80,32 @@ def parse_pdf_auter_a5_1(pages):
                 find_stages_re = re.compile(r'^([A-Z]|[A-E]\d?)\s*\n$')
                 find_junction_id_re = re.compile(r'^(\d)\s*\n$')
                 find_intergreen_re = re.compile(r'^(\d{1,2}\-\d{1,2}\s*\n){2}$')
+                matrix_objects = []
                 for _text_elem in text_box_elements:
                     sid = find_stages_re.match(_text_elem.get_text())
                     jid = find_junction_id_re.match(_text_elem.get_text())
                     intergval = find_intergreen_re.match(_text_elem.get_text())
                     if sid:
-                        print('SID', (_text_elem.x0, _text_elem.y0, sid.group(1)))
+                        matrix_objects.append((_text_elem.x0, _text_elem.y0, sid.group(1)))
                     if jid:
-                        print('JID', (_text_elem.x0, _text_elem.y0, jid.group(1)))
+                        matrix_objects.append((_text_elem.x0, _text_elem.y0, jid.group(1)))
                     if intergval:
-                        print('INT', (_text_elem.x0, _text_elem.y0, intergval.group(0)))
+                        matrix_objects.append((_text_elem.x0, _text_elem.y0, intergval.group(0).replace('\n', '').strip()))
+                _delta = 6
+                new_x, x_map, x_index = __matrix_util_rebuild_row_delta([i[0] for i in matrix_objects], _delta)
+                new_y, y_map, y_index = __matrix_util_rebuild_row_delta([i[1] for i in matrix_objects], _delta)
+                tmp_intergreens = np.zeros((len(new_x), len(new_y))).astype(np.str)
+                for mitem in matrix_objects:
+                    tmp_intergreens[x_index[x_map[mitem[0]]]][y_index[y_map[mitem[1]]]] = mitem[2]
+                tmp_intergreens = np.flipud(tmp_intergreens.T)
+                tmp_intergreens[tmp_intergreens == 'X'] = '0.0'
+                intergreens = []
+                for row in tmp_intergreens:
+                    if len(set(row[2:])) != 1:
+                        intergreens.append(row.tolist())
+                intergreens = np.array(intergreens)
+                intergreens = np.insert(intergreens, 0, np.array(['0.0'] * 2 + intergreens[:, 1].tolist()), 0) 
+                break
     return stages, intergreens
 
 def parse_pdf_tek_i_b_1_singlej(pages):
@@ -212,6 +228,7 @@ def process_pages(pages, pdf_fname):
         if __util_find_text_element(first_page_items, 'Marca AUTER'):
             if __util_find_text_element(first_page_items, 'Modelo A5'):
                 stages, intergreens = parse_pdf_auter_a5_1(pages)
+                junction_name = None #TODO: Extract this
                 if stages is None or intergreens is None or junction_name is None:
                     res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
                 else:
@@ -251,8 +268,8 @@ def parse_files(files, unique=False, debug_results=False):
                 results[result[0]] = 0
             results[result[0]] += 1
             results_types[pdf] = result[1]
-            # if len(result) == 3:
-            #     print(result[2])
+            if len(result) == 3:
+                print(result[2])
     log.info('RESULTS => Ok: {} Failed: {} | Progress = {:.2f}%'.format(done, failed, 100 * float(done) / float(lfiles)))
     log.info('RESULTS => {}'.format(results))
     if debug_results:
