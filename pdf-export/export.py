@@ -104,12 +104,16 @@ def process_pages(pages, pdf_fname):
             if multiple_junctions:
                 stages, intergreens = None, None
             else:
-                junction_name = single_junction_re.match(pdf_fname).group(1)
+                junction_name = single_junction_re.match(pdf_fname)
+                if junction_name:
+                    junction_name = junction_name.group(1)
                 stages, intergreens = parse_pdf_tek_i_b_1_singlej(pages)
             if stages is None or intergreens is None or junction_name is None:
                 res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
+            elif multiple_junctions:
+                pass
             else:
-                res = (RESULT_OK, 'TEK I B', {'stages': stages, 'inters': intergreens})
+                res = (RESULT_OK, 'TEK I B', {junction_name: {'stages': stages, 'inters': intergreens}})
     log.info('Result => {}'.format(res[:2]))
     return res
 
