@@ -30,7 +30,7 @@ def find_files(fpath):
     globstr = str(Path(fpath).joinpath('*.pdf'))
     return glob.glob(globstr)
 
-def parse_pdf_tek_i_b_1(pages):
+def parse_pdf_tek_i_b_1_singlej(pages):
     def __matrix_util_rebuild_row_delta(row, delta):
         new_map = {}
         vals = sorted(row)
@@ -50,9 +50,6 @@ def parse_pdf_tek_i_b_1(pages):
     intergreens = None
     for pid, layout in enumerate(pages):
         for element in layout:
-            # if pid == 1:
-            #     print(element, dir(element))
-            #     print('=' * 20)
             if isinstance(element, LTTextBoxHorizontal):
                 if stages is None and stages_page_tag.match(element.get_text().strip()):
                     first_stages_re = re.compile(r'([A-Z]\n){2,}')
@@ -76,13 +73,15 @@ def parse_pdf_tek_i_b_1(pages):
                         letter_match = item_re.match(element_.get_text())
                         if letter_match:
                             matrix_items.append((int(element_.x0), int(element_.y0), element_.get_text().strip()))
-                    new_x, x_map, x_index = __matrix_util_rebuild_row_delta([i[0] for i in matrix_items], 6) # TODO: Get delta from document
-                    new_y, y_map, y_index = __matrix_util_rebuild_row_delta([i[1] for i in matrix_items], 6)
+                    # TODO: Get delta from document (how?)
+                    _delta = 6
+                    new_x, x_map, x_index = __matrix_util_rebuild_row_delta([i[0] for i in matrix_items], _delta)
+                    new_y, y_map, y_index = __matrix_util_rebuild_row_delta([i[1] for i in matrix_items], _delta)
                     intergreens = np.zeros((len(new_x), len(new_y))).astype(np.str)
                     for mitem in matrix_items:
                         intergreens[x_index[x_map[mitem[0]]]][y_index[y_map[mitem[1]]]] = mitem[2]
                     intergreens = np.flipud(intergreens.T)
-    return stages, intergreens
+    return list(stages), intergreens
 
 def process_pages(pages):
     global log
@@ -92,12 +91,23 @@ def process_pages(pages):
         res = (RESULT_EMPTY, RESULT_UNKNOWN)
     elif isinstance(first_page_items[0], LTTextBoxHorizontal) and first_page_items[0].get_text().strip() == 'CONTROLADOR DE SEMAFOROS':
         if first_page_items[1].get_text().strip() == 'MODELO TEK I B':
-            stages, intergreens = parse_pdf_tek_i_b_1(pages)
+            multiple_junctions = False
+            text_box_elements = [element_ for element_ in first_page_items if isinstance(element_, LTTextBoxHorizontal)]
+            # single_junction_re = re.compile(r'^J\d{6}$')
+            multiple_junction_re = re.compile(r'^(J\d{6}\s/\s)+J\d{6}$')
+            for element in text_box_elements:
+                if multiple_junction_re.match(element.get_text().strip()):
+                    multiple_junctions = True
+                    break
+            if multiple_junctions:
+                stages, intergreens = None, None
+            else:
+                stages, intergreens = parse_pdf_tek_i_b_1_singlej(pages)
             if stages is None or intergreens is None:
                 res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
             else:
-                res = (RESULT_OK, 'TEK I B')
-    log.info('Result => {}'.format(res))
+                res = (RESULT_OK, 'TEK I B', {'stages': stages, 'inters': intergreens})
+    log.info('Result => {}'.format(res[:2]))
     return res
 
 def parse_files(files, unique=False, debug_results=False):
@@ -132,12 +142,15 @@ def parse_files(files, unique=False, debug_results=False):
                 results[result[0]] = 0
             results[result[0]] += 1
             results_types[pdf] = result[1]
+            if len(result) == 3:
+                print(result[2])
     log.info('RESULTS => Ok: {} Failed: {} | Progress = {:.2f}%'.format(done, failed, 100 * float(done) / float(lfiles)))
     log.info('RESULTS => {}'.format(results))
     if debug_results:
         log.info('PARSED_TYPES =>')
         for k, v in results_types.items():
-            log.info('{} => {}'.format(k, v))
+            if type(v) != int:
+                log.info('{} => {}'.format(k, v))
 
 if __name__ == "__main__":
     global log
