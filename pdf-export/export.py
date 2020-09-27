@@ -14,6 +14,7 @@ RESULT_OK = 0
 RESULT_EMPTY = 1
 RESULT_UNKNOWN = 2
 RESULT_INCOMPLETE_PARSING = 3
+RESULT_ONLY_IMAGES = 4
 
 def setup_logging(tofile=True):
     global log
@@ -119,7 +120,6 @@ def process_pages(pages, pdf_fname):
     if pages[0].is_empty():
         res = (RESULT_EMPTY, RESULT_UNKNOWN)
     elif isinstance(first_page_items[0], LTTextBoxHorizontal) and first_page_items[0].get_text().strip() == 'CONTROLADOR DE SEMAFOROS':
-        #if first_page_items[1].get_text().strip() == 'MODELO TEK I B':
         if __util_find_text_element(first_page_items, 'MODELO TEK I B'):
             multiple_junctions = False
             text_box_elements = [element_ for element_ in first_page_items if isinstance(element_, LTTextBoxHorizontal)]
@@ -143,6 +143,8 @@ def process_pages(pages, pdf_fname):
                     res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
                 else:
                     res = (RESULT_OK, 'TEK I B', {junction_name: {'stages': stages, 'inters': intergreens}})
+        elif __util_find_text_element(first_page_items, 'MODELO ST 950'):
+            res = (RESULT_ONLY_IMAGES, RESULT_UNKNOWN)
         else:
             print(first_page_items[1])
     log.info('Result => {}'.format(res[:2]))
