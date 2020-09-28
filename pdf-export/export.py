@@ -38,27 +38,32 @@ def parse_pdf_auter_a4f_1_singlej(pages):
         return sum(is_sequence) == len(potential_stgs) - 1
     stages = None
     intergreens = None
-    stages_ids = []
-    stages_types = []
-    stages_id_re = re.compile(r'\s{2,}([A-Z]\s{2,}){2,}')
-    stage_types_re = re.compile(r'^\s*(((VH)|(PW)|(GO)|(PT)|(GI)|(DM))\s*)+$')
     intergreens_tag = re.compile(r'MATRIZ DE ENTREVERDES')
+    stages_tag = re.compile(r'DESCRIPCION DE ETAPAS')
     intergreen_value_tag = re.compile(r'^\s*(((X/X)|(\d{2}/\d{2}))\s*)+\n$')
     for layout in pages:
         text_box_elements = [element_ for element_ in layout if isinstance(element_, LTTextBoxHorizontal)]
         for text_elem in text_box_elements:
-            stage_type_match = stage_types_re.match(text_elem.get_text())
-            stage_id_match = stages_id_re.match(text_elem.get_text())
             inters_tag = intergreens_tag.findall(text_elem.get_text())
-            if stage_type_match:
-                potential_stages_types = stage_type_match.group(0).replace('\n', '').split()
-                if len(potential_stages_types) > len(stages_types):
-                    stages_types = potential_stages_types
-            elif stage_id_match:
-                sids = stage_id_match.group(0).replace('\n', '').split()
-                if len(set(sids)) == len(sids) and __check_potential_stages_ids(sids):
-                    if len(sids) > len(stages_ids):
-                        stages_ids = sids
+            stages_tag_match = stages_tag.findall(text_elem.get_text())
+            if not stages and len(stages_tag_match) == 1:
+                stages_ids = []
+                stages_types = []
+                stages_id_re = re.compile(r'\s{2,}([A-Z]\s{2,}){2,}')
+                stage_types_re = re.compile(r'^\s*(((VH)|(PW)|(GO)|(PT)|(GI)|(DM))\s*)+$')
+                for text_elem_t in text_box_elements:
+                    stage_type_match = stage_types_re.match(text_elem_t.get_text())
+                    stage_id_match = stages_id_re.match(text_elem_t.get_text())
+                    if stage_type_match:
+                        potential_stages_types = stage_type_match.group(0).replace('\n', '').split()
+                        if len(potential_stages_types) > len(stages_types):
+                            stages_types = potential_stages_types
+                    elif stage_id_match:
+                        sids = stage_id_match.group(0).replace('\n', '').split()
+                        if len(set(sids)) == len(sids) and __check_potential_stages_ids(sids):
+                            if len(sids) > len(stages_ids):
+                                stages_ids = sids
+                stages = list(zip(stages_ids, stages_types))
             elif not intergreens and len(inters_tag) == 1:
                 inter_values_objs = []
                 for text_elem_t in text_box_elements:
@@ -71,7 +76,6 @@ def parse_pdf_auter_a4f_1_singlej(pages):
                         #     print(does_exists)
                 #for element_ in text_box_elements:
                 #    print(element_)
-    stages = list(zip(stages_ids, stages_types))
     return stages, intergreens
 
 def parse_pdf_auter_a5_1_singlej(pages):
