@@ -38,20 +38,25 @@ def parse_pdf_auter_a4f_1_singlej(pages):
         return sum(is_sequence) == len(potential_stgs) - 1
     stages = None
     intergreens = None
+    stages_ids = []
+    stages_types = []
     stages_id_re = re.compile(r'\s{2,}([A-Z]\s{2,}){2,}')
-    stage_types_re = re.compile(r'^\s*(((VH)|(PT)|(GI)|(DM))\s*)+$')
+    stage_types_re = re.compile(r'^\s*(((VH)|(PW)|(GO)|(PT)|(GI)|(DM))\s*)+$')
     for layout in pages:
         text_box_elements = [element_ for element_ in layout if isinstance(element_, LTTextBoxHorizontal)]
-        stage_types = []
         for text_elem in text_box_elements:
             stage_type_match = stage_types_re.match(text_elem.get_text())
             stage_id_match = stages_id_re.match(text_elem.get_text())
             if stage_type_match:
-                stage_types = stage_type_match.group(0).replace('\n', '').split()
+                potential_stages_types = stage_type_match.group(0).replace('\n', '').split()
+                if len(potential_stages_types) > len(stages_types):
+                    stages_types = potential_stages_types
             if stage_id_match:
                 sids = stage_id_match.group(0).replace('\n', '').split()
                 if len(set(sids)) == len(sids) and __check_potential_stages_ids(sids):
-                    stages = list(zip(sids, stage_types))
+                    if len(sids) > len(stages_ids):
+                        stages_ids = sids
+    stages = list(zip(stages_ids, stages_types))
     return stages, intergreens
 
 def parse_pdf_auter_a5_1_singlej(pages):
