@@ -6,7 +6,7 @@ import datetime
 import numpy as np
 from pathlib import Path
 from pdfminer.high_level import extract_text, extract_pages
-from pdfminer.layout import LTTextBoxHorizontal
+from pdfminer.layout import LTTextBoxHorizontal, LTChar
 
 global log
 
@@ -64,18 +64,27 @@ def parse_pdf_auter_a4f_1_singlej(pages):
                             if len(sids) > len(stages_ids):
                                 stages_ids = sids
                 stages = list(zip(stages_ids, stages_types))
-            elif not intergreens and len(inters_tag) == 1:
+            if not intergreens and len(inters_tag) == 1:
                 inter_values_objs = []
                 for text_elem_t in text_box_elements:
                     for element_ in text_elem_t:
                         if intergreen_value_tag.match(element_.get_text()):
                             inter_values_objs.append(element_)
                 if len(inter_values_objs) > 0:
+                    matrix_objs = []
+                    inter_real_value_re = re.compile(r'^\d{2}/\d{2}$')
+                    for inter_value_obj in inter_values_objs:
+                        char_objs = [x for x in inter_value_obj if isinstance(x, LTChar)]
+                        for chridx, inter_value in enumerate(char_objs):
+                            if inter_value.get_text() == 'X' and chridx + 1 < len(char_objs) and char_objs[chridx + 1].get_text() == '/':
+                                matrix_objs.append((inter_value.x0, inter_value.y0, '0.0'))
+                            elif inter_value.get_text() not in [' ', 'X', '/'] and chridx + 5 < len(char_objs):
+                                possible_value = ''.join([i.get_text() for i in char_objs[chridx : chridx + 5]])
+                                if inter_real_value_re.match(possible_value):
+                                    matrix_objs.append((inter_value.x0, inter_value.y0, possible_value))
+                    for m in matrix_objs:
+                        print(m)
                     intergreens = True
-                        # for does_exists in element_:
-                        #     print(does_exists)
-                #for element_ in text_box_elements:
-                #    print(element_)
     return stages, intergreens
 
 def parse_pdf_auter_a5_1_singlej(pages):
