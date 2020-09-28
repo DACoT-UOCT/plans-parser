@@ -336,16 +336,19 @@ def process_pages(pages, pdf_fname):
                         res = (RESULT_OK, 'AUTER A5', {junction_name: {'stages': stages, 'inters': intergreens}})
     elif __util_find_text_element(first_page_items, 'CONTROLADOR DE SEMAFORO'):
         if __util_find_text_element(first_page_items, 'MODELO  A4F'):
-            single_junction_re = re.compile(r'J\d{6}')
+            junction_name = None
+            single_junction_re = re.compile(r'.*(J\d{6}).*')
             text_box_elements = [element_ for element_ in first_page_items if isinstance(element_, LTTextBoxHorizontal)]
             for elemen in text_box_elements:
                 if single_junction_re.match(elemen.get_text()):
                     junction_name = elemen.get_text().strip()
+            if not junction_name:
+                junction_name = single_junction_re.match(pdf_fname).group(1)
             stages, intergreens = parse_pdf_auter_a4f_1_singlej(pages)
-            if stages is None or intergreens is None or junction_name is None:
+            if not stages or intergreens is None or junction_name is None:
                 res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
             else:
-                res = (RESULT_OK, 'AUTER A5', {junction_name: {'stages': stages, 'inters': intergreens}})
+                res = (RESULT_OK, 'AUTER A4F', {junction_name: {'stages': stages, 'inters': intergreens}})
                 print(res[2])
     log.info('Result => {}'.format(res[:2]))
     return res
