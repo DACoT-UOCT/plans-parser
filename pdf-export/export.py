@@ -36,6 +36,19 @@ def parse_pdf_auter_a4f_1_singlej(pages):
         potential_stgs = list(map(ord, sorted(stages)))
         is_sequence = [True for idx, i in enumerate(potential_stgs[:-1]) if i + 1 == potential_stgs[idx + 1]]
         return sum(is_sequence) == len(potential_stgs) - 1
+    def __matrix_util_rebuild_row_delta(row, delta):
+        new_map = {}
+        vals = sorted(row)
+        new_map[vals[0]] = vals[0]
+        result = [vals[0]]
+        for iid, v in enumerate(vals[:-1]):
+            if vals[iid + 1] - v > delta:
+                result.append(vals[iid + 1])
+            new_map[vals[iid + 1]] = result[-1]
+        index_map = {}
+        for iid, i in enumerate(result):
+            index_map[i] = iid
+        return result, new_map, index_map
     stages = None
     intergreens = None
     intergreens_tag = re.compile(r'MATRIZ DE ENTREVERDES')
@@ -64,7 +77,7 @@ def parse_pdf_auter_a4f_1_singlej(pages):
                             if len(sids) > len(stages_ids):
                                 stages_ids = sids
                 stages = list(zip(stages_ids, stages_types))
-            if not intergreens and len(inters_tag) == 1:
+            if intergreens is None and len(inters_tag) == 1:
                 inter_values_objs = []
                 for text_elem_t in text_box_elements:
                     for element_ in text_elem_t:
@@ -77,14 +90,18 @@ def parse_pdf_auter_a4f_1_singlej(pages):
                         char_objs = [x for x in inter_value_obj if isinstance(x, LTChar)]
                         for chridx, inter_value in enumerate(char_objs):
                             if inter_value.get_text() == 'X' and chridx + 1 < len(char_objs) and char_objs[chridx + 1].get_text() == '/':
-                                matrix_objs.append((inter_value.x0, inter_value.y0, '0.0'))
+                                matrix_objs.append((inter_value.x0, inter_value.y0, 'X/X'))
                             elif inter_value.get_text() not in [' ', 'X', '/'] and chridx + 5 < len(char_objs):
                                 possible_value = ''.join([i.get_text() for i in char_objs[chridx : chridx + 5]])
                                 if inter_real_value_re.match(possible_value):
                                     matrix_objs.append((inter_value.x0, inter_value.y0, possible_value))
-                    for m in matrix_objs:
-                        print(m)
-                    intergreens = True
+                    _delta = 6
+                    new_x, x_map, x_index = __matrix_util_rebuild_row_delta([i[0] for i in matrix_objs], _delta)
+                    new_y, y_map, y_index = __matrix_util_rebuild_row_delta([i[1] for i in matrix_objs], _delta)
+                    intergreens = np.zeros((len(new_x), len(new_y))).astype(np.str)
+                    for mitem in matrix_objs:
+                        intergreens[x_index[x_map[mitem[0]]]][y_index[y_map[mitem[1]]]] = mitem[2]
+                    intergreens = np.flipud(intergreens.T)
     return stages, intergreens
 
 def parse_pdf_auter_a5_1_singlej(pages):
