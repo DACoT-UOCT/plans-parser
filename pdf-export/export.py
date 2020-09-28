@@ -31,6 +31,29 @@ def find_files(fpath):
     globstr = str(Path(fpath).joinpath('**/*.pdf'))
     return glob.glob(globstr, recursive=True)
 
+def parse_pdf_auter_a4f_1_singlej(pages):
+    def __check_potential_stages_ids(stages):
+        potential_stgs = list(map(ord, sorted(stages)))
+        is_sequence = [True for idx, i in enumerate(potential_stgs[:-1]) if i + 1 == potential_stgs[idx + 1]]
+        return sum(is_sequence) == len(potential_stgs) - 1
+    stages = None
+    intergreens = None
+    stages_id_re = re.compile(r'\s{2,}([A-Z]\s{2,}){2,}')
+    stage_types_re = re.compile(r'^\s*(((VH)|(PT)|(GI)|(DM))\s*)+$')
+    for layout in pages:
+        text_box_elements = [element_ for element_ in layout if isinstance(element_, LTTextBoxHorizontal)]
+        stage_types = []
+        for text_elem in text_box_elements:
+            stage_type_match = stage_types_re.match(text_elem.get_text())
+            stage_id_match = stages_id_re.match(text_elem.get_text())
+            if stage_type_match:
+                stage_types = stage_type_match.group(0).replace('\n', '').split()
+            if stage_id_match:
+                sids = stage_id_match.group(0).replace('\n', '').split()
+                if len(set(sids)) == len(sids) and __check_potential_stages_ids(sids):
+                    stages = list(zip(sids, stage_types))
+    return stages, intergreens
+
 def parse_pdf_auter_a5_1_singlej(pages):
     def __matrix_util_rebuild_row_delta(row, delta):
         new_map = {}
@@ -263,7 +286,8 @@ def process_pages(pages, pdf_fname):
                         res = (RESULT_OK, 'AUTER A5', {junction_name: {'stages': stages, 'inters': intergreens}})
     elif __util_find_text_element(first_page_items, 'CONTROLADOR DE SEMAFORO'):
         if __util_find_text_element(first_page_items, 'MODELO  A4F'):
-            print('A4F!!')
+            stages, intergreens = parse_pdf_auter_a4f_1_singlej(pages)
+            print(stages, intergreens)
     log.info('Result => {}'.format(res[:2]))
     return res
 
