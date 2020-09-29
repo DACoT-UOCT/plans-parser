@@ -18,7 +18,7 @@ def register_action(user: str,context: "",component: "", origin: ""):
 @router.post('/otu',tags=["otu"],status_code=201)
 async def create_otu(otu:  dict ,background_tasks: BackgroundTasks):
     a_user= "Camilo"
-    background_tasks.add_task(register_action,a_user,context= "POST ",component= "Sistema", origin="Create Request")
+    background_tasks.add_task(register_action,a_user,context= "Create OTU request ",component= "Sistema", origin="Web")
     mongoOTU = models.OTU.from_json(json.dumps(otu))
     try:
         mongoOTU.validate()
