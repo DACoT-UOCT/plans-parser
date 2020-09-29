@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     email_pass: str
 
 
-settings = Settings(_env_file='.env', _env_file_encoding='utf-8')
+settings = Settings()
 
 mail_conf = ConnectionConfig(
     MAIL_USERNAME = settings.server_email,
