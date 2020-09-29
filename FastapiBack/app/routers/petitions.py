@@ -18,11 +18,19 @@ def get_settings():
 
 
 
-template = """
+header= """
 <html> 
 <body>
-<p>Hi This test mail using BackgroundTasks
-<br>Thanks for using Fastapi-mail</p> 
+<p>Su Solicitud a sido aceptada
+<br></p> 
+</body> 
+</html>
+"""
+
+footer= """
+<html> 
+<body>
+<p>Thanks for using Fastapi-mail </p>
 </body> 
 </html>
 """
@@ -38,6 +46,7 @@ def register_action(user: str,context: "",component: "", origin: ""):
 async def create_petition(background_tasks: BackgroundTasks, file: UploadFile= File(...),request: str = Form(...) ):
     a_user= "Camilo"
     email = "darkcamx@gmail.com"
+    motivo= "Por manco"
     #background_tasks.add_task(register_action,a_user,context= "POST",component= "Sistema", origin="web")
     mongoRequest = models.Request.from_json(json.dumps(json.loads(request)))
     print(mongoRequest)
@@ -55,7 +64,7 @@ async def create_petition(background_tasks: BackgroundTasks, file: UploadFile= F
     message = MessageSchema(
         subject="Fastapi-Mail module",
         receipients=[email],  # List of receipients, as many as you can pass 
-        body=template+"ffffffffff",
+        body=header+"Motivo: " + motivo + footer,
         subtype="html",
         attachments=[file]
         )

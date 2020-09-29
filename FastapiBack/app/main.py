@@ -1,6 +1,6 @@
 from fastapi import Depends, FastAPI, Header, HTTPException
 from mongoengine import connect
-from .routers import intersections, junctions,history,users,petitions
+from .routers import otu, junctions,history,users,petitions
 from . import config
 from functools import lru_cache
 import os
@@ -22,7 +22,7 @@ connect(host= get_settings().mongo_uri)
 
 
 app.include_router(users.router)
-app.include_router(intersections.router)
+app.include_router(otu.router)
 app.include_router(junctions.router)
 app.include_router(petitions.router)
 app.include_router(history.router)
