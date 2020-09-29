@@ -27,8 +27,9 @@ async def create_user(user:  dict ,background_tasks: BackgroundTasks):
         print(error)
         #raise HTTPException(status_code=404, detail="Item not found",headers={"X-Error": "There goes my error"},)
         return error
+        
     mongoUser.save()
-    mongoUser = mongoUser.reload()
+    #mongoUser = mongoUser.reload()
     return {"Respuesta": "Usuario Creado"}
 
 @router.get('/users', tags=["users"])

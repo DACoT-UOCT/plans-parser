@@ -4,7 +4,6 @@ from mongoengine import Document, PointField, StringField, ListField, DateTimeFi
 from mongoengine import EmbeddedDocumentField, EmailField, FileField, LongField, ReferenceField
 from mongoengine import GenericReferenceField, DictField
 import datetime
-
 from datetime import datetime
 
 # Junction Model ====
@@ -145,7 +144,11 @@ class History(Document):
 class Request(Document):
     #{"user": user, "context": context, "component": component, "origin": origin }
     meta = {'collection': 'requests'}
-    status = StringField(max_length=200, required=True)
-    description = StringField(max_length=5000, required=True)
-    date_modified = DateTimeField(default=datetime.now)
+    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
+    metadata = EmbeddedDocumentField(OTUMeta, required=True)
+    program = EmbeddedDocumentListField(OTUProgramItem, required=True)
+    sequence = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
+    intergreens = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
+    junctions = ListField(ReferenceField(Junction), required=True)
+    #date_modified = DateTimeField(default=datetime.now)
     

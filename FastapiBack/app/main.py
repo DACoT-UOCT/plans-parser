@@ -1,9 +1,15 @@
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException,Form
 from mongoengine import connect
 from .routers import otu, junctions,history,users,petitions
 from . import config
 from functools import lru_cache
 import os
+
+from typing import List
+
+from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import HTMLResponse
+
 
 
 app = FastAPI()
@@ -33,3 +39,23 @@ app.include_router(history.router)
     #dependencies=[Depends(get_token_header)],
     #responses={404: {"description": "Not found"}},
 #)
+
+#======================================================================
+@app.post("/files/")
+async def create_files(files: List[bytes] = File(...),data: str= Form(...)):
+    return {"file_sizes": [len(file) for file in files],"data":data}
+
+
+@app.post("/uploadfiles/")
+async def create_upload_files(files: List[UploadFile] = File(...)):
+    return {"filenames": [file.filename for file in files]}
+
+
+@app.get("/")
+async def main():
+    content = """
+<body>
+<H5> DACoT 
+</body>
+    """
+    return HTMLResponse(content=content)
