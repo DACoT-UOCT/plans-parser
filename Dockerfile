@@ -4,6 +4,6 @@ copy requirements.txt requirements.txt
 run python -m pip install -r requirements.txt
 copy FastapiBack/app /app
 copy run-api.sh /run-api.sh
-expose 80
+expose 8080
 workdir /
 entrypoint /bin/bash /run-api.sh
