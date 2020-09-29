@@ -51,7 +51,7 @@ def update_petition(id):
 
     if username and email and password:
         hashed_password = generate_password_hash(password)
-        mongo.db.users.update_one({'_id': ObjectId(id)}, {'$set': {
+        dacot.users.update_one({'_id': ObjectId(id)}, {'$set': {
             'username': username,
             'password': hashed_password,
             'email': email
