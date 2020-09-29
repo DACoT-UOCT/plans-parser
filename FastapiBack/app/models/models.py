@@ -37,7 +37,7 @@ class JunctionMeta(EmbeddedDocument):
     second_access = StringField()
 
 class Junction(Document):
-    meta = {'collection': 'junctions'}
+    meta = {'collection': 'Junction'}
     jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan, required=True)
@@ -55,7 +55,7 @@ class UOCTUser(Document): #TODO: add is_admin flag
     uid = IntField(min_value=0, required=True, unique=True)
     full_name = StringField(min_length=5, required=True)
     email = EmailField(required=True)
-    area = StringField(choices=['Sala de Control', 'Ingenieria', 'TIC'], required=True) #revisar ingenieria
+    area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC'], required=True)
     rut = StringField(min_length=10, required=True) # TODO: validation
 
 # Comment Model ====

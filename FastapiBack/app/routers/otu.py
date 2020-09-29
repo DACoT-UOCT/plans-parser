@@ -27,7 +27,7 @@ async def create_otu(otu:  dict ,background_tasks: BackgroundTasks):
         #raise HTTPException(status_code=404, detail="Item not found",headers={"X-Error": "There goes my error"},)
         return error
     mongoOTU.save()
-    mongoJunction = mongoJunction.reload()
+    mongoOTU = mongoOTU.reload()
     return [{"username": "Foo"}, {"username": "Bar"}]
 
 @router.get('/intersections', tags=["intersections"])
