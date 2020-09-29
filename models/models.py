@@ -34,7 +34,7 @@ class JunctionMeta(EmbeddedDocument):
     sales_id = IntField(min_value=0)
     first_access = StringField()
     second_access = StringField()
-    # TODO: Add address_reference
+    address_reference = StringField()
 
 class Junction(Document):
     meta = {'collection': 'Junction'}
@@ -53,9 +53,11 @@ class ExternalCompany(Document):
 class UOCTUser(Document): #TODO: add is_admin flag #TODO: add roles
     meta = {'collection': 'UOCTUser'}
     uid = IntField(min_value=0, required=True, unique=True)
+    is_admin = BooleanField(default=False)
     full_name = StringField(min_length=5, required=True)
     email = EmailField(required=True)
-    area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC'], required=True)
+    rol = StringField(choices=['Empresa', 'Personal UOCT'], required=True)
+    area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC'])
     rut = StringField(min_length=10, required=True) # TODO: validation
 
 # Comment Model ====
@@ -73,7 +75,7 @@ class OTUController(Document):
     model = StringField(required=True)
     firmware_version = StringField()#required=True)
     checksum = StringField()#required=True)
-    #TODO: Add address_reference String
+    address_reference = StringField()
     date = DateTimeField(default=datetime.utcnow, required=True)
 
 # OTU Model ====
@@ -104,24 +106,24 @@ class OTUMeta(EmbeddedDocument):
     status_user = ReferenceField(UOCTUser, required=True)
     installation_date = DateTimeField(default=datetime.utcnow, required=True)
     commune = StringField()
-    # TODO: Add region String
+    region = StringField()
     controller = ReferenceField(OTUController)
     observations = EmbeddedDocumentListField(Comment) # Comment returned should only send message
     imgs = ListField(FileField()) # TODO: Sprint1 only one image
     original_data = FileField() #TODO: rename pdf_data
-    # TODO: Add location
-    # TODO: Add reference
-    # TODO: Add serial
-    # TODO: Add Ip Address
-    # TODO: Add Netmask
-    # TODO: Add Control (int)
-    # TODO: Add Answer (int)
-    # TODO: Add demanda_peatonal bool
-    # TODO: Add facilidad_peatonal bool
-    # TODO: Add detector_local bool
-    # TODO: Add detector_scoot bool
-    # TODO: Add link_type ['Digital', 'Analogo']
-    # TODO: Add link_owner ['Propio', 'Compartido']
+    location = PointField()
+    address_reference =  StringField()
+    serial = StringField()
+    ip_address = StringField()
+    netmask = StringField()
+    control = IntField()
+    answer = IntField()
+    demanda_peatonal = BooleanField(default=False)
+    facilidad_peatonal =BooleanField(default=False)
+    detector_local =BooleanField(default=False)
+    detector_scoot = BooleanField(default=False)
+    link_type = StringField(choices=['Digital', 'Analogo'], required=True)
+    link_owner = StringField(choices=['Propio', 'Compartido'], required=True)
     # // NODO CONCENTRADOR?
 
 
