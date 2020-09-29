@@ -34,6 +34,7 @@ class JunctionMeta(EmbeddedDocument):
     sales_id = IntField(min_value=0)
     first_access = StringField()
     second_access = StringField()
+    # TODO: Add address_reference
 
 class Junction(Document):
     meta = {'collection': 'Junction'}
@@ -106,6 +107,8 @@ class OTUMeta(EmbeddedDocument):
     observations = EmbeddedDocumentListField(Comment)
     imgs = ListField(FileField())
     original_data = FileField()
+    # TODO: Add location
+    # TODO: Add reference
 
 class OTU(Document):
     meta = {'collection': 'OTU'}

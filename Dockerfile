@@ -1,7 +1,7 @@
-from python:3.8.4-slim
+from tiangolo/uvicorn-gunicorn-fastapi:python3.8-slim-2020-06-06
 run python -m pip install --upgrade pip
 copy requirements.txt requirements.txt
 run python -m pip install -r requirements.txt
-copy flask-backend/ .
+copy FastapiBack/app /app
 expose 80
-entrypoint flask run --host 0.0.0.0
+entrypoint /bin/bash
