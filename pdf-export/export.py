@@ -349,7 +349,6 @@ def process_pages(pages, pdf_fname):
                 res = (RESULT_INCOMPLETE_PARSING, RESULT_UNKNOWN)
             else:
                 res = (RESULT_OK, 'AUTER A4F', {junction_name: {'stages': stages, 'inters': intergreens}})
-                print(res[2])
     log.info('Result => {}'.format(res[:2]))
     return res
 
