@@ -50,7 +50,7 @@ class ExternalCompany(Document):
 
 # User Model ====
 
-class UOCTUser(Document): #TODO: add is_admin flag
+class UOCTUser(Document): #TODO: add is_admin flag #TODO: add roles
     meta = {'collection': 'UOCTUser'}
     uid = IntField(min_value=0, required=True, unique=True)
     full_name = StringField(min_length=5, required=True)
@@ -73,6 +73,7 @@ class OTUController(Document):
     model = StringField(required=True)
     firmware_version = StringField()#required=True)
     checksum = StringField()#required=True)
+    #TODO: Add address_reference String
     date = DateTimeField(default=datetime.utcnow, required=True)
 
 # OTU Model ====
@@ -103,12 +104,27 @@ class OTUMeta(EmbeddedDocument):
     status_user = ReferenceField(UOCTUser, required=True)
     installation_date = DateTimeField(default=datetime.utcnow, required=True)
     commune = StringField()
+    # TODO: Add region String
     controller = ReferenceField(OTUController)
-    observations = EmbeddedDocumentListField(Comment)
-    imgs = ListField(FileField())
-    original_data = FileField()
+    observations = EmbeddedDocumentListField(Comment) # Comment returned should only send message
+    imgs = ListField(FileField()) # TODO: Sprint1 only one image
+    original_data = FileField() #TODO: rename pdf_data
     # TODO: Add location
     # TODO: Add reference
+    # TODO: Add serial
+    # TODO: Add Ip Address
+    # TODO: Add Netmask
+    # TODO: Add Control (int)
+    # TODO: Add Answer (int)
+    # TODO: Add demanda_peatonal bool
+    # TODO: Add facilidad_peatonal bool
+    # TODO: Add detector_local bool
+    # TODO: Add detector_scoot bool
+    # TODO: Add link_type ['Digital', 'Analogo']
+    # TODO: Add link_owner ['Propio', 'Compartido']
+    # // NODO CONCENTRADOR?
+
+
 
 class OTU(Document):
     meta = {'collection': 'OTU'}
