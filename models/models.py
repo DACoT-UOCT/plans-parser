@@ -52,7 +52,7 @@ class ExternalCompany(Document):
 
 class UOCTUser(Document): #TODO: add is_admin flag #TODO: add roles
     meta = {'collection': 'UOCTUser'}
-    uid = IntField(min_value=0, required=True, unique=True) # TODO : borrar uid, rut; agregar en area: mantenedora, contratista
+    uid = IntField(min_value=0, required=True, unique=True) # TODO : borrar uid, rut; agregar en area: mantenedora, contratista, administracion
     is_admin = BooleanField(default=False)
     full_name = StringField(min_length=5, required=True)
     email = EmailField(required=True)
