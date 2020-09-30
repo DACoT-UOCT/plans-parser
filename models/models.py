@@ -52,13 +52,13 @@ class ExternalCompany(Document):
 
 class UOCTUser(Document): #TODO: add is_admin flag #TODO: add roles
     meta = {'collection': 'UOCTUser'}
-    uid = IntField(min_value=0, required=True, unique=True) # TODO : borrar uid, rut; agregar en area: mantenedora, contratista, administracion
+    # uid = IntField(min_value=0, required=True, unique=True) # TODO : borrar uid, rut; agregar en area: mantenedora, contratista, administracion
     is_admin = BooleanField(default=False)
     full_name = StringField(min_length=5, required=True)
     email = EmailField(required=True)
     rol = StringField(choices=['Empresa', 'Personal UOCT'], required=True)
-    area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC'])
-    rut = StringField(min_length=10, required=True) # TODO: validation
+    area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC', 'Mantenedora', 'Contratista', 'Administración'])
+    # rut = StringField(min_length=10, required=True) # TODO: validation
 
 # Comment Model ====
 
@@ -130,7 +130,7 @@ class OTUMeta(EmbeddedDocument):
     controller = ReferenceField(OTUController)
     observations = EmbeddedDocumentListField(Comment) # Comment returned should only send message
     imgs = ListField(FileField()) # TODO: Sprint1 only one image
-    original_data = FileField() #TODO: rename pdf_data
+    pdf_data = FileField() #TODO: rename pdf_data
     location = PointField()
     address_reference =  StringField()
     serial = StringField()
