@@ -81,7 +81,7 @@ def phase1(jsdata):
     log.info('Phase 1. Creating initial objects')
     log.info('=' * 60)
     log.info('Building models from JSON file')
-    seed_user = UOCTUser(uid=1, full_name='DACoT Automated DB Seeder', email='dacot@santiago.uoct.cl', area='TIC', rut='00000000-0')
+    seed_user = UOCTUser(full_name='DACoT Automated DataBase Seeder', email='dacot@santiago.uoct.cl', area='TIC', rol='Personal UOCT')
     seed_user = seed_user.save().reload()
     junctions = []
     otus = {}
