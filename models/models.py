@@ -60,7 +60,7 @@ class UOCTUser(Document): #TODO: add is_admin flag #TODO: add roles
     meta = {'collection': 'UOCTUser'}
     is_admin = BooleanField(default=False)
     full_name = StringField(min_length=5, required=True)
-    email = EmailField(required=True)
+    email = EmailField(required=True, unique=True)
     rol = StringField(choices=['Empresa', 'Personal UOCT'], required=True)
     area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC', 'Mantenedora', 'Contratista', 'Administración'])
     
