@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Body, Query, HTTPException,BackgroundTasks
 from flask_mongoengine import MongoEngine
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from mongoengine import EmailField
 from flask_mongoengine.wtf import model_form
 from ..models import models
 import json
@@ -28,19 +29,26 @@ async def create_otu(otu:  dict ,background_tasks: BackgroundTasks):
         return error
     try:
         mongoOTU.save()
-    except:
+    except NotUniqueError:
         #print(error)
         raise HTTPException(status_code=409, detail="Duplicated item",headers={"X-Error": "There goes my error"},)
     background_tasks.add_task(register_action,a_user,context= "Create OTU request ",component= "Sistema", origin="Web")
     #mongoOTU = mongoOTU.reload()
     return [{"username": "Foo"}, {"username": "Bar"}]
 
-#@router.get('/otu', tags=["otu"])
-async def read_intersections():
-    for otu in models.OTU.objects():
-        print(otu.to_json())
-        break
-    return [{"username": "Foo"}, {"username": "Bar"}]
+@router.get('/otu', tags=["otu"])
+async def read_users_otu(background_tasks: BackgroundTasks, user: EmailStr):
+    a_user= "Camilo"
+    user_f = models.UOCTUser.objects(email=user).first()
+    if user_f == None:
+        raise HTTPException(status_code=404, detail="User not found",headers={"X-Error": "Usuario no encontrado"},)
+        return
+    otu_list= []
+    for otu in models.OTU.objects(metadata__status= "SYSTEM",metadata__status_user= user_f).only('oid', 'metadata.status','metadata.status_user'):
+        otu_list.append(json.loads(otu.to_json()))
+        #print(otu.metadata.status_user.to_json())
+    background_tasks.add_task(register_action,user,context= "Request user OTUs",component= "Sistema", origin="web")
+    return otu_list
 
 @router.get('/otu/{id}', tags=["intersections"])
 async def read_otu(id: str):

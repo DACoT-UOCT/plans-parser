@@ -9,11 +9,9 @@ router = APIRouter()
 async def read_history(
     gte: str=str(datetime.today().year)+"-"+str(datetime.today().month)+"-"+ str(datetime.today().day) ,
     lte: str= str(datetime.today().year)+"-"+str(datetime.today().month)+"-"+ str(datetime.today().day + 1)):
-    #print(str(datetime.today().day + 1%31))
-    print(datetime.now()+ timedelta(1))
+    #print(datetime.now()+ timedelta(1))
     actions = []
     for register in models.History.objects(date_modified__gte=gte,date_modified__lte=lte):
-        print(register)
         actions.append(json.loads(register.to_json()))
 
     #print(History[0].date_modified)
