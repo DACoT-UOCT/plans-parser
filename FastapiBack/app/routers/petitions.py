@@ -61,7 +61,7 @@ def register_action(user: str,context: "",component: "", origin: ""):
     print({"user": user, "context": context, "component": component, "origin": origin })
 
 @router.post("/request", tags=["requests"],status_code=201)
-async def create_petition(background_tasks: BackgroundTasks, file: UploadFile= File(default=None),request: str= Form(...) ):
+async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file: List[UploadFile]= File(default=None),request: str= Form(...) ):
     a_user= "Camilo"
     email = "darkcamx@gmail.com"
     motivo= "Se ha creado una solicitud de instalación, por favor revisar lo más pronto posible"
@@ -70,8 +70,8 @@ async def create_petition(background_tasks: BackgroundTasks, file: UploadFile= F
     #mongoRequest = models.Request.from_json(json.dumps(request))
     mongoRequest = (json.loads(request))['otu']
     mongoRequest = models.Request.from_json(json.dumps(mongoRequest))
-    print(json.loads(request)['data'])
-    print(type(file))
+    #print(json.loads(request)['data'])
+    #print(type(file))
     try:
         mongoRequest.validate()
     except ValidationError as error:
@@ -88,7 +88,7 @@ async def create_petition(background_tasks: BackgroundTasks, file: UploadFile= F
             receipients=[email],  # List of receipients, as many as you can pass 
             body=header+"Motivo: " + motivo + footer,
             subtype="html",
-            attachments=[file]
+            attachments=file
             )
     else:
         message = MessageSchema(
@@ -100,13 +100,13 @@ async def create_petition(background_tasks: BackgroundTasks, file: UploadFile= F
     fm = FastMail(mail_conf)
 
     background_tasks.add_task(fm.send_message,message)
-    background_tasks.add_task(register_action,a_user,context= "Create Request",component= "Sistema", origin="Web")
+    background_tasks.add_task(register_action,user,context= "Create Request",component= "Sistema", origin="Web")
 
     
     return [{"username": "Foo"}, {"username": "Bar"}]
 
 @router.put('/accept-request/{id}', tags=["requests"],status_code=204)
-async def accept_petition(background_tasks: BackgroundTasks,file: UploadFile= File(default=None),id= str,data: str = Form(...)):
+async def accept_petition(background_tasks: BackgroundTasks,user: EmailStr, file: List[UploadFile]= File(default=None),id= str,data: str = Form(...)):
     a_user= "cponce"
     email = json.loads(data)["mails"]
     motivo= "Motivo"
@@ -122,7 +122,7 @@ async def accept_petition(background_tasks: BackgroundTasks,file: UploadFile= Fi
             receipients=email,  # List of receipients, as many as you can pass 
             body=accept+"Motivo: " + motivo + footer,
             subtype="html",
-            attachments=[file]
+            attachments=file
             )
     else:
         message = MessageSchema(
@@ -134,11 +134,11 @@ async def accept_petition(background_tasks: BackgroundTasks,file: UploadFile= Fi
     fm = FastMail(mail_conf)
 
     background_tasks.add_task(fm.send_message,message)
-    background_tasks.add_task(register_action,a_user,context= "Accept Request",component= "Sistema", origin="Web")
+    background_tasks.add_task(register_action,user,context= "Accept Request",component= "Sistema", origin="Web")
     return [{"username": "Foo"}, {"username": "Bar"}]
 
 @router.put('/reject-request/{id}', tags=["requests"],status_code=204)
-async def reject_petition(background_tasks: BackgroundTasks,file: UploadFile= File(default=None),id= str,data: str = Form(...)):
+async def reject_petition(background_tasks: BackgroundTasks,user: EmailStr , file: List[UploadFile]= File(default=None),id= str,data: str = Form(...)):
     a_user= "cponce"
     email = json.loads(data)["mails"]
     motivo= "Motivo"
@@ -154,7 +154,7 @@ async def reject_petition(background_tasks: BackgroundTasks,file: UploadFile= Fi
             receipients=email,  # List of receipients, as many as you can pass 
             body=reject+"Motivo: " + motivo + footer,
             subtype="html",
-            attachments=[file]
+            attachments=file
             )
     else:
         message = MessageSchema(
@@ -166,17 +166,19 @@ async def reject_petition(background_tasks: BackgroundTasks,file: UploadFile= Fi
     fm = FastMail(mail_conf)
 
     background_tasks.add_task(fm.send_message,message)
-    background_tasks.add_task(register_action,a_user,context= "Reject Request",component= "Sistema", origin="Web")
+    background_tasks.add_task(register_action,user,context= "Reject Request",component= "Sistema", origin="Web")
     return [{"username": "Foo"}, {"username": "Bar"}]
 
 
 @router.get('/request', tags=["requests"])
-async def read_otu(background_tasks: BackgroundTasks):
+async def read_otu(background_tasks: BackgroundTasks,user: EmailStr):
     a_user= "Camilo" 
     request_list= []
+    #filtrar por usuario que consulta
+    #ver usuario a cargo
     #requestdb = models.Request.objects(metadata__status='NEW').only('oid')
-    for request in models.Request.objects(metadata__status__in=["NEW","UPDATE"]).only('oid', 'metadata.status'):
+    for request in models.Request.objects(metadata__status__in=["NEW","UPDATE"]).only('oid', 'metadata.status',''):
         request_list.append(json.loads(request.to_json()))
     #print(requestdb.to_json()) # NEW , UPDATE
-    background_tasks.add_task(register_action,a_user,context= "Request NEW and UPDATE OTUs",component= "Sistema", origin="web")
+    background_tasks.add_task(register_action,user,context= "Request NEW and UPDATE OTUs",component= "Sistema", origin="web")
     return request_list

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Body, Query, HTTPException,BackgroundTasks
 from flask_mongoengine import MongoEngine
+from pydantic import EmailStr
 from flask_mongoengine.wtf import model_form
 from ..models import models
 import json
@@ -35,7 +36,14 @@ async def create_user(user:  dict ,background_tasks: BackgroundTasks):
     return {"Respuesta": "Usuario Creado"}
 
 @router.get('/users', tags=["users"])
-async def read_users():
+async def read_users(user: EmailStr):
+    user_f = models.UOCTUser.objects(email=user).first()
+    if user_f == None:
+        raise HTTPException(status_code=404, detail="User not found",headers={"X-Error": "Usuario no encontrado"},)
+        return
+    print(user_f.is_admin)
+    if user_f.is_admin == False:
+        raise HTTPException(status_code=403, detail="Forbidden access",headers={"X-Error": "Usuario no encontrado"},)
     users = []
     for user in models.UOCTUser.objects():
         users.append(json.loads(user.to_json()))
