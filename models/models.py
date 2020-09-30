@@ -52,7 +52,7 @@ class ExternalCompany(Document):
 
 class UOCTUser(Document): #TODO: add is_admin flag #TODO: add roles
     meta = {'collection': 'UOCTUser'}
-    uid = IntField(min_value=0, required=True, unique=True)
+    uid = IntField(min_value=0, required=True, unique=True) # TODO : borrar uid, rut; agregar en area: mantenedora, contratista
     is_admin = BooleanField(default=False)
     full_name = StringField(min_length=5, required=True)
     email = EmailField(required=True)
@@ -98,6 +98,26 @@ class OTUSequenceItem(EmbeddedDocument):
     seqid = IntField(min_value=1, required=True)
     phases = EmbeddedDocumentListField(OTUPhasesItem, required=True)
 
+class OTUUPS(EmbeddedDocument):
+    marca = StringField()
+    modelo = StringField()
+    n_serie = StringField()
+    capacidad = StringField()
+    duracion_carga = StringField()
+    
+class OTUPoles(EmbeddedDocument):
+    ganchos = IntField()
+    vehiculares = IntField()
+    peatonales = IntField()
+    
+class OTUHeaders(EmbeddedDocument):
+    l1 = EmbeddedDocumentField(HeaderType, required=True)
+    l2 = EmbeddedDocumentField(HeaderType, required=True)
+    l3_l4 = EmbeddedDocumentField(HeaderType, required=True)
+    l5 = EmbeddedDocumentField(HeaderType, required=True)
+    l6 = EmbeddedDocumentField(HeaderType, required=True)
+    peatonal = EmbeddedDocumentField(HeaderType, required=True)
+
 class OTUMeta(EmbeddedDocument):
     version = StringField(choices=['base', 'latest'], required=True)
     maintainer = ReferenceField(ExternalCompany)
@@ -127,7 +147,6 @@ class OTUMeta(EmbeddedDocument):
     # // NODO CONCENTRADOR?
 
 
-
 class OTU(Document):
     meta = {'collection': 'OTU'}
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
@@ -136,6 +155,15 @@ class OTU(Document):
     sequence = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
     intergreens = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = ListField(ReferenceField(Junction), required=True)
+    ups = EmbeddedDocumentField(OTUUPS) #, required=True) # TODO: change to english for next sprint.
+    postes = EmbeddedDocumentField(OTUPoles) #, required=True)
+    cabezales = EmbeddedDocumentField(OTUHeaders) #, required=True)
+    
+# Header Type  ====
+
+class HeaderType(EmbeddedDocument):
+    hal = IntField()
+    led = IntField()
 
 # JsonPatch changes Model ====
 
