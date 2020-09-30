@@ -103,7 +103,6 @@ async def create_petition(background_tasks: BackgroundTasks, file: UploadFile= F
     background_tasks.add_task(register_action,a_user,context= "Create Request",component= "Sistema", origin="Web")
 
     
-
     return [{"username": "Foo"}, {"username": "Bar"}]
 
 @router.put('/accept-request/{id}', tags=["requests"],status_code=204)

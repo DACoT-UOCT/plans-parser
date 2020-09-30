@@ -47,7 +47,7 @@ async def read_otu(id: str):
     a_user= "Camilo"
     otudb = models.OTU.objects(oid = id)
     print(otudb.to_json())
-    if otudb == "":
+    if not otudb:
         raise HTTPException(status_code=404, detail="Item not found",headers={"X-Error": "No Found"},)
     otuj = json.loads((otudb[0]).to_json())
     otuj['metadata']['maintainer']= json.loads((otudb[0]).metadata.maintainer.to_json())
