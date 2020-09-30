@@ -17,7 +17,7 @@ def register_action(user: str,context: "",component: "", origin: ""):
     print({"user": user, "context": context, "component": component, "origin": origin })
 
 @router.post('/otu',tags=["otu"],status_code=201)
-async def create_otu(otu:  dict ,background_tasks: BackgroundTasks):
+async def create_otu(otu:  dict, user: EmailStr ,background_tasks: BackgroundTasks):
     a_user= "Camilo"
     mongoOTU = models.OTU.from_json(json.dumps(otu))
     print(type(mongoOTU))
@@ -32,7 +32,7 @@ async def create_otu(otu:  dict ,background_tasks: BackgroundTasks):
     except NotUniqueError:
         #print(error)
         raise HTTPException(status_code=409, detail="Duplicated item",headers={"X-Error": "There goes my error"},)
-    background_tasks.add_task(register_action,a_user,context= "Create OTU request ",component= "Sistema", origin="Web")
+    background_tasks.add_task(register_action,user,context= "Create OTU request ",component= "Sistema", origin="Web")
     #mongoOTU = mongoOTU.reload()
     return [{"username": "Foo"}, {"username": "Bar"}]
 

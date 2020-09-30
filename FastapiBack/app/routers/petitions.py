@@ -1,6 +1,5 @@
 from fastapi import APIRouter, FastAPI, UploadFile, File,Body, Query, HTTPException,BackgroundTasks, Form
 from fastapi_mail import FastMail, MessageSchema,ConnectionConfig
-from pydantic import EmailStr
 from fastapi.responses import HTMLResponse
 from pydantic import EmailStr, BaseModel
 from typing import List
@@ -72,6 +71,7 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
     mongoRequest = models.Request.from_json(json.dumps(mongoRequest))
     #print(json.loads(request)['data'])
     #print(type(file))
+    print(file)
     try:
         mongoRequest.validate()
     except ValidationError as error:
