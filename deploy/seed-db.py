@@ -230,8 +230,8 @@ def read_args_params(args):
     return jsdata, csvindex
 
 def create_extra_data():
-    company = UOCTUser(full_name='AUTER', email='correoempresa@gmail.com', area='Contratista', rol='Empresa', is_admin=True).save().reload()
-    user = UOCTUser(full_name='Nicolas Grandón', email='correonicolas@gmail.com', area='Administración', rol='Personal UOCT').save().reload()
+    UOCTUser(full_name='AUTER', email='correoempresa@gmail.com', area='Contratista', rol='Empresa').save().reload()
+    UOCTUser(full_name='Nicolas Grandón', email='correonicolas@gmail.com', area='Administración', rol='Personal UOCT', is_admin=True).save().reload()
 
 def drop_extra_data():
     pass
