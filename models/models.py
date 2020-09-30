@@ -47,6 +47,12 @@ class Junction(Document):
 class ExternalCompany(Document):
     meta = {'collection': 'ExternalCompany'}
     name = StringField(min_length=2, required=True, unique=True)
+    
+# Header Type  ====
+
+class HeaderType(EmbeddedDocument):
+    hal = IntField()
+    led = IntField()
 
 # User Model ====
 
@@ -157,11 +163,7 @@ class OTU(Document):
     postes = EmbeddedDocumentField(OTUPoles) #, required=True)
     cabezales = EmbeddedDocumentField(OTUHeaders) #, required=True)
     
-# Header Type  ====
 
-class HeaderType(EmbeddedDocument):
-    hal = IntField()
-    led = IntField()
 
 # JsonPatch changes Model ====
 
