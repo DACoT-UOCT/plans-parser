@@ -1,34 +1,58 @@
 import re
 import os
 import csv
-import argparse
+import time
 import json
+import argparse
 import logging
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from bson.json_util import dumps as bson_dumps
 from mongoengine import connect
+from pymongo.operations import ReplaceOne
 
 from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
 from dacot_models import ExternalCompany, UOCTUser, OTUController, ChangeSet, OTUMeta
 
 global log
 
-def save_async_thread_pool(objects):
-    results = []
-    with ThreadPoolExecutor(max_workers=100) as executor:
-        futures = []
-        for obj in objects:
-            futures.append(executor.submit(lambda: obj.save().reload()))
-        for fut in as_completed(futures):
-            results.append(fut.result())
-    return results
-
 def setup_logging():
     global log
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
     log = logging.getLogger('seed-db')
     log.setLevel(logging.INFO)
+
+def fast_validate_and_insert(objects, model, replace=False):
+    global log
+    log.info('[fast_insert]: Validating objects before bulk write')
+    mongo_objs = []
+    for obj in objects:
+        obj.validate()
+        mongo_objs.append(obj.to_mongo())
+    log.info('[fast_insert]: Validation OK')
+    if replace:
+        log.info('[fast_insert]: Writing objects using bulk_write')
+        ops = []
+        for mongo_obj in mongo_objs:
+            ops.append(ReplaceOne({'_id': mongo_obj['_id']}, mongo_obj, upsert=True))
+        insert_res = model._get_collection().bulk_write(ops)
+    else:
+        log.info('[fast_insert]: Writing objects using insert_many')
+        insert_res = model._get_collection().insert_many(mongo_objs)
+    log.info('[fast_insert]: Write command done, collecting objects from remote')
+    mongo_objs.clear()
+    if replace:
+        results = model._get_collection().find({'_id': {'$in': [x['_id'] for x in mongo_objs]}})
+    else:
+        results = model._get_collection().find({'_id': {'$in': insert_res.inserted_ids}})
+    for r in results:
+        mongo_objs.append(model.from_json(bson_dumps(r)))
+    log.info('[fast_insert]: Validating objects after bulk read')
+    for obj in mongo_objs:
+        obj.validate()
+    log.info('[fast_insert]: Validation OK')
+    log.info('[fast_insert]: Done')
+    return mongo_objs
 
 def setup_args():
     parser = argparse.ArgumentParser(description='Seed the mongo db')
@@ -48,6 +72,7 @@ def drop_data():
     OTUController.drop_collection()
     ChangeSet.drop_collection()
     log.info('Done dropping old collections')
+    time.sleep(3)
 
 def phase1(jsdata):
     global log
@@ -61,10 +86,13 @@ def phase1(jsdata):
     otus = {}
     total = len(jsdata)
     i = 0
+    progress_tags = [10, 20, 25, 50, 75, 100]
     for k, v in jsdata.items():
         i += 1
         p = (i / total) * 100
-        log.info('Building model for {} progress {:.2f}%'.format(k, p))
+        if p >= progress_tags[0]:
+            log.info('Building junctions models => progress {:.2f}%'.format(p))
+            progress_tags.pop(0)
         plans = []
         oid = 'X' + k[1:-1] + '0'
         if not oid in otus:
@@ -81,19 +109,22 @@ def phase1(jsdata):
             plans.append(JunctionPlan(plid=plid, cycle=plan['cycle'], system_start=system_start))
         junctions.append(Junction(jid=k, plans=plans, metadata=JunctionMeta()))
     log.info('Bulk inserting {} junctions in the remote mongo database, this can take a while...'.format(len(junctions)))
-    junctions = Junction.objects.insert(junctions)
+    junctions = fast_validate_and_insert(junctions, Junction)
     log.info('Done inserting junctions')
     log.info('Updatig OTUs with junctions references')
     i = 0
+    progress_tags = [10, 20, 25, 50, 75, 100]
     for j in junctions:
         i += 1
         p = (i / total) * 100
+        if p >= progress_tags[0]:
+            log.info('Building otu models => progress {:.2f}%'.format(p))
+            progress_tags.pop(0)
         oid = 'X' + j['jid'][1:-1] + '0'
-        log.info('Updating model for {} progress {:.2f}%'.format(oid, p))
         otus[oid].junctions.append(j)
     otus = otus.values()
     log.info('Bulk inserting {} OTUs in the remote mongo database, this can take a while...'.format(len(otus)))
-    otus = OTU.objects.insert(otus)
+    otus = fast_validate_and_insert(otus, OTU)
     log.info('Done inserting junctions')
     log.info('=' * 60)
     log.info('Phase 1. DONE')
@@ -105,7 +136,7 @@ def phase2(otus, junctions, csvindex):
     log.info('=' * 60)
     log.info('Phase 2. Update created objects with CSV index')
     log.info('=' * 60)
-    log.info('Updatig existing junctions with CSV metadata')
+    log.info('Updating existing junctions with CSV metadata')
     for junc in junctions:
         oid = 'X' + junc['jid'][1:6] + '0'
         if oid not in csvindex:
@@ -123,7 +154,7 @@ def phase2(otus, junctions, csvindex):
         junc.metadata.first_access = index_data['first_access']
         junc.metadata.second_access = index_data['second_access']
     log.info('Bulk updating {} junctions in the remote mongo database, this can take a while...'.format(len(junctions)))
-    save_async_thread_pool(junctions)
+    junctions = fast_validate_and_insert(junctions, Junction, replace=True)
     log.info('Done updating junctions')
     log.info('Updatig existing OTUs with CSV metadata')
     for otu in otus:
@@ -140,7 +171,7 @@ def phase2(otus, junctions, csvindex):
         if 'controller_model' in index_data_junc:
             otu.metadata.controller = index_data_junc['controller_model']
     log.info('Bulk updating {} OTUs in the remote mongo database, this can take a while...'.format(len(otus)))
-    save_async_thread_pool(otus)
+    otus = fast_validate_and_insert(otus, OTU, replace=True)
     log.info('Done updating OTUs')
     log.info('=' * 60)
     log.info('Phase 2. DONE')
