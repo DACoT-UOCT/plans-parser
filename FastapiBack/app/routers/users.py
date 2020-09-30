@@ -3,7 +3,7 @@ from flask_mongoengine import MongoEngine
 from flask_mongoengine.wtf import model_form
 from ..models import models
 import json
-from mongoengine.errors import ValidationError
+from mongoengine.errors import ValidationError, NotUniqueError
 
 router = APIRouter()
 
@@ -18,17 +18,19 @@ def register_action(user: str,context: "",component: "", origin: ""):
 @router.post("/users", tags=["users"],status_code=201)
 async def create_user(user:  dict ,background_tasks: BackgroundTasks):
     a_user= "Camilo"
-    background_tasks.add_task(register_action,a_user,context= "POST",component= "Sistema", origin="web")
     mongoUser = models.UOCTUser.from_json(json.dumps(user))
     print(mongoUser)
     try:
         mongoUser.validate()
     except ValidationError as error:
         print(error)
-        #raise HTTPException(status_code=404, detail="Item not found",headers={"X-Error": "There goes my error"},)
         return error
-        
-    mongoUser.save()
+    
+    try:
+        mongoUser.save()
+    except NotUniqueError:
+        raise HTTPException(status_code=409, detail="Duplicated item",headers={"X-Error": "There goes my error"},)
+    background_tasks.add_task(register_action,a_user,context= "POST",component= "Sistema", origin="web")
     #mongoUser = mongoUser.reload()
     return {"Respuesta": "Usuario Creado"}
 

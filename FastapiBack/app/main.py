@@ -1,18 +1,32 @@
-from fastapi import Depends, FastAPI, Header, HTTPException,Form
+from fastapi import Depends, FastAPI, Header, HTTPException,Form, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from mongoengine import connect
 from .routers import otu, junctions,history,users,petitions
 from . import config
 from functools import lru_cache
 import os
-
 from typing import List
-
-from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import HTMLResponse
 
 
 
 app = FastAPI()
+
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+    "*",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @lru_cache()

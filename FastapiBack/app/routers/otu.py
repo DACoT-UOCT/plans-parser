@@ -43,7 +43,7 @@ async def read_intersections():
     return [{"username": "Foo"}, {"username": "Bar"}]
 
 @router.get('/otu/{id}', tags=["intersections"])
-async def read_otu(background_tasks: BackgroundTasks,id: str):
+async def read_otu(id: str):
     a_user= "Camilo"
     otudb = models.OTU.objects(oid = id)
     print(otudb.to_json())
@@ -57,6 +57,6 @@ async def read_otu(background_tasks: BackgroundTasks,id: str):
 
     for idx, junc in enumerate(otudb[0].junctions):
         otuj['junctions'][idx] = json.loads(junc.to_json())   
-    background_tasks.add_task(register_action,a_user,context= "Request OTU",component= "Sistema", origin="web")
+    #background_tasks.add_task(register_action,a_user,context= "Request OTU",component= "Sistema", origin="web")
     return otuj
 
