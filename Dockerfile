@@ -3,6 +3,7 @@ run python -m pip install --upgrade pip
 copy requirements.txt requirements.txt
 run python -m pip install -r requirements.txt
 copy FastapiBack/app /app
+copy models /app/models
 copy run-api.sh /run-api.sh
 expose 8080
 workdir /
