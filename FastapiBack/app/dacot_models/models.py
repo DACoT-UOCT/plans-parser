@@ -3,7 +3,7 @@ from mongoengine import EmbeddedDocument, IntField, EmbeddedDocumentListField
 from mongoengine import Document, PointField, StringField, ListField, DateTimeField
 from mongoengine import EmbeddedDocumentField, EmailField, FileField, LongField, ReferenceField
 from mongoengine import GenericReferenceField, DictField
-import datetime
+
 from datetime import datetime
 
 # Junction Model ====
@@ -34,6 +34,7 @@ class JunctionMeta(EmbeddedDocument):
     sales_id = IntField(min_value=0)
     first_access = StringField()
     second_access = StringField()
+    address_reference = StringField()
 
 class Junction(Document):
     meta = {'collection': 'Junction'}
@@ -49,12 +50,14 @@ class ExternalCompany(Document):
 
 # User Model ====
 
-class UOCTUser(Document): #TODO: add is_admin flag
+class UOCTUser(Document): #TODO: add is_admin flag #TODO: add roles
     meta = {'collection': 'UOCTUser'}
-    uid = IntField(min_value=0, required=True, unique=True)
+    uid = IntField(min_value=0, required=True, unique=True) # TODO : borrar uid, rut; agregar en area: mantenedora, contratista, administracion
+    is_admin = BooleanField(default=False)
     full_name = StringField(min_length=5, required=True)
     email = EmailField(required=True)
-    area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC'], required=True)
+    rol = StringField(choices=['Empresa', 'Personal UOCT'], required=True)
+    area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC'])
     rut = StringField(min_length=10, required=True) # TODO: validation
 
 # Comment Model ====
@@ -72,6 +75,7 @@ class OTUController(Document):
     model = StringField(required=True)
     firmware_version = StringField()#required=True)
     checksum = StringField()#required=True)
+    address_reference = StringField()
     date = DateTimeField(default=datetime.utcnow, required=True)
 
 # OTU Model ====
@@ -94,6 +98,26 @@ class OTUSequenceItem(EmbeddedDocument):
     seqid = IntField(min_value=1, required=True)
     phases = EmbeddedDocumentListField(OTUPhasesItem, required=True)
 
+class OTUUPS(EmbeddedDocument):
+    marca = StringField()
+    modelo = StringField()
+    n_serie = StringField()
+    capacidad = StringField()
+    duracion_carga = StringField()
+    
+class OTUPoles(EmbeddedDocument):
+    ganchos = IntField()
+    vehiculares = IntField()
+    peatonales = IntField()
+    
+class OTUHeaders(EmbeddedDocument):
+    l1 = EmbeddedDocumentField(HeaderType, required=True)
+    l2 = EmbeddedDocumentField(HeaderType, required=True)
+    l3_l4 = EmbeddedDocumentField(HeaderType, required=True)
+    l5 = EmbeddedDocumentField(HeaderType, required=True)
+    l6 = EmbeddedDocumentField(HeaderType, required=True)
+    peatonal = EmbeddedDocumentField(HeaderType, required=True)
+
 class OTUMeta(EmbeddedDocument):
     version = StringField(choices=['base', 'latest'], required=True)
     maintainer = ReferenceField(ExternalCompany)
@@ -102,10 +126,26 @@ class OTUMeta(EmbeddedDocument):
     status_user = ReferenceField(UOCTUser, required=True)
     installation_date = DateTimeField(default=datetime.utcnow, required=True)
     commune = StringField()
+    region = StringField()
     controller = ReferenceField(OTUController)
-    observations = EmbeddedDocumentListField(Comment)
-    imgs = ListField(FileField())
-    original_data = FileField()
+    observations = EmbeddedDocumentListField(Comment) # Comment returned should only send message
+    imgs = ListField(FileField()) # TODO: Sprint1 only one image
+    original_data = FileField() #TODO: rename pdf_data
+    location = PointField()
+    address_reference =  StringField()
+    serial = StringField()
+    ip_address = StringField()
+    netmask = StringField()
+    control = IntField()
+    answer = IntField()
+    demanda_peatonal = BooleanField(default=False)
+    facilidad_peatonal =BooleanField(default=False)
+    detector_local =BooleanField(default=False)
+    detector_scoot = BooleanField(default=False)
+    link_type = StringField(choices=['Digital', 'Analogo'], required=True)
+    link_owner = StringField(choices=['Propio', 'Compartido'], required=True)
+    # // NODO CONCENTRADOR?
+
 
 class OTU(Document):
     meta = {'collection': 'OTU'}
@@ -115,6 +155,15 @@ class OTU(Document):
     sequence = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
     intergreens = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = ListField(ReferenceField(Junction), required=True)
+    ups = EmbeddedDocumentField(OTUUPS) #, required=True) # TODO: change to english for next sprint.
+    postes = EmbeddedDocumentField(OTUPoles) #, required=True)
+    cabezales = EmbeddedDocumentField(OTUHeaders) #, required=True)
+    
+# Header Type  ====
+
+class HeaderType(EmbeddedDocument):
+    hal = IntField()
+    led = IntField()
 
 # JsonPatch changes Model ====
 
@@ -130,25 +179,3 @@ class ChangeSet(Document):
     def save(self):
         self.__clean_special_chars_patch()
         return super(ChangeSet, self).save()
-
-
-class History(Document):
-    #{"user": user, "context": context, "component": component, "origin": origin }
-    meta = {'collection': 'History'}
-    user = StringField(max_length=200, required=True)
-    context = StringField(max_length=200, required=True)
-    component = StringField(max_length=200, required=True)
-    origin = StringField(max_length=200, required=True)
-    date_modified = DateTimeField(default=datetime.now)
-
-class Request(Document):
-    #{"user": user, "context": context, "component": component, "origin": origin }
-    meta = {'collection': 'requests'}
-    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
-    metadata = EmbeddedDocumentField(OTUMeta, required=True)
-    program = EmbeddedDocumentListField(OTUProgramItem, required=True)
-    sequence = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
-    intergreens = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
-    junctions = ListField(ReferenceField(Junction), required=True)
-    #date_modified = DateTimeField(default=datetime.now)
-    
