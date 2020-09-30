@@ -60,6 +60,7 @@ def setup_args():
     parser.add_argument('index', type=str, help='CSV index file with relevant columns')
     parser.add_argument('mongo', type=str, help='mongo server url')
     parser.add_argument('--rebuild', action='store_true', help='drop existing data and rebuild collections')
+    parser.add_argument('--extra', action='store_true', help='build and save extra data to the remote db')
     return parser.parse_args()
 
 def drop_data():
@@ -228,6 +229,13 @@ def read_args_params(args):
     log.info('We have {} junctions in the CSV index'.format(len(csvindex)))
     return jsdata, csvindex
 
+def create_extra_data():
+    company = UOCTUser(full_name='AUTER', email='correoempresa@gmail.com', area='Contratista', rol='Empresa', is_admin=True).save().reload()
+    user = UOCTUser(full_name='Nicolas Grandón', email='correonicolas@gmail.com', area='Administración', rol='Personal UOCT').save().reload()
+
+def drop_extra_data():
+    pass
+
 if __name__ == "__main__":
     global log
     setup_logging()
@@ -239,4 +247,10 @@ if __name__ == "__main__":
         jsdata, csvindex = read_args_params(args)
         otus, junctions = phase1(jsdata)
         phase2(otus, junctions, csvindex)
+    if args.extra:
+        log.info('Creating extra entries in the db')
+        create_extra_data()
+    # if args.dropextra:
+    #     log.info('Dropping extra entries in the db')
+    #     drop_extra_data()
     log.info('DONE SEEDING THE DB')
