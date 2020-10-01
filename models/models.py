@@ -133,7 +133,7 @@ class OTUMeta(EmbeddedDocument):
     maintainer = ReferenceField(ExternalCompany)
     status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True)
     status_date = DateTimeField(default=datetime.utcnow, required=True)
-    status_user = ReferenceField(UOCTUser, required=True)
+    status_user = StringField(required=True)  # ReferenceField(UOCTUser, required=True)
     installation_date = DateTimeField(default=datetime.utcnow, required=True)
     commune = StringField()
     region = StringField()
