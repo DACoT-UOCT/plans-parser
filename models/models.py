@@ -99,8 +99,8 @@ class OTUPhasesItem(EmbeddedDocument):
     imagen = FileField()
 
 class OTUSequenceItem(EmbeddedDocument):
-    seqid = IntField(min_value=1, required=True)
-    fases = EmbeddedDocumentListField(OTUPhasesItem) #después del Sprint1 , required=True)
+    seqid = StringField() #Después del Sprint1 cambiar a ---> IntField(min_value=1, required=True)
+    fases = EmbeddedDocumentListField(OTUPhasesItem) #Después del Sprint1 cambiar a ---> , required=True)
 
 class OTUUPS(EmbeddedDocument):
     marca = StringField()
