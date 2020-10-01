@@ -140,7 +140,7 @@ class OTUMeta(EmbeddedDocument):
     controller = ReferenceField(OTUController)
     observations = EmbeddedDocumentListField(Comment) # Comment returned should only send message
     imgs = StringField() # TODO: Sprint1 only one image ## Se cambió a tipo string para Sprint1, inicialmente: ListField(FileField()) 
-    pdf_data = FileField() 
+    pdf_data = StringField() 
     location = PointField()
     address_reference =  StringField()
     serial = StringField()
