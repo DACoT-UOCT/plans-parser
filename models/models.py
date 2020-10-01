@@ -100,7 +100,7 @@ class OTUPhasesItem(EmbeddedDocument):
 
 class OTUSequenceItem(EmbeddedDocument):
     seqid = IntField(min_value=1, required=True)
-    fases = EmbeddedDocumentListField(OTUPhasesItem, required=True)
+    fases = EmbeddedDocumentListField(OTUPhasesItem) #después del Sprint1 , required=True)
 
 class OTUUPS(EmbeddedDocument):
     marca = StringField()
