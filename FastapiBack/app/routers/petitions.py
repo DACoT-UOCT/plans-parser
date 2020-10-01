@@ -219,7 +219,8 @@ async def read_otu(background_tasks: BackgroundTasks, id= str):
         #if otudb[0].metadata.controller.to_mongo()['controller'] != '':
             #otuj['metadata']['controller']['company']= json.loads((otudb[0]).metadata.controller.company.to_json())
 
-    for idx, junc in enumerate(otudb[0].junctions):
-        otuj['junctions'][idx] = json.loads(junc.to_json())   
+    #for idx, junc in enumerate(otudb[0].junctions):
+        #otuj['junctions'][idx] = json.loads(junc.to_json())   
+        
     #background_tasks.add_task(register_action,a_user,context= "Request OTU",component= "Sistema", origin="web")
     return otuj
