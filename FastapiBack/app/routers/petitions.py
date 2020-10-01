@@ -159,7 +159,7 @@ async def reject_petition(background_tasks: BackgroundTasks,user: EmailStr , fil
         raise HTTPException(status_code=404, detail="Item not found",headers={"X-Error": "No Found"},)
         return
     #Request = json.loads((mongoRequest[0]).to_json())
-    mongoRequest.update(set__metadata__S__status="REJECTED")
+    mongoRequest.update(set__metadata__status="REJECTED")
     if file != None:
         message = MessageSchema(
             subject="Fastapi-Mail module",
