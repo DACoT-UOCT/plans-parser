@@ -184,3 +184,20 @@ async def read_otu(background_tasks: BackgroundTasks,user: EmailStr):
     #print(requestdb.to_json()) # NEW , UPDATE
     background_tasks.add_task(register_action,user,context= "Request NEW and UPDATE OTUs",component= "Sistema", origin="web")
     return request_list
+
+@router.get('/request/{id}', tags=["requests"])
+async def read_otu(background_tasks: BackgroundTasks, id= str):
+    otudb = models.Request.objects(oid = id)
+    #print(otudb.to_json())
+    if not otudb:
+        raise HTTPException(status_code=404, detail="Item not found",headers={"X-Error": "No Found"},)
+    otuj = json.loads((otudb[0]).to_json())
+    otuj['metadata']['maintainer']= json.loads((otudb[0]).metadata.maintainer.to_json())
+    otuj['metadata']['status_user']= json.loads((otudb[0]).metadata.status_user.to_json())
+    otuj['metadata']['controller']= json.loads((otudb[0]).metadata.controller.to_json())
+    otuj['metadata']['controller']['company']= json.loads((otudb[0]).metadata.controller.company.to_json())
+
+    for idx, junc in enumerate(otudb[0].junctions):
+        otuj['junctions'][idx] = json.loads(junc.to_json())   
+    #background_tasks.add_task(register_action,a_user,context= "Request OTU",component= "Sistema", origin="web")
+    return otuj
