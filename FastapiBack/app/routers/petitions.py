@@ -188,6 +188,7 @@ async def read_otu(background_tasks: BackgroundTasks,user: EmailStr):
         raise HTTPException(status_code=404, detail="User not found",headers={"X-Error": "Usuario no encontrado"},)
         return
     #'Empresa', 'Personal UOCT
+    print(user_f.rol)
     if user_f.rol == 'Empresa':
         for request in models.Request.objects(metadata__status__in=["NEW","UPDATE","APPROVED"],metadata__status_user= user_f).only('oid', 'metadata.status'):
             request_list.append(json.loads(request.to_json()))
