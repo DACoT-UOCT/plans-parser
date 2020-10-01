@@ -198,4 +198,7 @@ class Request(Document):
     sequence = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
     intergreens = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = ListField(ReferenceField(Junction), required=True)
+    ups = EmbeddedDocumentField(OTUUPS) #, required=True) # TODO: change to english for next sprint.
+    postes = EmbeddedDocumentField(OTUPoles) #, required=True)
+    cabezales = EmbeddedDocumentField(OTUHeaders) #, required=True)
     #date_modified = DateTimeField(default=datetime.now)
