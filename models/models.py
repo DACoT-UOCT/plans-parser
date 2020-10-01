@@ -41,6 +41,12 @@ class Junction(Document):
     jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan, required=True)
+    
+# FasesItem ====
+
+class FasesItem(EmbeddedDocument):
+    etapas = ListField(StringField())
+    imagen =StringField()
 
 # External Company Model ====
 
@@ -201,4 +207,7 @@ class Request(Document):
     ups = EmbeddedDocumentField(OTUUPS) #, required=True) # TODO: change to english for next sprint.
     postes = EmbeddedDocumentField(OTUPoles) #, required=True)
     cabezales = EmbeddedDocumentField(OTUHeaders) #, required=True)
+    fases = EmbeddedDocumentListField(FasesItem)
+    stages = ListField(ListField())
+    
     #date_modified = DateTimeField(default=datetime.now)
