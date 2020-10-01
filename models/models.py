@@ -41,6 +41,12 @@ class Junction(Document):
     jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan, required=True)
+    
+# FasesItem ====
+
+class FasesItem(EmbeddedDocument):
+    etapas = ListField(StringField())
+    imagen =StringField()
 
 # External Company Model ====
 
@@ -132,9 +138,9 @@ class OTUMeta(EmbeddedDocument):
     commune = StringField()
     region = StringField()
     controller = ReferenceField(OTUController)
-    observations = EmbeddedDocumentListField(Comment) # Comment returned should only send message
+    observations = StringField() #cambio por String1: EmbeddedDocumentListField(Comment) # Comment returned should only send message
     imgs = StringField() # TODO: Sprint1 only one image ## Se cambió a tipo string para Sprint1, inicialmente: ListField(FileField()) 
-    pdf_data = FileField() 
+    pdf_data = StringField() 
     location = PointField()
     address_reference =  StringField()
     serial = StringField()
@@ -155,9 +161,9 @@ class OTU(Document):
     meta = {'collection': 'OTU'}
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
-    program = EmbeddedDocumentListField(OTUProgramItem, required=True)
+    program = EmbeddedDocumentListField(OTUProgramItem) #, required=True)
     secuencias = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
-    entreverdes = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
+    entreverdes = ListField(ListField(IntField(min_value=0))) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = ListField(ReferenceField(Junction), required=True)
     ups = EmbeddedDocumentField(OTUUPS) #, required=True) # TODO: change to english for next sprint.
     postes = EmbeddedDocumentField(OTUPoles) #, required=True)
@@ -194,11 +200,14 @@ class Request(Document):
     meta = {'collection': 'requests'}
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
-    program = EmbeddedDocumentListField(OTUProgramItem, required=True)
+    program = EmbeddedDocumentListField(OTUProgramItem)  #, required=True)
     secuencias = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
-    entreverdes = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
+    entreverdes = ListField(ListField(IntField(min_value=0))) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = ListField(ReferenceField(Junction), required=True)
     ups = EmbeddedDocumentField(OTUUPS) #, required=True) # TODO: change to english for next sprint.
     postes = EmbeddedDocumentField(OTUPoles) #, required=True)
     cabezales = EmbeddedDocumentField(OTUHeaders) #, required=True)
+    fases = EmbeddedDocumentListField(FasesItem)
+    stages = ListField(ListField())
+    
     #date_modified = DateTimeField(default=datetime.now)
