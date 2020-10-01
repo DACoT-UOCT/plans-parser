@@ -128,7 +128,7 @@ async def accept_petition(background_tasks: BackgroundTasks,user: EmailStr, file
     if file != None:
         message = MessageSchema(
             subject="Fastapi-Mail module",
-            receipients=email,  # List of receipients, as many as you can pass 
+            recipients=email,  # List of receipients, as many as you can pass 
             body=accept+"Motivo: " + motivo + footer,
             subtype="html",
             attachments=file
@@ -136,7 +136,7 @@ async def accept_petition(background_tasks: BackgroundTasks,user: EmailStr, file
     else:
         message = MessageSchema(
             subject="Fastapi-Mail module",
-            receipients=email,  # List of receipients, as many as you can pass 
+            recipients=email,  # List of receipients, as many as you can pass 
             body=accept+"Motivo: " + motivo + footer,
             subtype="html",
             )
@@ -160,7 +160,7 @@ async def reject_petition(background_tasks: BackgroundTasks,user: EmailStr , fil
     if file != None:
         message = MessageSchema(
             subject="Fastapi-Mail module",
-            receipients=email,  # List of receipients, as many as you can pass 
+            recipients=email,  # List of receipients, as many as you can pass 
             body=reject+"Motivo: " + motivo + footer,
             subtype="html",
             attachments=file
@@ -168,7 +168,7 @@ async def reject_petition(background_tasks: BackgroundTasks,user: EmailStr , fil
     else:
         message = MessageSchema(
             subject="Fastapi-Mail module",
-            receipients=email,  # List of receipients, as many as you can pass 
+            recipients=email,  # List of receipients, as many as you can pass 
             body=reject+"Motivo: " + motivo + footer,
             subtype="html",
             )
@@ -183,13 +183,17 @@ async def reject_petition(background_tasks: BackgroundTasks,user: EmailStr , fil
 async def read_otu(background_tasks: BackgroundTasks,user: EmailStr):
     a_user= "Camilo" 
     request_list= []
-    #filtrar por usuario que consulta
-    #ver usuario a cargo
-    #requestdb = models.Request.objects(metadata__status='NEW').only('oid')
-    #request_conf = models.Request.objects(metadata__status__in=["NEW","UPDATE"]).only('oid', 'metadata.status')
-    #if len(request_conf) != 0:
-    for request in models.Request.objects(metadata__status__in=["NEW","UPDATE"]).only('oid', 'metadata.status'):
-        request_list.append(json.loads(request.to_json()))
+    user_f = models.UOCTUser.objects(email=user).first()
+    if user_f == None:
+        raise HTTPException(status_code=404, detail="User not found",headers={"X-Error": "Usuario no encontrado"},)
+        return
+    #'Empresa', 'Personal UOCT
+    if user_f.rol == 'Empresa':
+        for request in models.Request.objects(metadata__status__in=["NEW","UPDATE","APPROVED"],metadata__status_user= user_f).only('oid', 'metadata.status'):
+            request_list.append(json.loads(request.to_json()))
+    else:
+        for request in models.Request.objects(metadata__status__in=["NEW","UPDATE"]).only('oid', 'metadata.status'):
+            request_list.append(json.loads(request.to_json()))
     #print(requestdb.to_json()) # NEW , UPDATE
     background_tasks.add_task(register_action,user,context= "Request NEW and UPDATE OTUs",component= "Sistema", origin="web")
     return request_list
