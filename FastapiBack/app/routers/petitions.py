@@ -117,7 +117,9 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
 async def accept_petition(background_tasks: BackgroundTasks,user: EmailStr, file: List[UploadFile]= File(default=None),id= str,data: str = Form(...)):
     a_user= "cponce"
     email = json.loads(data)["mails"]
-    motivo= "Motivo"
+    file= [json.loads(data)[file]]
+    #motivo= "Motivo"
+    motivo= json.loads(data)["comentario"]
     mongoRequest = models.Request.objects(oid = id)
     if mongoRequest == "":
         raise HTTPException(status_code=404, detail="Item not found",headers={"X-Error": "No Found"},)
@@ -149,7 +151,9 @@ async def accept_petition(background_tasks: BackgroundTasks,user: EmailStr, file
 async def reject_petition(background_tasks: BackgroundTasks,user: EmailStr , file: List[UploadFile]= File(default=None),id= str,data: str = Form(...)):
     a_user= "cponce"
     email = json.loads(data)["mails"]
+    file= [json.loads(data)[file]]
     motivo= "Motivo"
+    motivo= json.loads(data)["comentario"]
     mongoRequest = models.Request.objects(oid = id)
     if mongoRequest == "":
         raise HTTPException(status_code=404, detail="Item not found",headers={"X-Error": "No Found"},)
