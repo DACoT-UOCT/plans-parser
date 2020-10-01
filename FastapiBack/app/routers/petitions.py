@@ -68,7 +68,16 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
     #mongoRequest = models.Request.from_json(json.dumps(json.loads(request)))
     #mongoRequest = models.Request.from_json(json.dumps(request))
     #mongoRequest = (json.loads(request))['otu']
-    mongoRequest = models.Request.from_json(json.dumps(json.loads(request)))
+    otu_seq = []
+    request_data = json.loads(request)
+    print(request_data)
+    for seq in request_data['secuencias']:
+        otu_seq.extend([json.loads(models.OTUSequenceItem(seqid=seqid).to_json()) for seqid in seq])
+    print(otu_seq)
+    request_data['secuencias'] = otu_seq
+    request_data['metadata']['status_date'] = {"$date": request_data['metadata']['status_date']}
+    request_data['metadata']['installation_date'] = {"$date": request_data['metadata']['installation_date']}
+    mongoRequest = models.Request.from_json(json.dumps(request_data))
     #print(json.loads(request)['data'])
     #print(type(file))
     print(file)
@@ -85,7 +94,7 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
     if file != None:
         message = MessageSchema(
             subject="Fastapi-Mail module",
-            receipients=[email],  # List of receipients, as many as you can pass 
+            recipients=[email],  # List of receipients, as many as you can pass 
             body=header+"Motivo: " + motivo + footer,
             subtype="html",
             attachments=file
@@ -93,7 +102,7 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
     else:
         message = MessageSchema(
             subject="Fastapi-Mail module",
-            receipients=[email],  # List of receipients, as many as you can pass 
+            recipients=[email],  # List of receipients, as many as you can pass 
             body=header+"Motivo: " + motivo + footer,
             subtype="html",
             )
