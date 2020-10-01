@@ -64,6 +64,13 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
     a_user= "Camilo"
     email = "darkcamx@gmail.com"
     motivo= "Se ha creado una solicitud de instalación, por favor revisar lo más pronto posible"
+    user_f = models.UOCTUser.objects(email=user).first()
+    if user_f == None:
+        raise HTTPException(status_code=404, detail="User not found",headers={"X-Error": "Usuario no encontrado"},)
+        return
+    print(user_f.is_admin)
+    if user_f.is_admin == False:
+        raise HTTPException(status_code=403, detail="Forbidden access",headers={"X-Error": "Usuario no encontrado"},)
     #background_tasks.add_task(register_action,a_user,context= "POST",component= "Sistema", origin="web")
     #mongoRequest = models.Request.from_json(json.dumps(json.loads(request)))
     #mongoRequest = models.Request.from_json(json.dumps(request))
