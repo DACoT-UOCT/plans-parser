@@ -67,7 +67,7 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
     #background_tasks.add_task(register_action,a_user,context= "POST",component= "Sistema", origin="web")
     #mongoRequest = models.Request.from_json(json.dumps(json.loads(request)))
     #mongoRequest = models.Request.from_json(json.dumps(request))
-    mongoRequest = (json.loads(request))['otu']
+    #mongoRequest = (json.loads(request))['otu']
     mongoRequest = models.Request.from_json(json.dumps(mongoRequest))
     #print(json.loads(request)['data'])
     #print(type(file))
