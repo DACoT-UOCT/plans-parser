@@ -95,7 +95,7 @@ class OTUStagesItem(EmbeddedDocument):
 
 class OTUPhasesItem(EmbeddedDocument):
     phid = IntField(min_value=1, required=True)
-    etapas = EmbeddedDocumentListField(OTUStagesItem, required=True) # TODO: validate sid unique in the list
+    stages = EmbeddedDocumentListField(OTUStagesItem, required=True) # TODO: validate sid unique in the list
     imagen = FileField()
 
 class OTUSequenceItem(EmbeddedDocument):
@@ -156,8 +156,8 @@ class OTU(Document):
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
     program = EmbeddedDocumentListField(OTUProgramItem, required=True)
-    sequence = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
-    intergreens = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
+    secuencias = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
+    entreverdes = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = ListField(ReferenceField(Junction), required=True)
     ups = EmbeddedDocumentField(OTUUPS) #, required=True) # TODO: change to english for next sprint.
     postes = EmbeddedDocumentField(OTUPoles) #, required=True)
@@ -195,8 +195,8 @@ class Request(Document):
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
     program = EmbeddedDocumentListField(OTUProgramItem, required=True)
-    sequence = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
-    intergreens = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
+    secuencias = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
+    entreverdes = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = ListField(ReferenceField(Junction), required=True)
     ups = EmbeddedDocumentField(OTUUPS) #, required=True) # TODO: change to english for next sprint.
     postes = EmbeddedDocumentField(OTUPoles) #, required=True)
