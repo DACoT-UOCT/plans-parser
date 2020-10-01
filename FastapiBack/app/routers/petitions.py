@@ -210,14 +210,14 @@ async def read_otu(background_tasks: BackgroundTasks, id= str):
     #status_user = json.loads((otudb[0]).metadata.status_user)
     #controller = json.loads((otudb[0]).metadata.controller)
     #company = json.loads((otudb[0]).metadata.controller.company)
-    if otudb[0].metadata.to_mongo()['maintainer'] != '':
-        otuj['metadata']['maintainer']= json.loads((otudb[0]).metadata.maintainer.to_json())
+    #if otudb[0].metadata.to_mongo()['maintainer'] != '':
+        #otuj['metadata']['maintainer']= json.loads((otudb[0]).metadata.maintainer.to_json())
     #if otudb[0].metadata.to_mongo()['status_user'] != '':
      #   otuj['metadata']['status_user']= json.loads((otudb[0]).metadata.status_user.to_json())
-    if otudb[0].metadata.to_mongo()['controller'] != '':
-        otuj['metadata']['controller']= json.loads((otudb[0]).metadata.controller.to_json())
-        if otudb[0].metadata.controller.to_mongo()['controller'] != '':
-            otuj['metadata']['controller']['company']= json.loads((otudb[0]).metadata.controller.company.to_json())
+    #if otudb[0].metadata.to_mongo()['controller'] != '':
+        #otuj['metadata']['controller']= json.loads((otudb[0]).metadata.controller.to_json())
+        #if otudb[0].metadata.controller.to_mongo()['controller'] != '':
+            #otuj['metadata']['controller']['company']= json.loads((otudb[0]).metadata.controller.company.to_json())
 
     for idx, junc in enumerate(otudb[0].junctions):
         otuj['junctions'][idx] = json.loads(junc.to_json())   
