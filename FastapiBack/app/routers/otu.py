@@ -44,7 +44,7 @@ async def read_users_otu(background_tasks: BackgroundTasks, user: EmailStr):
         raise HTTPException(status_code=404, detail="User not found",headers={"X-Error": "Usuario no encontrado"},)
         return
     otu_list= []
-    for otu in models.OTU.objects(metadata__status= "SYSTEM",metadata__status_user= user_f).only('oid', 'metadata.status','metadata.status_user'):
+    for otu in models.Request.objects(metadata__status= "SYSTEM",metadata__status_user= user).only('oid', 'metadata.status','metadata.status_user'):
         otu_list.append(json.loads(otu.to_json()))
         #print(otu.metadata.status_user.to_json())
     background_tasks.add_task(register_action,user,context= "Request user OTUs",component= "Sistema", origin="web")
