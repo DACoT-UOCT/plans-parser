@@ -95,12 +95,12 @@ class OTUStagesItem(EmbeddedDocument):
 
 class OTUPhasesItem(EmbeddedDocument):
     phid = IntField(min_value=1, required=True)
-    stages = EmbeddedDocumentListField(OTUStagesItem, required=True) # TODO: validate sid unique in the list
-    img = FileField()
+    etapas = EmbeddedDocumentListField(OTUStagesItem, required=True) # TODO: validate sid unique in the list
+    imagen = FileField()
 
 class OTUSequenceItem(EmbeddedDocument):
     seqid = IntField(min_value=1, required=True)
-    phases = EmbeddedDocumentListField(OTUPhasesItem, required=True)
+    fases = EmbeddedDocumentListField(OTUPhasesItem, required=True)
 
 class OTUUPS(EmbeddedDocument):
     marca = StringField()
