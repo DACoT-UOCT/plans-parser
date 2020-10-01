@@ -205,19 +205,19 @@ async def read_otu(background_tasks: BackgroundTasks, id= str):
     if not otudb:
         raise HTTPException(status_code=404, detail="Item not found",headers={"X-Error": "No Found"},)
     otuj = json.loads((otudb[0]).to_json())
-    maintainer = json.loads((otudb[0]).metadata.maintainer)
-    print(maintainer)
-    status_user = json.loads((otudb[0]).metadata.status_user)
-    controller = json.loads((otudb[0]).metadata.controller)
-    company = json.loads((otudb[0]).metadata.controller.company)
-    if maintainer != "":
-        otuj['metadata']['maintainer']= maintainer.to_json()
-    if status_user != "":
-        otuj['metadata']['status_user']= status_user.to_json()
-    if controller != "":
-        otuj['metadata']['controller']= controller.to_json()
-    if company != "":
-        otuj['metadata']['controller']['company']= company.to_json()
+    #maintainer = (json.loads((otudb[0]).metadata.to_json()))['maintainer']
+    #print(maintainer)
+    #status_user = json.loads((otudb[0]).metadata.status_user)
+    #controller = json.loads((otudb[0]).metadata.controller)
+    #company = json.loads((otudb[0]).metadata.controller.company)
+    if otudb[0].metadata.to_mongo()['maintainer'] != '':
+        otuj['metadata']['maintainer']= json.loads((otudb[0]).metadata.maintainer.to_json())
+    if otudb[0].metadata.to_mongo()['status_user'] != '':
+        otuj['metadata']['status_user']= json.loads((otudb[0]).metadata.status_user.to_json())
+    if otudb[0].metadata.to_mongo()['controller'] != '':
+        otuj['metadata']['controller']= json.loads((otudb[0]).metadata.controller.to_json())
+        if otudb[0].metadata.controller.to_mongo()['controller'] != '':
+            otuj['metadata']['controller']['company']= json.loads((otudb[0]).metadata.controller.company.to_json())
 
     for idx, junc in enumerate(otudb[0].junctions):
         otuj['junctions'][idx] = json.loads(junc.to_json())   
