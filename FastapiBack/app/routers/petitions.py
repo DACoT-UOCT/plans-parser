@@ -94,7 +94,7 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
     if file != None:
         message = MessageSchema(
             subject="Fastapi-Mail module",
-            receipients=[email],  # List of receipients, as many as you can pass 
+            recipients=[email],  # List of receipients, as many as you can pass 
             body=header+"Motivo: " + motivo + footer,
             subtype="html",
             attachments=file
@@ -102,7 +102,7 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
     else:
         message = MessageSchema(
             subject="Fastapi-Mail module",
-            receipients=[email],  # List of receipients, as many as you can pass 
+            recipients=[email],  # List of receipients, as many as you can pass 
             body=header+"Motivo: " + motivo + footer,
             subtype="html",
             )
