@@ -177,7 +177,9 @@ async def read_otu(background_tasks: BackgroundTasks,user: EmailStr):
     #filtrar por usuario que consulta
     #ver usuario a cargo
     #requestdb = models.Request.objects(metadata__status='NEW').only('oid')
-    for request in models.Request.objects(metadata__status__in=["NEW","UPDATE"]).only('oid', 'metadata.status',''):
+    #request_conf = models.Request.objects(metadata__status__in=["NEW","UPDATE"]).only('oid', 'metadata.status')
+    #if len(request_conf) != 0:
+    for request in models.Request.objects(metadata__status__in=["NEW","UPDATE"]).only('oid', 'metadata.status'):
         request_list.append(json.loads(request.to_json()))
     #print(requestdb.to_json()) # NEW , UPDATE
     background_tasks.add_task(register_action,user,context= "Request NEW and UPDATE OTUs",component= "Sistema", origin="web")
