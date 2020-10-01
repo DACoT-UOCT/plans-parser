@@ -133,7 +133,7 @@ class OTUMeta(EmbeddedDocument):
     region = StringField()
     controller = ReferenceField(OTUController)
     observations = EmbeddedDocumentListField(Comment) # Comment returned should only send message
-    imgs = ListField(FileField()) # TODO: Sprint1 only one image
+    imgs = StringField() # TODO: Sprint1 only one image ## Se cambió a tipo string para Sprint1, inicialmente: ListField(FileField()) 
     pdf_data = FileField() 
     location = PointField()
     address_reference =  StringField()
@@ -144,7 +144,7 @@ class OTUMeta(EmbeddedDocument):
     answer = IntField()
     demanda_peatonal = BooleanField(default=False)
     facilidad_peatonal =BooleanField(default=False)
-    detector_local =BooleanField(default=False)
+    detector_local = BooleanField(default=False)
     detector_scoot = BooleanField(default=False)
     link_type = StringField(choices=['Digital', 'Analogo'], required=True)
     link_owner = StringField(choices=['Propio', 'Compartido'], required=True)
