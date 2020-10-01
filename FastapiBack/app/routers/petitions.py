@@ -75,7 +75,7 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
         otu_seq.extend([json.loads(models.OTUSequenceItem(seqid=seqid).to_json()) for seqid in seq])
     print(otu_seq)
     request_data['secuencias'] = otu_seq
-    request_data['status_date'] = models.DateTimeField(request_data['status_date'])
+    request_data['metadata']['status_date'] = models.DateTimeField(request_data['metadata']['status_date'])
     mongoRequest = models.Request.from_json(json.dumps(request_data))
     #print(json.loads(request)['data'])
     #print(type(file))
