@@ -70,7 +70,6 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
     #mongoRequest = (json.loads(request))['otu']
     otu_seq = []
     request_data = json.loads(request)
-    print(request_data)
     for seq in request_data['secuencias']:
         otu_seq.extend([json.loads(models.OTUSequenceItem(seqid=seqid).to_json()) for seqid in seq])
     print(otu_seq)
@@ -206,10 +205,19 @@ async def read_otu(background_tasks: BackgroundTasks, id= str):
     if not otudb:
         raise HTTPException(status_code=404, detail="Item not found",headers={"X-Error": "No Found"},)
     otuj = json.loads((otudb[0]).to_json())
-    otuj['metadata']['maintainer']= json.loads((otudb[0]).metadata.maintainer.to_json())
-    otuj['metadata']['status_user']= json.loads((otudb[0]).metadata.status_user.to_json())
-    otuj['metadata']['controller']= json.loads((otudb[0]).metadata.controller.to_json())
-    otuj['metadata']['controller']['company']= json.loads((otudb[0]).metadata.controller.company.to_json())
+    maintainer = json.loads((otudb[0]).metadata.maintainer)
+    print(maintainer)
+    status_user = json.loads((otudb[0]).metadata.status_user)
+    controller = json.loads((otudb[0]).metadata.controller)
+    company = json.loads((otudb[0]).metadata.controller.company)
+    if maintainer != "":
+        otuj['metadata']['maintainer']= maintainer.to_json()
+    if status_user != "":
+        otuj['metadata']['status_user']= status_user.to_json()
+    if controller != "":
+        otuj['metadata']['controller']= controller.to_json()
+    if company != "":
+        otuj['metadata']['controller']['company']= company.to_json()
 
     for idx, junc in enumerate(otudb[0].junctions):
         otuj['junctions'][idx] = json.loads(junc.to_json())   
