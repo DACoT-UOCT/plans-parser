@@ -9,6 +9,7 @@ from ..config import mail_conf
 import json
 from functools import lru_cache
 from mongoengine.errors import ValidationError, NotUniqueError
+from datetime import datetime
 
 router = APIRouter()
 
@@ -75,7 +76,7 @@ async def create_petition(background_tasks: BackgroundTasks,user: EmailStr, file
         otu_seq.extend([json.loads(models.OTUSequenceItem(seqid=seqid).to_json()) for seqid in seq])
     print(otu_seq)
     request_data['secuencias'] = otu_seq
-    request_data['metadata']['status_date'] = models.DateTimeField(request_data['metadata']['status_date'])
+    request_data['metadata']['status_date'] = datetime.fromtimestamp(int(request_data['metadata']['status_date'] / 1000))
     mongoRequest = models.Request.from_json(json.dumps(request_data))
     #print(json.loads(request)['data'])
     #print(type(file))
