@@ -30,45 +30,72 @@ class JunctionPlan(EmbeddedDocument):
     system_start = EmbeddedDocumentListField(JunctionPlanPhaseValue, required=True)
 
 class JunctionMeta(EmbeddedDocument):
-    location = PointField()
+    location = PointField(required=True)
     sales_id = IntField(min_value=0)
-    first_access = StringField()
-    second_access = StringField()
+    first_access = StringField(required=True)
+    second_access = StringField(required=True)
     address_reference = StringField()
+    commune = ReferenceField(Commune, required=True)
 
 class Junction(Document):
     meta = {'collection': 'Junction'}
     jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan, required=True)
-    
-# FasesItem ====
-
-class FasesItem(EmbeddedDocument):
-    etapas = ListField(StringField())
-    imagen =StringField()
 
 # External Company Model ====
 
 class ExternalCompany(Document):
     meta = {'collection': 'ExternalCompany'}
     name = StringField(min_length=2, required=True, unique=True)
-    
-# Header Type  ====
 
-class HeaderType(EmbeddedDocument):
-    hal = IntField()
-    led = IntField()
+class Commune(Document):
+    maintainer = ReferenceField(ExternalCompany)
+    name = StringField()
+        
+class Headers(EmbeddedDocument): #
+    l1 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2) # Primero halógeno, segundo Led
+    l2 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
+    l3 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
+    l4 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
+    l5 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
+    l6 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
+    peatonal = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
+    
+class UPS(EmbeddedDocument):
+    marca = StringField()
+    modelo = StringField()
+    n_serie = StringField()
+    capacidad = StringField()
+    duracion_carga = StringField()
+    
+class Poles(EmbeddedDocument):
+    ganchos = IntField(min_value=0)
+    vehiculares = IntField(min_value=0)
+    peatonales = IntField(min_value=0)
+    
+class Project(Document):
+    metadata = EmbeddedDocumentField(ProjectMeta, required=True)
+    otu = ReferenceField(OTU, required=True)
+    headers = EmbeddedDocumentField(Headers, required=True)
+    ups = EmbeddedDocumentField(UPS, required=True)
+    poles = EmbeddedDocumentField(Poles, required=True)
+    
+    
+class ProjectMeta(EmbeddedDocument):
+    
+    
 
 # User Model ====
 
-class UOCTUser(Document): #TODO: add is_admin flag #TODO: add roles
-    meta = {'collection': 'UOCTUser'}
+class User(Document): #TODO: add is_admin flag #TODO: add roles
+    meta = {'collection': 'User'}
     is_admin = BooleanField(default=False)
     full_name = StringField(min_length=5, required=True)
     email = EmailField(required=True, unique=True)
     rol = StringField(choices=['Empresa', 'Personal UOCT'], required=True)
-    area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC', 'Mantenedora', 'Contratista', 'Administración'])
+    area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC', 'Mantenedora', 'Contratista', 'Administración'], required=True)
+    company = ReferenceField(ExternalCompany)
     
 # Comment Model ====
 
@@ -108,26 +135,6 @@ class OTUSequenceItem(EmbeddedDocument):
     seqid = StringField() #Después del Sprint1 cambiar a ---> IntField(min_value=1, required=True)
     fases = EmbeddedDocumentListField(OTUPhasesItem) #Después del Sprint1 cambiar a ---> , required=True)
 
-class OTUUPS(EmbeddedDocument):
-    marca = StringField()
-    modelo = StringField()
-    n_serie = StringField()
-    capacidad = StringField()
-    duracion_carga = StringField()
-    
-class OTUPoles(EmbeddedDocument):
-    ganchos = IntField()
-    vehiculares = IntField()
-    peatonales = IntField()
-    
-class OTUHeaders(EmbeddedDocument):
-    l1 = EmbeddedDocumentField(HeaderType, required=True)
-    l2 = EmbeddedDocumentField(HeaderType, required=True)
-    l3_l4 = EmbeddedDocumentField(HeaderType, required=True)
-    l5 = EmbeddedDocumentField(HeaderType, required=True)
-    l6 = EmbeddedDocumentField(HeaderType, required=True)
-    peatonal = EmbeddedDocumentField(HeaderType, required=True)
-
 class OTUMeta(EmbeddedDocument):
     version = StringField(choices=['base', 'latest'], required=True)
     maintainer = ReferenceField(ExternalCompany)
@@ -165,9 +172,9 @@ class OTU(Document):
     secuencias = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
     entreverdes = ListField(ListField(IntField(min_value=0))) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = ListField(ReferenceField(Junction), required=True)
-    ups = EmbeddedDocumentField(OTUUPS) #, required=True) # TODO: change to english for next sprint.
-    postes = EmbeddedDocumentField(OTUPoles) #, required=True)
-    cabezales = EmbeddedDocumentField(OTUHeaders) #, required=True)
+    ups = EmbeddedDocumentField(UPS) #, required=True) # TODO: change to english for next sprint.
+    postes = EmbeddedDocumentField(Poles) #, required=True)
+    cabezales = EmbeddedDocumentField(Headers) #, required=True)
     
 
 
