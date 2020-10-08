@@ -32,16 +32,16 @@ class JunctionPlan(EmbeddedDocument):
 class JunctionMeta(EmbeddedDocument):
     location = PointField(required=True)
     sales_id = IntField(min_value=0)
-    first_access = StringField(required=True)
-    second_access = StringField(required=True)
+    #first_access = StringField(required=True)
+    #second_access = StringField(required=True)
     address_reference = StringField()
-    commune = ReferenceField(Commune, required=True)
+    
 
 class Junction(Document):
     meta = {'collection': 'Junction'}
     jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
-    plans = EmbeddedDocumentListField(JunctionPlan, required=True)
+    plans = EmbeddedDocumentListField(JunctionPlan)
 
 # External Company Model ====
 
