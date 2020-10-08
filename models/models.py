@@ -53,37 +53,36 @@ class Commune(Document):
     maintainer = ReferenceField(ExternalCompany)
     name = StringField()
         
-class Headers(EmbeddedDocument): #
-    l1 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2) # Primero halógeno, segundo Led
-    l2 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
-    l3 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
-    l4 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
-    l5 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
-    l6 = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
-    peatonal = ListField(IntField(min_value=0), required=True, min_length=2, max_length=2)
+class HeaderItem(EmbeddedDocument): #
+    hal = IntField(min_value=0)
+    led = IntField(min_value=0)
+    type = StringField(choices=['L1', 'L2A', 'L2B', 'L2C', 'L3A', 'L3B', 'L4', 'L5', 'L6', 'Peatonal', 'Ciclista']) #Hay más
     
 class UPS(EmbeddedDocument):
-    marca = StringField()
-    modelo = StringField()
-    n_serie = StringField()
-    capacidad = StringField()
-    duracion_carga = StringField()
+    brand = StringField()
+    model = StringField()
+    serial = StringField()
+    capacity = StringField() #TODO: preguntar unidad de medida
+    charge_duration = StringField() #TODO: preguntar unidad de medida
     
 class Poles(EmbeddedDocument):
-    ganchos = IntField(min_value=0)
-    vehiculares = IntField(min_value=0)
-    peatonales = IntField(min_value=0)
+    hooks = IntField(min_value=0)
+    vehicular = IntField(min_value=0)
+    pedestrian = IntField(min_value=0)
     
 class Project(Document):
     metadata = EmbeddedDocumentField(ProjectMeta, required=True)
-    otu = ReferenceField(OTU, required=True)
-    headers = EmbeddedDocumentField(Headers, required=True)
-    ups = EmbeddedDocumentField(UPS, required=True)
-    poles = EmbeddedDocumentField(Poles, required=True)
+    otu = ReferenceField(OTU, required=True, unique=True)
+    headers = EmbeddedDocumentListField(HeaderItem)
+    ups = EmbeddedDocumentField(UPS)
+    poles = EmbeddedDocumentField(Poles)
     
     
 class ProjectMeta(EmbeddedDocument):
-    
+    ip_address =
+    scoot =
+    region =
+    commune =
     
 
 # User Model ====
@@ -137,30 +136,30 @@ class OTUSequenceItem(EmbeddedDocument):
 
 class OTUMeta(EmbeddedDocument):
     version = StringField(choices=['base', 'latest'], required=True)
-    maintainer = ReferenceField(ExternalCompany)
-    status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True)
-    status_date = DateTimeField(default=datetime.utcnow, required=True)
-    status_user = StringField(required=True)  # ReferenceField(UOCTUser, required=True)
-    installation_date = DateTimeField(default=datetime.utcnow, required=True)
-    commune = StringField()
-    region = StringField()
-    controller = ReferenceField(OTUController)
-    observations = StringField() #cambio por String1: EmbeddedDocumentListField(Comment) # Comment returned should only send message
-    imgs = StringField() # TODO: Sprint1 only one image ## Se cambió a tipo string para Sprint1, inicialmente: ListField(FileField()) 
-    pdf_data = StringField() 
-    location = PointField()
-    address_reference =  StringField()
-    serial = StringField()
-    ip_address = StringField()
-    netmask = StringField()
-    control = IntField()
-    answer = IntField()
-    demanda_peatonal = BooleanField(default=False)
-    facilidad_peatonal =BooleanField(default=False)
-    detector_local = BooleanField(default=False)
-    detector_scoot = BooleanField(default=False)
-    link_type = StringField(choices=['Digital', 'Analogo'], required=True)
-    link_owner = StringField(choices=['Propio', 'Compartido'], required=True)
+    maintainer = ReferenceField(ExternalCompany) #pm
+    status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True) #pm
+    status_date = DateTimeField(default=datetime.utcnow, required=True)#pm
+    status_user = StringField(required=True)  # ReferenceField(UOCTUser, required=True)#pm
+    installation_date = DateTimeField(default=datetime.utcnow, required=True)#pm
+    commune = StringField()#pm
+    region = StringField()#pm
+    controller = ReferenceFi#pmeld(OTUController) #p
+    observations = StringField() #cambio por String1: EmbeddedDocumentListField(Comment) # Comment returned should only send message 
+    imgs = StringField() # TODO: Sprint1 only one image ## Se cambió a tipo string para Sprint1, inicialmente: ListField(FileField()) #pm
+    pdf_data = StringField() #pm
+    location = PointField() #con
+    address_reference =  StringField() #con
+    serial = StringField() #
+    ip_address = StringField() #
+    netmask = StringField() #
+    control = IntField()# 
+    answer = IntField()#
+    demanda_peatonal = BooleanField(default=False) #pm
+    facilidad_peatonal =BooleanField(default=False)#pm
+    detector_local = BooleanField(default=False)#pm
+    detector_scoot = BooleanField(default=False)#pm
+    link_type = StringField(choices=['Digital', 'Analogo'], required=True)#
+    link_owner = StringField(choices=['Propio', 'Compartido'], required=True)#
     # // NODO CONCENTRADOR?
 
 
