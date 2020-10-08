@@ -78,28 +78,26 @@ class Project(Document):
     ups = EmbeddedDocumentField(UPS)
     poles = EmbeddedDocumentField(Poles)
     observations = EmbeddedDocumentListField(Comment)
-   
-    
-    
+     
 class ProjectMeta(EmbeddedDocument):
     version = StringField(choices=['base', 'latest'], required=True)
     maintainer = ReferenceField(ExternalCompany) 
     status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True) 
     status_date = DateTimeField(default=datetime.utcnow, required=True)
-    status_user = StringField(required=True)  # ReferenceField(UOCTUser, required=True)
+    status_user = ReferenceField(User, required=True)
     installation_date = DateTimeField(default=datetime.utcnow, required=True)
     commune = StringField()
     region = StringField()
-    imgs = StringField() # TODO: Sprint1 only one image ## Se cambió a tipo string para Sprint1, inicialmente: ListField(FileField()) #pm
-    pdf_data = StringField()
-    demanda_peatonal = BooleanField(default=False)
-    facilidad_peatonal =BooleanField(default=False)
-    detector_local = BooleanField(default=False)
-    detector_scoot = BooleanField(default=False)
+    img = FileField()
+    pdf_data = FileField()
+    pedestrian_demand = BooleanField(default=False)
+    pedestrian_facility =BooleanField(default=False)
+    local_detector = BooleanField(default=False)
+    scoot_detector = BooleanField(default=False)
     
 # User Model ====
 
-class User(Document): #TODO: add is_admin flag #TODO: add roles
+class User(Document): 
     meta = {'collection': 'User'}
     is_admin = BooleanField(default=False)
     full_name = StringField(min_length=5, required=True)
@@ -113,19 +111,24 @@ class User(Document): #TODO: add is_admin flag #TODO: add roles
 class Comment(EmbeddedDocument):
     date = DateTimeField(default=datetime.utcnow, required=True)
     message = StringField(max_length=255, required=True)
-    author = ReferenceField(UOCTUser, required=True)
+    author = ReferenceField(User, required=True)
 
 # OTU Controller Model ====
 
-class OTUController(Document):
-    meta = {'collection': 'OTUController'}
+class Controller(EmbeddedDocument):
+    meta = {'collection': 'Controller'}
+    address_reference = StringField()
+    gps = BooleanField()
+    model = ReferenceField(ControllerModel)
+ 
+class ControllerModel(Document):
     company = ReferenceField(ExternalCompany, required=True, unique_with='model')
     model = StringField(required=True)
-    firmware_version = StringField()#required=True)
-    checksum = StringField()#required=True)
-    address_reference = StringField()
-    date = DateTimeField(default=datetime.utcnow, required=True)
-
+    firmware_version = StringField(required=True)
+    checksum = StringField(required=True)
+    date = DateTimeField(default=datetime.utcnow)
+    
+    
 # OTU Model ====
 
 class OTUProgramItem(EmbeddedDocument):
@@ -135,16 +138,15 @@ class OTUProgramItem(EmbeddedDocument):
 
 class OTUStagesItem(EmbeddedDocument):
     stid = StringField(regex=r'[A-Z]', max_length=1, required=True)
-    type = StringField(choices=['VEHI', 'PEAT'], required=True)
+    type = StringField(choices=['Vehicular', 'Peatonal', 'Flecha Verde', 'Ciclista', 'No Configurada'], required=True)
 
 class OTUPhasesItem(EmbeddedDocument):
     phid = IntField(min_value=1, required=True)
     stages = EmbeddedDocumentListField(OTUStagesItem, required=True) # TODO: validate sid unique in the list
-    imagen = FileField()
 
 class OTUSequenceItem(EmbeddedDocument):
-    seqid = StringField() #Después del Sprint1 cambiar a ---> IntField(min_value=1, required=True)
-    fases = EmbeddedDocumentListField(OTUPhasesItem) #Después del Sprint1 cambiar a ---> , required=True)
+    seqid = IntField(min_value=1, required=True)
+    phases = EmbeddedDocumentListField(OTUPhasesItem, required=True)
 
 class OTUMeta(EmbeddedDocument):
     serial = StringField() 
@@ -154,7 +156,6 @@ class OTUMeta(EmbeddedDocument):
     answer = IntField()
     link_type = StringField(choices=['Digital', 'Analogo'], required=True)
     link_owner = StringField(choices=['Propio', 'Compartido'], required=True)
-    # // NODO CONCENTRADOR?
 
 
 class OTU(Document):
@@ -162,13 +163,9 @@ class OTU(Document):
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
     program = EmbeddedDocumentListField(OTUProgramItem) #, required=True)
-    secuencias = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
-    entreverdes = ListField(ListField(IntField(min_value=0))) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
-    junctions = ListField(ReferenceField(Junction), required=True)
-    ups = EmbeddedDocumentField(UPS) #, required=True) # TODO: change to english for next sprint.
-    postes = EmbeddedDocumentField(Poles) #, required=True)
-    cabezales = EmbeddedDocumentField(Headers) #, required=True)
-    
+    sequences = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
+    intergreens = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
+    junctions = ListField(ReferenceField(Junction), required=True)   
 
 
 # JsonPatch changes Model ====
@@ -187,27 +184,9 @@ class ChangeSet(Document):
         return super(ChangeSet, self).save()
     
 class History(Document):
-    #{"user": user, "context": context, "component": component, "origin": origin }
     meta = {'collection': 'History'}
     user = StringField(max_length=200, required=True)
     context = StringField(max_length=200, required=True)
-    component = StringField(max_length=200, required=True)
+    action = StringField(max_length=200, required=True)
     origin = StringField(max_length=200, required=True)
-    date_modified = DateTimeField(default=datetime.now)
-
-class Request(Document):
-    #{"user": user, "context": context, "component": component, "origin": origin }
-    meta = {'collection': 'requests'}
-    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
-    metadata = EmbeddedDocumentField(OTUMeta, required=True)
-    program = EmbeddedDocumentListField(OTUProgramItem)  #, required=True)
-    secuencias = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
-    entreverdes = ListField(ListField(IntField(min_value=0))) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
-    junctions = ListField(ReferenceField(Junction), required=True)
-    ups = EmbeddedDocumentField(OTUUPS) #, required=True) # TODO: change to english for next sprint.
-    postes = EmbeddedDocumentField(OTUPoles) #, required=True)
-    cabezales = EmbeddedDocumentField(OTUHeaders) #, required=True)
-    fases = EmbeddedDocumentListField(FasesItem)
-    stages = ListField(ListField())
-    
-    #date_modified = DateTimeField(default=datetime.now)
+    date = DateTimeField(default=datetime.now)
