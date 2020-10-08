@@ -73,18 +73,30 @@ class Poles(EmbeddedDocument):
 class Project(Document):
     metadata = EmbeddedDocumentField(ProjectMeta, required=True)
     otu = ReferenceField(OTU, required=True, unique=True)
+    controller = ReferenceField(OTUController)
     headers = EmbeddedDocumentListField(HeaderItem)
     ups = EmbeddedDocumentField(UPS)
     poles = EmbeddedDocumentField(Poles)
+    observations = EmbeddedDocumentListField(Comment)
+   
     
     
 class ProjectMeta(EmbeddedDocument):
-    ip_address =
-    scoot =
-    region =
-    commune =
+    version = StringField(choices=['base', 'latest'], required=True)
+    maintainer = ReferenceField(ExternalCompany) 
+    status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True) 
+    status_date = DateTimeField(default=datetime.utcnow, required=True)
+    status_user = StringField(required=True)  # ReferenceField(UOCTUser, required=True)
+    installation_date = DateTimeField(default=datetime.utcnow, required=True)
+    commune = StringField()
+    region = StringField()
+    imgs = StringField() # TODO: Sprint1 only one image ## Se cambió a tipo string para Sprint1, inicialmente: ListField(FileField()) #pm
+    pdf_data = StringField()
+    demanda_peatonal = BooleanField(default=False)
+    facilidad_peatonal =BooleanField(default=False)
+    detector_local = BooleanField(default=False)
+    detector_scoot = BooleanField(default=False)
     
-
 # User Model ====
 
 class User(Document): #TODO: add is_admin flag #TODO: add roles
@@ -135,31 +147,13 @@ class OTUSequenceItem(EmbeddedDocument):
     fases = EmbeddedDocumentListField(OTUPhasesItem) #Después del Sprint1 cambiar a ---> , required=True)
 
 class OTUMeta(EmbeddedDocument):
-    version = StringField(choices=['base', 'latest'], required=True)
-    maintainer = ReferenceField(ExternalCompany) #pm
-    status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True) #pm
-    status_date = DateTimeField(default=datetime.utcnow, required=True)#pm
-    status_user = StringField(required=True)  # ReferenceField(UOCTUser, required=True)#pm
-    installation_date = DateTimeField(default=datetime.utcnow, required=True)#pm
-    commune = StringField()#pm
-    region = StringField()#pm
-    controller = ReferenceFi#pmeld(OTUController) #p
-    observations = StringField() #cambio por String1: EmbeddedDocumentListField(Comment) # Comment returned should only send message 
-    imgs = StringField() # TODO: Sprint1 only one image ## Se cambió a tipo string para Sprint1, inicialmente: ListField(FileField()) #pm
-    pdf_data = StringField() #pm
-    location = PointField() #con
-    address_reference =  StringField() #con
-    serial = StringField() #
-    ip_address = StringField() #
-    netmask = StringField() #
-    control = IntField()# 
-    answer = IntField()#
-    demanda_peatonal = BooleanField(default=False) #pm
-    facilidad_peatonal =BooleanField(default=False)#pm
-    detector_local = BooleanField(default=False)#pm
-    detector_scoot = BooleanField(default=False)#pm
-    link_type = StringField(choices=['Digital', 'Analogo'], required=True)#
-    link_owner = StringField(choices=['Propio', 'Compartido'], required=True)#
+    serial = StringField() 
+    ip_address = StringField() 
+    netmask = StringField() 
+    control = IntField()
+    answer = IntField()
+    link_type = StringField(choices=['Digital', 'Analogo'], required=True)
+    link_owner = StringField(choices=['Propio', 'Compartido'], required=True)
     # // NODO CONCENTRADOR?
 
 
