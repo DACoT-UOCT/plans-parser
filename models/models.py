@@ -31,11 +31,10 @@ class JunctionPlan(EmbeddedDocument):
 
 class JunctionMeta(EmbeddedDocument):
     location = PointField(required=True)
-    sales_id = IntField(min_value=0)
-    #first_access = StringField(required=True)
-    #second_access = StringField(required=True)
+    # sales_id = IntField(min_value=0)
+    # first_access = StringField(required=True)
+    # second_access = StringField(required=True)
     address_reference = StringField()
-    
 
 class Junction(Document):
     meta = {'collection': 'Junction'}
@@ -50,10 +49,11 @@ class ExternalCompany(Document):
     name = StringField(min_length=2, required=True, unique=True)
 
 class Commune(Document):
+    meta = {'collection': 'Commune'}
     maintainer = ReferenceField(ExternalCompany)
     name = StringField()
         
-class HeaderItem(EmbeddedDocument): #
+class HeaderItem(EmbeddedDocument):
     hal = IntField(min_value=0)
     led = IntField(min_value=0)
     type = StringField(choices=['L1', 'L2A', 'L2B', 'L2C', 'L3A', 'L3B', 'L4', 'L5', 'L6', 'Peatonal', 'Ciclista']) #Hay más
@@ -69,16 +69,25 @@ class Poles(EmbeddedDocument):
     hooks = IntField(min_value=0)
     vehicular = IntField(min_value=0)
     pedestrian = IntField(min_value=0)
-    
-class Project(Document):
-    metadata = EmbeddedDocumentField(ProjectMeta, required=True)
-    otu = ReferenceField(OTU, required=True, unique=True)
-    controller = ReferenceField(OTUController)
-    headers = EmbeddedDocumentListField(HeaderItem)
-    ups = EmbeddedDocumentField(UPS)
-    poles = EmbeddedDocumentField(Poles)
-    observations = EmbeddedDocumentListField(Comment)
-     
+
+# User Model ====
+
+class User(Document): 
+    meta = {'collection': 'User'}
+    is_admin = BooleanField(default=False)
+    full_name = StringField(min_length=5, required=True)
+    email = EmailField(required=True, unique=True)
+    rol = StringField(choices=['Empresa', 'Personal UOCT'], required=True)
+    area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC', 'Mantenedora', 'Contratista', 'Administración'], required=True)
+    company = ReferenceField(ExternalCompany)
+
+# Comment Model ====
+
+class Comment(EmbeddedDocument):
+    date = DateTimeField(default=datetime.utcnow, required=True)
+    message = StringField(max_length=255, required=True)
+    author = ReferenceField(User, required=True)
+
 class ProjectMeta(EmbeddedDocument):
     version = StringField(choices=['base', 'latest'], required=True)
     maintainer = ReferenceField(ExternalCompany) 
@@ -91,44 +100,26 @@ class ProjectMeta(EmbeddedDocument):
     img = FileField()
     pdf_data = FileField()
     pedestrian_demand = BooleanField(default=False)
-    pedestrian_facility =BooleanField(default=False)
+    pedestrian_facility = BooleanField(default=False)
     local_detector = BooleanField(default=False)
     scoot_detector = BooleanField(default=False)
-    
-# User Model ====
-
-class User(Document): 
-    meta = {'collection': 'User'}
-    is_admin = BooleanField(default=False)
-    full_name = StringField(min_length=5, required=True)
-    email = EmailField(required=True, unique=True)
-    rol = StringField(choices=['Empresa', 'Personal UOCT'], required=True)
-    area = StringField(choices=['Sala de Control', 'Ingiería', 'TIC', 'Mantenedora', 'Contratista', 'Administración'], required=True)
-    company = ReferenceField(ExternalCompany)
-    
-# Comment Model ====
-
-class Comment(EmbeddedDocument):
-    date = DateTimeField(default=datetime.utcnow, required=True)
-    message = StringField(max_length=255, required=True)
-    author = ReferenceField(User, required=True)
 
 # OTU Controller Model ====
+
+class ControllerModel(Document):
+    meta = {'collection': 'ControllerModel'}
+    company = ReferenceField(ExternalCompany, required=True, unique_with='model')
+    model = StringField(required=True)
+    firmware_version = StringField(required=True)
+    checksum = StringField(required=True)
+    date = DateTimeField(default=datetime.utcnow)
 
 class Controller(EmbeddedDocument):
     meta = {'collection': 'Controller'}
     address_reference = StringField()
     gps = BooleanField()
     model = ReferenceField(ControllerModel)
- 
-class ControllerModel(Document):
-    company = ReferenceField(ExternalCompany, required=True, unique_with='model')
-    model = StringField(required=True)
-    firmware_version = StringField(required=True)
-    checksum = StringField(required=True)
-    date = DateTimeField(default=datetime.utcnow)
-    
-    
+
 # OTU Model ====
 
 class OTUProgramItem(EmbeddedDocument):
@@ -157,7 +148,6 @@ class OTUMeta(EmbeddedDocument):
     link_type = StringField(choices=['Digital', 'Analogo'], required=True)
     link_owner = StringField(choices=['Propio', 'Compartido'], required=True)
 
-
 class OTU(Document):
     meta = {'collection': 'OTU'}
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
@@ -166,7 +156,6 @@ class OTU(Document):
     sequences = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
     intergreens = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = ListField(ReferenceField(Junction), required=True)   
-
 
 # JsonPatch changes Model ====
 
@@ -190,3 +179,13 @@ class History(Document):
     action = StringField(max_length=200, required=True)
     origin = StringField(max_length=200, required=True)
     date = DateTimeField(default=datetime.now)
+
+class Project(Document):
+    meta = {'collection': 'Project'}
+    metadata = EmbeddedDocumentField(ProjectMeta, required=True)
+    otu = ReferenceField(OTU, required=True, unique=True)
+    controller = ReferenceField(Controller)
+    headers = EmbeddedDocumentListField(HeaderItem)
+    ups = EmbeddedDocumentField(UPS)
+    poles = EmbeddedDocumentField(Poles)
+    observations = EmbeddedDocumentListField(Comment)
