@@ -154,7 +154,7 @@ class OTUMeta(EmbeddedDocument):
 
 class OTU(Document):
     meta = {'collection': 'OTU'}
-    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
+    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True)# TODO:, unique_with='metadata.version')
     metadata = EmbeddedDocumentField(OTUMeta, required=True)
     program = EmbeddedDocumentListField(OTUProgramItem) #, required=True)
     sequences = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
@@ -188,7 +188,7 @@ class Project(Document):
     meta = {'collection': 'Project'}
     metadata = EmbeddedDocumentField(ProjectMeta, required=True)
     otu = ReferenceField(OTU, required=True, unique=True)
-    controller = ReferenceField(Controller)
+    controller = EmbeddedDocumentField(Controller)
     headers = EmbeddedDocumentListField(HeaderItem)
     ups = EmbeddedDocumentField(UPS)
     poles = EmbeddedDocumentField(Poles)
