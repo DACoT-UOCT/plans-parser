@@ -56,15 +56,19 @@ class Commune(Document):
 class HeaderItem(EmbeddedDocument):
     hal = IntField(min_value=0)
     led = IntField(min_value=0)
-    type = StringField(choices=['L1', 'L2A', 'L2B', 'L2C', 'L3A', 'L3B', 'L4', 'L5', 'L6', 'Peatonal', 'Ciclista']) #Hay más
-    
+    type = StringField(choices=[
+        'L1', 'L2A', 'L2B', 'L2C', 'LD', 'L3A', 'L3B',
+        'L3C', 'L4A', 'L4B', 'L4C', 'L5', 'L6',
+        'L7 Peatonal', 'L8 Biciclos', 'L9 Buses', 'L10 Repetidora'
+    ])
+
 class UPS(EmbeddedDocument):
     brand = StringField()
     model = StringField()
     serial = StringField()
     capacity = StringField() #TODO: preguntar unidad de medida
     charge_duration = StringField() #TODO: preguntar unidad de medida
-    
+
 class Poles(EmbeddedDocument):
     hooks = IntField(min_value=0)
     vehicular = IntField(min_value=0)
@@ -171,7 +175,7 @@ class ChangeSet(Document):
     def save(self):
         self.__clean_special_chars_patch()
         return super(ChangeSet, self).save()
-    
+
 class History(Document):
     meta = {'collection': 'History'}
     user = StringField(max_length=200, required=True)
