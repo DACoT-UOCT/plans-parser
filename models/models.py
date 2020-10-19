@@ -52,7 +52,7 @@ class Commune(Document):
     meta = {'collection': 'Commune'}
     maintainer = ReferenceField(ExternalCompany)
     name = StringField()
-        
+
 class HeaderItem(EmbeddedDocument):
     hal = IntField(min_value=0)
     led = IntField(min_value=0)
