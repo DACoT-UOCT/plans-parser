@@ -11,7 +11,7 @@ from bson.json_util import dumps as bson_dumps
 from mongoengine import connect
 from pymongo.operations import ReplaceOne
 
-from dacot_models import Commune, ExternalCompany
+from dacot_models import Commune, ExternalCompany, ControllerModel
 
 # from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
 # from dacot_models import ExternalCompany, UOCTUser, OTUController, ChangeSet, OTUMeta
@@ -60,6 +60,7 @@ def setup_args():
     parser = argparse.ArgumentParser(description='Seed the mongo db')
     parser.add_argument('input', type=str, help='input schedules.json file')
     parser.add_argument('index', type=str, help='CSV index file with relevant columns')
+    parser.add_argument('ctrlls_data', type=str, help='CSV data of controller models')
     parser.add_argument('mongo', type=str, help='mongo server url')
     parser.add_argument('database', type=str, help='mongo database to use')
     parser.add_argument('--rebuild', action='store_true', help='drop existing data and rebuild collections')
@@ -147,6 +148,21 @@ def build_commune_collection(index_csv):
         l.append(Commune(name=k, maintainer=companies[v]))
     fast_validate_and_insert(l, Commune)
 
+def build_controller_model_csv_item(line):
+    d = {}
+    return d
+
+def read_controller_models_csv(args):
+    l = []
+    with open(args.ctrlls_data, 'r', encoding='utf-8-sig') as fp:
+        reader = csv.reader(fp, delimiter=';')
+        for line in reader:
+            l.append(build_controller_model_csv_item(line))
+    return l
+
+def build_controller_model_collection(models_csv):
+    print(models_csv)
+
 def rebuild(args):
     if not check_should_continue():
         return
@@ -154,6 +170,8 @@ def rebuild(args):
     drop_old_data()
     index_csv = read_csv_data(args)
     build_commune_collection(index_csv)
+    controllers_model_csv = read_controller_models_csv(args)
+    build_controller_model_collection(controllers_model_csv)
 
 if __name__ == "__main__":
     global log
