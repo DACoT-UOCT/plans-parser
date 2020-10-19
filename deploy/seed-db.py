@@ -27,6 +27,7 @@ def setup_logging():
 
 def fast_validate_and_insert(objects, model, replace=False):
     global log
+    log.info('[fast_insert]: Called with {} {} items'.format(len(objects), model.__name__))
     log.info('[fast_insert]: Validating objects before bulk write')
     mongo_objs = []
     for obj in objects:
@@ -85,6 +86,7 @@ def drop_old_data():
     log.info('Dropping old data')
     Commune.drop_collection()
     ExternalCompany.drop_collection()
+    ControllerModel.drop_collection()
     log.info('Done dropping data')
 
 def read_json_data(args):
@@ -168,7 +170,21 @@ def read_controller_models_csv(args):
     return l
 
 def build_controller_model_collection(models_csv):
-    print(models_csv)
+    l = []
+    s = set()
+    for m in models_csv:
+        if m['company'] not in s and not ExternalCompany.objects(name=m['company']).first():
+            l.append(ExternalCompany(name=m['company']))
+            s.add(m['company'])
+    fast_validate_and_insert(l, ExternalCompany)
+    l = []
+    for m in models_csv:
+        comp = ExternalCompany.objects(name=m['company']).first()
+        l.append(
+            ControllerModel(company=comp, model=m['model'],
+                firmware_version=m['fw'], checksum=m['check'], date=m['date'])
+        )
+    fast_validate_and_insert(l, ControllerModel)
 
 def rebuild(args):
     if not check_should_continue():
