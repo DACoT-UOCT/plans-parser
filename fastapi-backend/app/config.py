@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     app_name: str = 'DACoT API'
     mongo_uri: str
     mongo_db: str
+    mail_enabled: bool = False
     server_email: str = ''
     email_pass: str = ''
 
