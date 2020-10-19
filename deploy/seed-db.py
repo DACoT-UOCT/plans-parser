@@ -5,6 +5,7 @@ import time
 import json
 import argparse
 import logging
+import datetime
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from bson.json_util import dumps as bson_dumps
@@ -149,7 +150,13 @@ def build_commune_collection(index_csv):
     fast_validate_and_insert(l, Commune)
 
 def build_controller_model_csv_item(line):
-    d = {}
+    d = {
+        'company': line[0],
+        'model': line[1],
+        'fw': line[2],
+        'check': line[3],
+        'date': datetime.datetime.strptime(line[4], '%d-%m-%Y')
+    }
     return d
 
 def read_controller_models_csv(args):
