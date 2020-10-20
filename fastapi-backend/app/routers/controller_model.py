@@ -16,7 +16,9 @@ async def get_communes():
         fwd = {
             'version': m.firmware_version,
             'checksum': m.checksum,
-            'date': m.date
+            'date': {
+                '$date': int(m['date'].timestamp() * 1000) # Why? Who knows
+            }
         }
         if m.model not in d[m.company.name]['models']:
             d[m.company.name]['models'][m.model] = {
