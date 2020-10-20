@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI, Header, HTTPException,Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from mongoengine import connect
-from .routers import otu, junctions,history,users, commune#,petitions
+from .routers import otu, junctions,history,users, controller_model, commune#,petitions
 from . import config
 from functools import lru_cache
 import os
@@ -47,6 +47,7 @@ app.include_router(junctions.router)
 #app.include_router(petitions.router)
 app.include_router(history.router)
 app.include_router(commune.router)
+app.include_router(controller_model.router)
 #app.include_router(
   #  items.router,
    # prefix="/items",
