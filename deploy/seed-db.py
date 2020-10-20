@@ -13,6 +13,7 @@ from mongoengine import connect
 from pymongo.operations import ReplaceOne
 
 from dacot_models import Commune, ExternalCompany, ControllerModel
+from dacot_models import User
 
 # from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
 # from dacot_models import ExternalCompany, UOCTUser, OTUController, ChangeSet, OTUMeta
@@ -87,6 +88,7 @@ def drop_old_data():
     Commune.drop_collection()
     ExternalCompany.drop_collection()
     ControllerModel.drop_collection()
+    User.drop_collection()
     log.info('Done dropping data')
 
 def read_json_data(args):
@@ -186,12 +188,21 @@ def build_controller_model_collection(models_csv):
         )
     fast_validate_and_insert(l, ControllerModel)
 
+def create_users():
+    l = []
+    acme_corp = ExternalCompany(name='ACME Corporation').save().reload()
+    l.append(User(full_name='DACoT Database Seed', email='dacot@dacot.uoct.cl', rol='Personal UOCT', area='TIC'))
+    l.append(User(full_name='Admin', email='admin@dacot.uoct.cl', rol='Personal UOCT', area='TIC', is_admin=True))
+    l.append(User(full_name='ACME Employee', email='employee@acmecorp.com', rol='Empresa', area='Mantenedora', company=acme_corp))
+    fast_validate_and_insert(l, User)
+
 def rebuild(args):
     if not check_should_continue():
         return
     connect(args.database, host=args.mongo)
     drop_old_data()
     index_csv = read_csv_data(args)
+    create_users()
     build_commune_collection(index_csv)
     controllers_model_csv = read_controller_models_csv(args)
     build_controller_model_collection(controllers_model_csv)
