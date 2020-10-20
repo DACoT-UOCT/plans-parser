@@ -6,7 +6,6 @@ router = APIRouter()
 @router.get('/controller_models')
 async def get_communes():
     d = {}
-    r = []
     models = ControllerModel.objects.all()
     for m in models:
         if m.company.name not in d:

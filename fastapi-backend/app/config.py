@@ -11,11 +11,12 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# mail_conf = ConnectionConfig(
-#     MAIL_USERNAME = settings.server_email,
-#     MAIL_PASSWORD = settings.email_pass,
-#     MAIL_PORT = 587,
-#     MAIL_SERVER = "smtp.gmail.com",
-#     MAIL_TLS = True,
-#     MAIL_SSL = False
-# )
+if settings.mail_enabled:
+    mail_conf = ConnectionConfig(
+        MAIL_USERNAME = settings.server_email,
+        MAIL_PASSWORD = settings.email_pass,
+        MAIL_PORT = 587,
+        MAIL_SERVER = "smtp.gmail.com",
+        MAIL_TLS = True,
+        MAIL_SSL = False
+    )
