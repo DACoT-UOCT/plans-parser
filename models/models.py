@@ -112,7 +112,7 @@ class ProjectMeta(EmbeddedDocument):
 
 class ControllerModel(Document):
     meta = {'collection': 'ControllerModel'}
-    company = ReferenceField(ExternalCompany, required=True, unique_with='model')
+    company = ReferenceField(ExternalCompany, required=True)
     model = StringField(required=True)
     firmware_version = StringField(required=True)
     checksum = StringField(required=True)
