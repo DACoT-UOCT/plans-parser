@@ -279,6 +279,8 @@ def build_projects(csv_index):
                 cmodels[cmk] = ControllerModel(company=comps[cmk[0]], model=cmk[1]).save().reload()
             otu_cmodels[v.get('oid')] = cmodels[cmk]
     fast_validate_and_insert(otus.values(), OTU, replace=True)
+    # for s in fast_validate_and_insert(otus.values(), OTU, replace=True):
+    #     otus[s.oid] = s
     for oid in otus:
         p = Project(metadata=metas.get(oid), otu=otus.get(oid))
         p.controller = Controller()
@@ -291,6 +293,7 @@ def build_projects(csv_index):
 def build_junctions(csv_index, otus):
     lj = []
     jd = {}
+    od = {}
     for k, v in csv_index.items():
         jid = k.split('.')[1]
         j = Junction(jid=jid, metadata=JunctionMeta())
@@ -304,8 +307,11 @@ def build_junctions(csv_index, otus):
     for k, v in csv_index.items():
         oid, jid = k.split('.')
         otus[oid].junctions.append(jd[jid])
-    fast_validate_and_insert(otus.values(), OTU, replace=True)
-    return jd
+    saved_oids = fast_validate_and_insert(otus.values(), OTU, replace=True)
+    print(saved_oids)
+    for saved in saved_oids:
+        od[saved.oid] = saved
+    return jd, od
 
 def read_json_data(args):
     with open(args.input, 'r') as jsf:
@@ -314,17 +320,33 @@ def read_json_data(args):
 def build_junction_plans(junctions, json_data):
     for k, v in json_data.items():
         j = junctions.get(k)
-        if not j:
-            continue
-        for pid, pval in v['plans'].items():
-            s_start = []
-            for phid, phvalue in pval['system_start'].items():
-                s_start.append(JunctionPlanPhaseValue(phid=phid, value=phvalue))
-            plan = JunctionPlan(plid=pid, cycle=pval['cycle'], system_start=s_start)
-            j.plans.append(plan)
+        if j:
+            for pid, pval in v['plans'].items():
+                s_start = []
+                for phid, phvalue in pval['system_start'].items():
+                    s_start.append(JunctionPlanPhaseValue(phid=phid, value=phvalue))
+                plan = JunctionPlan(plid=pid, cycle=pval['cycle'], system_start=s_start)
+                j.plans.append(plan)
     fast_validate_and_insert(junctions.values(), Junction, replace=True)
+    #, for j in fast_validate_and_insert(junctions.values(), Junction, replace=True):
+    #,     jd[j.jid] = j
+    #, return jd
 
 def build_otu_programs(otus, json_data):
+    done = set()
+    programs = {}
+    for k, v in json_data.items():
+        oid = 'X{}0'.format(k[1:-1])
+        if not oid in done:
+            programs[oid] = v.get('program')
+            done.add(oid)
+    for k, v in otus.items():
+        print(k)
+        print(programs[k])
+        if k in programs:
+            for pitem in programs[k]:
+                print(pitem)
+            break
     pass
 
 def rebuild(args):
@@ -338,9 +360,10 @@ def rebuild(args):
     controllers_model_csv = read_controller_models_csv(args)
     build_controller_model_collection(controllers_model_csv)
     otus = build_projects(index_csv)
-    junctions = build_junctions(index_csv, otus)
+    junctions, otus = build_junctions(index_csv, otus)
     json_data = read_json_data(args)
     build_junction_plans(junctions, json_data)
+    build_otu_programs(otus, json_data)
 
 if __name__ == "__main__":
     global log
