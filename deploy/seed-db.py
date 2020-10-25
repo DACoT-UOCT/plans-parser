@@ -15,7 +15,8 @@ from pymongo.errors import BulkWriteError
 
 from dacot_models import Commune, ExternalCompany, ControllerModel
 from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
-from dacot_models import Controller, Junction, JunctionMeta
+from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
+from dacot_models import JunctionPlanPhaseValue
 
 
 # from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
@@ -104,9 +105,6 @@ def drop_old_data():
     Project.drop_collection()
     Junction.drop_collection()
     log.info('Done dropping data')
-
-def read_json_data(args):
-    pass
 
 def check_csv_line_valid(line, junc_pattern, otu_pattern):
     if line[0] and line[1] and line[2] and junc_pattern.match(line[3]) and otu_pattern.match(line[2]):
@@ -287,12 +285,12 @@ def build_projects(csv_index):
         if oid in otu_cmodels:
             p.controller.model = otu_cmodels[oid]
         lp.append(p)
-    return fast_validate_and_insert(lp, Project), otus
+    fast_validate_and_insert(lp, Project)
+    return otus
 
 def build_junctions(csv_index, otus):
-    import time
-    s = time.time()
     lj = []
+    jd = {}
     for k, v in csv_index.items():
         jid = k.split('.')[1]
         j = Junction(jid=jid, metadata=JunctionMeta())
@@ -302,10 +300,32 @@ def build_junctions(csv_index, otus):
         lj.append(j)
     saved_jids = fast_validate_and_insert(lj, Junction)
     for saved in saved_jids:
-        # print(s.to_mongo())
-        pass
-    e = time.time()
-    print(e - s)
+        jd[saved.jid] = saved
+    for k, v in csv_index.items():
+        oid, jid = k.split('.')
+        otus[oid].junctions.append(jd[jid])
+    fast_validate_and_insert(otus.values(), OTU, replace=True)
+    return jd
+
+def read_json_data(args):
+    with open(args.input, 'r') as jsf:
+        return json.load(jsf)
+
+def build_junction_plans(junctions, json_data):
+    for k, v in json_data.items():
+        j = junctions.get(k)
+        if not j:
+            continue
+        for pid, pval in v['plans'].items():
+            s_start = []
+            for phid, phvalue in pval['system_start'].items():
+                s_start.append(JunctionPlanPhaseValue(phid=phid, value=phvalue))
+            plan = JunctionPlan(plid=pid, cycle=pval['cycle'], system_start=s_start)
+            j.plans.append(plan)
+    fast_validate_and_insert(junctions.values(), Junction, replace=True)
+
+def build_otu_programs(otus, json_data):
+    pass
 
 def rebuild(args):
     if not check_should_continue():
@@ -317,8 +337,10 @@ def rebuild(args):
     build_commune_collection(index_csv)
     controllers_model_csv = read_controller_models_csv(args)
     build_controller_model_collection(controllers_model_csv)
-    projects, otus = build_projects(index_csv)
-    build_junctions(index_csv, otus)
+    otus = build_projects(index_csv)
+    junctions = build_junctions(index_csv, otus)
+    json_data = read_json_data(args)
+    build_junction_plans(junctions, json_data)
 
 if __name__ == "__main__":
     global log
@@ -328,4 +350,3 @@ if __name__ == "__main__":
     if args.rebuild:
         rebuild(args)
     log.info('Done Seeding the remote database')
-
