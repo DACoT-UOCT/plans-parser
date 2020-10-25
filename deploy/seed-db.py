@@ -13,7 +13,7 @@ from mongoengine import connect
 from pymongo.operations import ReplaceOne
 
 from dacot_models import Commune, ExternalCompany, ControllerModel
-from dacot_models import User
+from dacot_models import User, ProjectMeta, OTU, Project
 
 # from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
 # from dacot_models import ExternalCompany, UOCTUser, OTUController, ChangeSet, OTUMeta
@@ -39,7 +39,7 @@ def fast_validate_and_insert(objects, model, replace=False):
         log.info('[fast_insert]: Writing objects using bulk_write')
         ops = []
         for mongo_obj in mongo_objs:
-            ops.append(ReplaceOne({'_id': mongo_obj['_id']}, mongo_obj, upsert=True))
+            ops.append(ReplaceOne({'_id': mongo_obj.get('_id')}, mongo_obj, upsert=True))
         insert_res = model._get_collection().bulk_write(ops)
     else:
         log.info('[fast_insert]: Writing objects using insert_many')
@@ -47,7 +47,7 @@ def fast_validate_and_insert(objects, model, replace=False):
     log.info('[fast_insert]: Write command done, collecting objects from remote')
     mongo_objs.clear()
     if replace:
-        results = model._get_collection().find({'_id': {'$in': [x['_id'] for x in mongo_objs]}})
+        results = model._get_collection().find({'_id': {'$in': [x.get('_id') for x in mongo_objs]}})
     else:
         results = model._get_collection().find({'_id': {'$in': insert_res.inserted_ids}})
     for r in results:
@@ -89,39 +89,59 @@ def drop_old_data():
     ExternalCompany.drop_collection()
     ControllerModel.drop_collection()
     User.drop_collection()
+    OTU.drop_collection()
+    Project.drop_collection()
     log.info('Done dropping data')
 
 def read_json_data(args):
     pass
 
-def check_csv_line_valid(line, pattern):
-    if line[0] and line[1] and line[2] and pattern.match(line[3]):
+def check_csv_line_valid(line, junc_pattern, otu_pattern):
+    if line[0] and line[1] and line[2] and junc_pattern.match(line[3]) and otu_pattern.match(line[2]):
         return True, line[2], line[1]
     return False, None, None
 
-def build_csv_index_item(line):
+def build_csv_index_item(line, ip_pattern):
     d = {}
     if line[6] and line[7]:
         d['commune'] = line[6].strip().upper()
         d['maintainer'] = line[7].strip().upper()
+    if line[4] and line[5]:
+        d['address_reference'] = '{} - {}'.format(line[4].strip().upper(), line[6].strip().upper())
+    if line[8] and line[9]:
+        d['otu_model'] = line[8].strip().upper()
+        d['otu_company'] = line[9].strip().upper()
+    if line[10] and line[11]:
+        try:
+            lat = float(line[10].replace(',', '.'))
+            lon = float(line[11].replace(',', '.'))
+        except ValueError:
+            lat = 0.0
+            lon = 0.0
+        d['latitude'] = lat
+        d['longitude'] = lon
+    if ip_pattern.match(line[14]):
+        d['ip_address'] = line[14]
     return d
 
 def read_csv_data(args):
     index = {}
-    valid_pattern = re.compile(r'J\d{6}\-\d{8}')
+    junc_pattern = re.compile(r'J\d{6}\-\d{8}')
+    otu_pattern = re.compile(r'X\d{6}')
+    ipaddr_pattern = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
     with open(args.index, 'r', encoding='utf-8-sig') as fp:
         reader = csv.reader(fp, delimiter=';')
         for line in reader:
-            valid, oid, jid = check_csv_line_valid(line, valid_pattern)
+            valid, oid, jid = check_csv_line_valid(line, junc_pattern, otu_pattern)
             if valid:
                 key = '{}.{}'.format(oid, jid)
-                index[key] = build_csv_index_item(line)
+                index[key] = build_csv_index_item(line, ipaddr_pattern)
     return index
 
 def extract_company_for_commune(index_csv):
     d = {}
     for v in index_csv.values():
-        if 'commune' in v and 'maintainer' in v:
+        if 'commune' in v and 'maintainer' in v: # TODO: replace with .get()
             k = (v['commune'], v['maintainer'])
             if k not in d:
                 d[k] = 0
@@ -175,26 +195,60 @@ def build_controller_model_collection(models_csv):
     l = []
     s = set()
     for m in models_csv:
-        if m['company'] not in s and not ExternalCompany.objects(name=m['company']).first():
-            l.append(ExternalCompany(name=m['company']))
-            s.add(m['company'])
+        if m['company'] not in s and not ExternalCompany.objects(name=m.get('company')).first():
+            l.append(ExternalCompany(name=m.get('company')))
+            s.add(m.get('company'))
     fast_validate_and_insert(l, ExternalCompany)
     l = []
     for m in models_csv:
-        comp = ExternalCompany.objects(name=m['company']).first()
+        comp = ExternalCompany.objects(name=m.get('company')).first()
         l.append(
-            ControllerModel(company=comp, model=m['model'],
-                firmware_version=m['fw'], checksum=m['check'], date=m['date'])
+            ControllerModel(company=comp, model=m.get('model'),
+                firmware_version=m.get('fw'), checksum=m.get('check'), date=m.get('date'))
         )
     fast_validate_and_insert(l, ControllerModel)
 
 def create_users():
     l = []
     acme_corp = ExternalCompany(name='ACME Corporation').save().reload()
-    l.append(User(full_name='DACoT Database Seed', email='dacot@dacot.uoct.cl', rol='Personal UOCT', area='TIC'))
+    l.append(User(full_name='DACoT Database Seed', email='seed@dacot.uoct.cl', rol='Personal UOCT', area='TIC'))
     l.append(User(full_name='Admin', email='admin@dacot.uoct.cl', rol='Personal UOCT', area='TIC', is_admin=True))
     l.append(User(full_name='ACME Employee', email='employee@acmecorp.com', rol='Empresa', area='Mantenedora', company=acme_corp))
     fast_validate_and_insert(l, User)
+
+def build_project_meta(csv_index):
+    r = {}
+    comp = {}
+    for c in ExternalCompany.objects.all():
+        comp[c.name] = c
+    u = User.objects(email='seed@dacot.uoct.cl').first()
+    for k, v in csv_index.items():
+        rk = k.split('.')[0]
+        m = ProjectMeta(version='base', status='SYSTEM', status_user=u)
+        m.commune = v.get('commune')
+        m.maintainer = comp.get(v.get('maintainer'))
+        r[rk] = m
+    return r
+
+def build_otu(project_metas):
+    l = []
+    d = {}
+    for k in project_metas:
+        o = OTU(oid=k)
+        l.append(o)
+    saved_ids = fast_validate_and_insert(l, OTU)
+    for s in saved_ids:
+        d[s.oid] = s
+    return d
+
+def build_projects(csv_index):
+    metas = build_project_meta(csv_index)
+    otus = build_otu(metas)
+    lp = []
+    for oid in otus:
+        p = Project(metadata=metas.get(oid), otu=otus.get(oid))
+        lp.append(p)
+    fast_validate_and_insert(lp, Project)
 
 def rebuild(args):
     if not check_should_continue():
@@ -206,6 +260,7 @@ def rebuild(args):
     build_commune_collection(index_csv)
     controllers_model_csv = read_controller_models_csv(args)
     build_controller_model_collection(controllers_model_csv)
+    build_projects(index_csv)
 
 if __name__ == "__main__":
     global log
@@ -215,3 +270,9 @@ if __name__ == "__main__":
     if args.rebuild:
         rebuild(args)
     log.info('Done Seeding the remote database')
+
+# ; from pymongo.errors import BulkWriteError
+# ; try:
+# ;     fast_validate_and_insert(lp, Project)
+# ; except BulkWriteError as bwe:
+# ;     print(bwe.details)
