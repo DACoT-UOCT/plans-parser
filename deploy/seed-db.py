@@ -11,10 +11,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from bson.json_util import dumps as bson_dumps
 from mongoengine import connect
 from pymongo.operations import ReplaceOne
+from pymongo.errors import BulkWriteError
 
 from dacot_models import Commune, ExternalCompany, ControllerModel
 from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
-from dacot_models import Controller
+from dacot_models import Controller, Junction, JunctionMeta
+
 
 # from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
 # from dacot_models import ExternalCompany, UOCTUser, OTUController, ChangeSet, OTUMeta
@@ -60,6 +62,14 @@ def fast_validate_and_insert(objects, model, replace=False):
     log.info('[fast_insert]: Done')
     return mongo_objs
 
+def fast_validate_and_insert_with_errors(objects, model, replace=False):
+    try:
+        return fast_validate_and_insert(objects, model, replace)
+    except BulkWriteError as bwe:
+        print(bwe.details)
+        raise RuntimeError()
+
+
 def setup_args():
     parser = argparse.ArgumentParser(description='Seed the mongo db')
     parser.add_argument('input', type=str, help='input schedules.json file')
@@ -92,6 +102,7 @@ def drop_old_data():
     User.drop_collection()
     OTU.drop_collection()
     Project.drop_collection()
+    Junction.drop_collection()
     log.info('Done dropping data')
 
 def read_json_data(args):
@@ -116,6 +127,8 @@ def build_csv_index_item(line, ip_pattern):
         try:
             lat = float(line[10].replace(',', '.'))
             lon = float(line[11].replace(',', '.'))
+            if not (-90 < lat < 90 and -180 < lon < 180):
+                raise ValueError()
         except ValueError:
             lat = 0.0
             lon = 0.0
@@ -123,6 +136,8 @@ def build_csv_index_item(line, ip_pattern):
         d['longitude'] = lon
     if ip_pattern.match(line[14]):
         d['ip_address'] = line[14]
+    if line[0]:
+        d['sales_id'] = int(line[0])
     return d
 
 def read_csv_data(args):
@@ -272,7 +287,25 @@ def build_projects(csv_index):
         if oid in otu_cmodels:
             p.controller.model = otu_cmodels[oid]
         lp.append(p)
-    return fast_validate_and_insert(lp, Project)
+    return fast_validate_and_insert(lp, Project), otus
+
+def build_junctions(csv_index, otus):
+    import time
+    s = time.time()
+    lj = []
+    for k, v in csv_index.items():
+        jid = k.split('.')[1]
+        j = Junction(jid=jid, metadata=JunctionMeta())
+        j.metadata.location = (v.get('latitude', 0.0), v.get('longitude', 0.0))
+        j.metadata.address_reference = v.get('address_reference')
+        j.metadata.sales_id = v.get('sales_id')
+        lj.append(j)
+    saved_jids = fast_validate_and_insert(lj, Junction)
+    for saved in saved_jids:
+        # print(s.to_mongo())
+        pass
+    e = time.time()
+    print(e - s)
 
 def rebuild(args):
     if not check_should_continue():
@@ -284,7 +317,8 @@ def rebuild(args):
     build_commune_collection(index_csv)
     controllers_model_csv = read_controller_models_csv(args)
     build_controller_model_collection(controllers_model_csv)
-    projects = build_projects(index_csv)
+    projects, otus = build_projects(index_csv)
+    build_junctions(index_csv, otus)
 
 if __name__ == "__main__":
     global log
@@ -295,8 +329,3 @@ if __name__ == "__main__":
         rebuild(args)
     log.info('Done Seeding the remote database')
 
-# ; from pymongo.errors import BulkWriteError
-# ; try:
-# ;     fast_validate_and_insert(lp, Project)
-# ; except BulkWriteError as bwe:
-# ;     print(bwe.details)

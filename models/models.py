@@ -31,9 +31,7 @@ class JunctionPlan(EmbeddedDocument):
 
 class JunctionMeta(EmbeddedDocument):
     location = PointField(required=True)
-    # sales_id = IntField(min_value=0) # EXCEL
-    # first_access = StringField(required=True) # EXCEL
-    # second_access = StringField(required=True) # EXCEL
+    sales_id = IntField(min_value=0, required=True)
     address_reference = StringField()
 
 class Junction(Document):
