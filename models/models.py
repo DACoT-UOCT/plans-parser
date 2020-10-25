@@ -114,14 +114,14 @@ class ControllerModel(Document):
     meta = {'collection': 'ControllerModel'}
     company = ReferenceField(ExternalCompany, required=True)
     model = StringField(required=True)
-    firmware_version = StringField(required=True)
-    checksum = StringField(required=True)
+    firmware_version = StringField(required=True, default='Desconocido')
+    checksum = StringField(required=True, default='Desconocido')
     date = DateTimeField(default=datetime.utcnow)
 
 class Controller(EmbeddedDocument):
     meta = {'collection': 'Controller'}
-    address_reference = StringField()
-    gps = BooleanField()
+    address_reference = StringField() # PDF
+    gps = BooleanField() # PDF
     model = ReferenceField(ControllerModel)
 
 # OTU Model ====
@@ -145,7 +145,7 @@ class OTUSequenceItem(EmbeddedDocument):
 
 class OTUMeta(EmbeddedDocument):
     serial = StringField() # PDF
-    ip_address = StringField() # PDF
+    ip_address = StringField()
     netmask = StringField() # PDF
     control = IntField() # PDF
     answer = IntField() # PDF
@@ -155,7 +155,7 @@ class OTUMeta(EmbeddedDocument):
 class OTU(Document):
     meta = {'collection': 'OTU'}
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True)
-    metadata = EmbeddedDocumentField(OTUMeta) # PDF
+    metadata = EmbeddedDocumentField(OTUMeta)
     program = EmbeddedDocumentListField(OTUProgramItem) # PDF
     sequences = EmbeddedDocumentListField(OTUSequenceItem) # PDF
     intergreens = ListField(IntField(min_value=0)) # PDF # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
@@ -188,7 +188,7 @@ class Project(Document):
     meta = {'collection': 'Project'}
     metadata = EmbeddedDocumentField(ProjectMeta, required=True)
     otu = ReferenceField(OTU, required=True, unique_with='metadata.version')
-    controller = EmbeddedDocumentField(Controller) # PDF
+    controller = EmbeddedDocumentField(Controller)
     headers = EmbeddedDocumentListField(HeaderItem) # PDF
     ups = EmbeddedDocumentField(UPS) # PDF
     poles = EmbeddedDocumentField(Poles) # PDF

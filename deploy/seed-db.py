@@ -13,7 +13,8 @@ from mongoengine import connect
 from pymongo.operations import ReplaceOne
 
 from dacot_models import Commune, ExternalCompany, ControllerModel
-from dacot_models import User, ProjectMeta, OTU, Project
+from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
+from dacot_models import Controller
 
 # from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
 # from dacot_models import ExternalCompany, UOCTUser, OTUController, ChangeSet, OTUMeta
@@ -136,12 +137,14 @@ def read_csv_data(args):
             if valid:
                 key = '{}.{}'.format(oid, jid)
                 index[key] = build_csv_index_item(line, ipaddr_pattern)
+                index[key]['oid'] = oid
+                index[key]['jid'] = jid
     return index
 
 def extract_company_for_commune(index_csv):
     d = {}
     for v in index_csv.values():
-        if 'commune' in v and 'maintainer' in v: # TODO: replace with .get()
+        if 'commune' in v and 'maintainer' in v:
             k = (v['commune'], v['maintainer'])
             if k not in d:
                 d[k] = 0
@@ -175,8 +178,8 @@ def build_commune_collection(index_csv):
 
 def build_controller_model_csv_item(line):
     d = {
-        'company': line[0],
-        'model': line[1],
+        'company': line[0].strip().upper(),
+        'model': line[1].strip().upper(),
         'fw': line[2],
         'check': line[3],
         'date': datetime.datetime.strptime(line[4], '%d-%m-%Y')
@@ -216,11 +219,15 @@ def create_users():
     l.append(User(full_name='ACME Employee', email='employee@acmecorp.com', rol='Empresa', area='Mantenedora', company=acme_corp))
     fast_validate_and_insert(l, User)
 
-def build_project_meta(csv_index):
-    r = {}
+def get_companies_dict():
     comp = {}
     for c in ExternalCompany.objects.all():
         comp[c.name] = c
+    return comp
+
+def build_project_meta(csv_index):
+    r = {}
+    comp = get_companies_dict()
     u = User.objects(email='seed@dacot.uoct.cl').first()
     for k, v in csv_index.items():
         rk = k.split('.')[0]
@@ -244,11 +251,28 @@ def build_otu(project_metas):
 def build_projects(csv_index):
     metas = build_project_meta(csv_index)
     otus = build_otu(metas)
+    comps = get_companies_dict()
     lp = []
+    cmodels = {}
+    otu_cmodels = {}
+    for v in csv_index.values():
+        otus.get(v.get('oid')).metadata = OTUMeta()
+        otus.get(v.get('oid')).metadata.ip_address = v.get('ip_address')
+        cmk = (v.get('otu_company'), v.get('otu_model'))
+        if cmk[0] and cmk[1]:
+            if not cmk[0] in comps:
+                comps[cmk[0]] = ExternalCompany(name=cmk[0]).save().reload()
+            if not cmk in cmodels:
+                cmodels[cmk] = ControllerModel(company=comps[cmk[0]], model=cmk[1]).save().reload()
+            otu_cmodels[v.get('oid')] = cmodels[cmk]
+    fast_validate_and_insert(otus.values(), OTU, replace=True)
     for oid in otus:
         p = Project(metadata=metas.get(oid), otu=otus.get(oid))
+        p.controller = Controller()
+        if oid in otu_cmodels:
+            p.controller.model = otu_cmodels[oid]
         lp.append(p)
-    fast_validate_and_insert(lp, Project)
+    return fast_validate_and_insert(lp, Project)
 
 def rebuild(args):
     if not check_should_continue():
@@ -260,7 +284,7 @@ def rebuild(args):
     build_commune_collection(index_csv)
     controllers_model_csv = read_controller_models_csv(args)
     build_controller_model_collection(controllers_model_csv)
-    build_projects(index_csv)
+    projects = build_projects(index_csv)
 
 if __name__ == "__main__":
     global log
