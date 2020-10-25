@@ -49,11 +49,11 @@ def fast_validate_and_insert(objects, model, replace=False):
         log.info('[fast_insert]: Writing objects using insert_many')
         insert_res = model._get_collection().insert_many(mongo_objs)
     log.info('[fast_insert]: Write command done, collecting objects from remote')
-    mongo_objs.clear()
     if replace:
         results = model._get_collection().find({'_id': {'$in': [x.get('_id') for x in mongo_objs]}})
     else:
         results = model._get_collection().find({'_id': {'$in': insert_res.inserted_ids}})
+    mongo_objs.clear()
     for r in results:
         mongo_objs.append(model.from_json(bson_dumps(r)))
     log.info('[fast_insert]: Validating objects after bulk read')
