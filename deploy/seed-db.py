@@ -16,7 +16,7 @@ from pymongo.errors import BulkWriteError
 from dacot_models import Commune, ExternalCompany, ControllerModel
 from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
 from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
-from dacot_models import JunctionPlanPhaseValue
+from dacot_models import JunctionPlanPhaseValue, OTUProgramItem
 
 
 # from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
@@ -308,7 +308,6 @@ def build_junctions(csv_index, otus):
         oid, jid = k.split('.')
         otus[oid].junctions.append(jd[jid])
     saved_oids = fast_validate_and_insert(otus.values(), OTU, replace=True)
-    print(saved_oids)
     for saved in saved_oids:
         od[saved.oid] = saved
     return jd, od
@@ -341,13 +340,13 @@ def build_otu_programs(otus, json_data):
             programs[oid] = v.get('program')
             done.add(oid)
     for k, v in otus.items():
-        print(k)
-        print(programs[k])
+        otu_program = []
         if k in programs:
-            for pitem in programs[k]:
-                print(pitem)
-            break
-    pass
+            for table, items in programs[k].items():
+                for item in items:
+                    otu_program.append(OTUProgramItem(day=table, time=item[0][:5], plan=item[1]))
+        v.program = otu_program
+    fast_validate_and_insert(otus.values(), OTU, replace=True)
 
 def rebuild(args):
     if not check_should_continue():
