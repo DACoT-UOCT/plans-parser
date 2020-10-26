@@ -1,9 +1,8 @@
 from fastapi import Depends, FastAPI, Header, HTTPException, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from mongoengine import connect
-from .routers import otu, junctions, actions_log, users, controller_model, commune  # ,petitions
-from . import config
-from functools import lru_cache
+from .routers import otu, junctions, actions_log, users, controller_model, commune, change_request
+from .config import get_settings
 import os
 from typing import List
 from fastapi.responses import HTMLResponse
@@ -12,16 +11,12 @@ app = FastAPI()
 
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
-@lru_cache()
-def get_settings():
-    return config.Settings()
-
 connect(get_settings().mongo_db, host=get_settings().mongo_uri)
 
 app.include_router(users.router)
 app.include_router(otu.router)
 app.include_router(junctions.router)
-# app.include_router(petitions.router)
+app.include_router(change_request.router)
 app.include_router(actions_log.router)
 app.include_router(commune.router)
 app.include_router(controller_model.router)
