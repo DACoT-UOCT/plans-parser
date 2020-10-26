@@ -55,8 +55,8 @@ async def read_otu(background_tasks: BackgroundTasks, oid: str = Path(..., min_l
             mongo_junc = junc.to_mongo()
             del mongo_junc['_id']
             dereference_otu['junctions'].append(mongo_junc)
-        register_action('Desconocido', 'OTU', 'Un usuario ha obtenido la otu {} correctamente'.format(oid), background=background_tasks)
+        register_action('Desconocido', 'OTU', 'Un usuario ha obtenido la OTU {} correctamente'.format(oid), background=background_tasks)
         return dereference_otu.to_dict()
     else:
-        register_action('Desconocido', 'Junctions', 'Un usuario ha intenado obtener la junction {}, pero no existe'.format(oid), background=background_tasks)
+        register_action('Desconocido', 'Junctions', 'Un usuario ha intenado obtener la OTU {}, pero no existe'.format(oid), background=background_tasks)
         raise HTTPException(status_code=404, detail='Junction {} not found'.format(oid))
