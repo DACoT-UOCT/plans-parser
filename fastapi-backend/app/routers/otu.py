@@ -3,7 +3,7 @@ from flask_mongoengine import MongoEngine
 from pydantic import BaseModel, EmailStr
 from mongoengine import EmailField
 from flask_mongoengine.wtf import model_form
-from ..models import models
+from ..models import OTU
 from .actions_log import register_action
 import json
 from mongoengine.errors import ValidationError,NotUniqueError
@@ -46,7 +46,7 @@ router = APIRouter()
 
 @router.get('/otu/{oid}')
 async def read_otu(background_tasks: BackgroundTasks, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
-    otu = models.OTU.objects(oid = oid).exclude('id').first()
+    otu = OTU.objects(oid = oid).exclude('id').first()
     if otu:
         otu.select_related()
         dereference_otu = otu.to_mongo()
