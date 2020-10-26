@@ -278,9 +278,8 @@ def build_projects(csv_index):
             if not cmk in cmodels:
                 cmodels[cmk] = ControllerModel(company=comps[cmk[0]], model=cmk[1]).save().reload()
             otu_cmodels[v.get('oid')] = cmodels[cmk]
-    fast_validate_and_insert(otus.values(), OTU, replace=True)
-    # for s in fast_validate_and_insert(otus.values(), OTU, replace=True):
-    #     otus[s.oid] = s
+    for s in fast_validate_and_insert(otus.values(), OTU, replace=True):
+        otus[s.oid] = s
     for oid in otus:
         p = Project(metadata=metas.get(oid), otu=otus.get(oid))
         p.controller = Controller()
@@ -326,10 +325,10 @@ def build_junction_plans(junctions, json_data):
                     s_start.append(JunctionPlanPhaseValue(phid=phid, value=phvalue))
                 plan = JunctionPlan(plid=pid, cycle=pval['cycle'], system_start=s_start)
                 j.plans.append(plan)
-    fast_validate_and_insert(junctions.values(), Junction, replace=True)
-    #, for j in fast_validate_and_insert(junctions.values(), Junction, replace=True):
-    #,     jd[j.jid] = j
-    #, return jd
+    jd = {}
+    for j in fast_validate_and_insert(junctions.values(), Junction, replace=True):
+        jd[j.jid] = j
+    return jd
 
 def build_otu_programs(otus, json_data):
     done = set()
@@ -346,7 +345,10 @@ def build_otu_programs(otus, json_data):
                 for item in items:
                     otu_program.append(OTUProgramItem(day=table, time=item[0][:5], plan=item[1]))
         v.program = otu_program
-    fast_validate_and_insert(otus.values(), OTU, replace=True)
+    od = {}
+    for o in fast_validate_and_insert(otus.values(), OTU, replace=True):
+        od[o.oid] = o
+    return od
 
 def rebuild(args):
     if not check_should_continue():
@@ -361,8 +363,8 @@ def rebuild(args):
     otus = build_projects(index_csv)
     junctions, otus = build_junctions(index_csv, otus)
     json_data = read_json_data(args)
-    build_junction_plans(junctions, json_data)
-    build_otu_programs(otus, json_data)
+    junctions = build_junction_plans(junctions, json_data)
+    otus = build_otu_programs(otus, json_data)
 
 if __name__ == "__main__":
     global log
