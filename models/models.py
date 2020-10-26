@@ -174,8 +174,8 @@ class ChangeSet(Document):
         self.__clean_special_chars_patch()
         return super(ChangeSet, self).save()
 
-class History(Document):
-    meta = {'collection': 'History'}
+class ActionsLog(Document):
+    meta = {'collection': 'ActionsLog'}
     user = StringField(max_length=200, required=True)
     context = StringField(max_length=200, required=True)
     action = StringField(max_length=200, required=True)
