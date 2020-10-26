@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 from ..models import ControllerModel
+from .actions_log import register_action
 
 router = APIRouter()
 
 @router.get('/controller_models')
-async def get_communes():
+async def get_communes(background_tasks: BackgroundTasks):
     d = {}
     models = ControllerModel.objects.all()
     for m in models:
@@ -32,4 +33,5 @@ async def get_communes():
     r = list(d.values())
     for compd in r:
         compd['models'] = list(compd['models'].values())
+    register_action('Desconocido', 'ControllerModels', 'Un usuario ha consultado la lista de modelos de los controladores', background=background_tasks)
     return r
