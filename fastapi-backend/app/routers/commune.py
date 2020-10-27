@@ -1,23 +1,18 @@
 from fastapi import APIRouter,BackgroundTasks,HTTPException,Form
 from ..models import Commune,History,User
 from pydantic import EmailStr
+from .actions_log import register_action
 import json
 
 router = APIRouter()
 
-def register_action(user: str,context: "",action: "", origin: ""):
-    #models.history.("dsadsa")
-    history = History(user=user,context=context,action=action,origin=origin)
-    history.save()
-    history = history.reload()
-    print({"user": user, "context": context, "action": action, "origin": origin })
-
-@router.get('/communes', tags=["commune"],status_code=200)
-async def get_communes():
+@router.get('/communes')
+async def get_communes(background_tasks: BackgroundTasks):
     r = []
     communes = Commune.objects.all()
     for c in communes:
         r.append({c.name: c.maintainer.name})
+    register_action('Desconocido', 'Commune', 'Un usuario ha consultado la lista de comunas', background=background_tasks)
     return r
 
 @router.put('/edit-commune/{name}', tags=["commune"],status_code=204)

@@ -31,9 +31,7 @@ class JunctionPlan(EmbeddedDocument):
 
 class JunctionMeta(EmbeddedDocument):
     location = PointField(required=True)
-    # sales_id = IntField(min_value=0)
-    # first_access = StringField(required=True)
-    # second_access = StringField(required=True)
+    sales_id = IntField(min_value=0, required=True)
     address_reference = StringField()
 
 class Junction(Document):
@@ -51,7 +49,7 @@ class ExternalCompany(Document):
 class Commune(Document):
     meta = {'collection': 'Commune'}
     maintainer = ReferenceField(ExternalCompany)
-    name = StringField()
+    name = StringField(unique=True)
 
 class HeaderItem(EmbeddedDocument):
     hal = IntField(min_value=0)
@@ -93,20 +91,20 @@ class Comment(EmbeddedDocument):
     author = ReferenceField(User, required=True)
 
 class ProjectMeta(EmbeddedDocument):
-    version = StringField(choices=['base', 'latest'], required=True)
-    maintainer = ReferenceField(ExternalCompany) 
+    version = StringField(choices=['base', 'latest'], required=True, default='base')
     status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True) 
     status_date = DateTimeField(default=datetime.utcnow, required=True)
     status_user = ReferenceField(User, required=True)
-    installation_date = DateTimeField(default=datetime.utcnow, required=True)
+    installation_date = DateTimeField() # PDF
+    maintainer = ReferenceField(ExternalCompany)
     commune = StringField()
-    region = StringField()
-    img = FileField()
-    pdf_data = FileField()
-    pedestrian_demand = BooleanField(default=False)
-    pedestrian_facility = BooleanField(default=False)
-    local_detector = BooleanField(default=False)
-    scoot_detector = BooleanField(default=False)
+    region = StringField(default='Metropolitana', required=True)
+    img = FileField() # PDF
+    pdf_data = FileField() # PDF
+    pedestrian_demand = BooleanField() # PDF
+    pedestrian_facility = BooleanField() # PDF
+    local_detector = BooleanField() # PDF
+    scoot_detector = BooleanField() # PDF
 
 # OTU Controller Model ====
 
@@ -114,14 +112,14 @@ class ControllerModel(Document):
     meta = {'collection': 'ControllerModel'}
     company = ReferenceField(ExternalCompany, required=True)
     model = StringField(required=True)
-    firmware_version = StringField(required=True)
-    checksum = StringField(required=True)
+    firmware_version = StringField(required=True, default='Desconocido')
+    checksum = StringField(required=True, default='Desconocido')
     date = DateTimeField(default=datetime.utcnow)
 
 class Controller(EmbeddedDocument):
     meta = {'collection': 'Controller'}
-    address_reference = StringField()
-    gps = BooleanField()
+    address_reference = StringField() # PDF
+    gps = BooleanField() # PDF
     model = ReferenceField(ControllerModel)
 
 # OTU Model ====
@@ -144,22 +142,22 @@ class OTUSequenceItem(EmbeddedDocument):
     phases = EmbeddedDocumentListField(OTUPhasesItem, required=True)
 
 class OTUMeta(EmbeddedDocument):
-    serial = StringField() 
-    ip_address = StringField() 
-    netmask = StringField() 
-    control = IntField()
-    answer = IntField()
-    link_type = StringField(choices=['Digital', 'Analogo'], required=True)
-    link_owner = StringField(choices=['Propio', 'Compartido'], required=True)
+    serial = StringField() # PDF
+    ip_address = StringField()
+    netmask = StringField() # PDF
+    control = IntField() # PDF
+    answer = IntField() # PDF
+    link_type = StringField(choices=['Digital', 'Analogo']) # PDF
+    link_owner = StringField(choices=['Propio', 'Compartido']) # PDF
 
 class OTU(Document):
     meta = {'collection': 'OTU'}
-    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True)# TODO:, unique_with='metadata.version')
-    metadata = EmbeddedDocumentField(OTUMeta, required=True)
-    program = EmbeddedDocumentListField(OTUProgramItem) #, required=True)
-    sequences = EmbeddedDocumentListField(OTUSequenceItem) #, required=True)
-    intergreens = ListField(IntField(min_value=0)) #, required=True)) # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
-    junctions = ListField(ReferenceField(Junction), required=True)   
+    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True)
+    metadata = EmbeddedDocumentField(OTUMeta)
+    program = EmbeddedDocumentListField(OTUProgramItem) # PDF
+    sequences = EmbeddedDocumentListField(OTUSequenceItem) # PDF
+    intergreens = ListField(IntField(min_value=0)) # PDF # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
+    junctions = ListField(ReferenceField(Junction))#, required=True)   
 
 # JsonPatch changes Model ====
 
@@ -176,8 +174,8 @@ class ChangeSet(Document):
         self.__clean_special_chars_patch()
         return super(ChangeSet, self).save()
 
-class History(Document):
-    meta = {'collection': 'History'}
+class ActionsLog(Document):
+    meta = {'collection': 'ActionsLog'}
     user = StringField(max_length=200, required=True)
     context = StringField(max_length=200, required=True)
     action = StringField(max_length=200, required=True)
@@ -187,9 +185,9 @@ class History(Document):
 class Project(Document):
     meta = {'collection': 'Project'}
     metadata = EmbeddedDocumentField(ProjectMeta, required=True)
-    otu = ReferenceField(OTU, required=True, unique=True)
+    otu = ReferenceField(OTU, required=True, unique_with='metadata.version')
     controller = EmbeddedDocumentField(Controller)
-    headers = EmbeddedDocumentListField(HeaderItem)
-    ups = EmbeddedDocumentField(UPS)
-    poles = EmbeddedDocumentField(Poles)
-    observations = EmbeddedDocumentListField(Comment)
+    headers = EmbeddedDocumentListField(HeaderItem) # PDF
+    ups = EmbeddedDocumentField(UPS) # PDF
+    poles = EmbeddedDocumentField(Poles) # PDF
+    observations = EmbeddedDocumentListField(Comment) # PDF
