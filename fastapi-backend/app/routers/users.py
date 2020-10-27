@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Query, HTTPException,BackgroundTasks
+from fastapi import APIRouter, Body, Query, HTTPException,BackgroundTasks,Form
 from flask_mongoengine import MongoEngine
 from pydantic import EmailStr
 from flask_mongoengine.wtf import model_form
@@ -58,3 +58,16 @@ async def read_user_me():
 @router.get("/users/{username}", tags=["users"])
 async def read_user(username: str):
     return {"username": username}
+
+@router.put('/change-permission', tags=["commune"],status_code=204)
+async def edit_commune(background_tasks: BackgroundTasks,user: EmailStr ,name= str,data: str = Form(...)):
+    user = models.User.objects(email= user).first()
+    #como saber si quieren dar o quitar admin
+    empresa = "hola"
+    if user == None:
+        raise HTTPException(status_code=404, detail="User not found",headers={"X-Error": "Usuario no encontrado"},)
+        return
+    if user.is_admin == False:
+        raise HTTPException(status_code=403, detail="Forbidden access",headers={"X-Error": "Usuario no encontrado"},)
+    mongoRequest = models.User.objects(email= usuarioobtenido)
+    mongoRequest.update(set__isadmin= Depende)
