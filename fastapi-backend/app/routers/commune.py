@@ -21,7 +21,7 @@ async def get_communes(background_tasks: BackgroundTasks):
     return r
     
 @router.put('/edit-commune/{name}', tags=["commune"], status_code=204)
-async def edit_commune(background_tasks: BackgroundTasks, user: EmailStr, empresa: EmaiStr,name: str):
+async def edit_commune(background_tasks: BackgroundTasks, user: EmailStr, empresa: EmailStr,name: str):
     user = User.objects(email=user).first()
     # obtener empresa que me envian
     if user == None:
