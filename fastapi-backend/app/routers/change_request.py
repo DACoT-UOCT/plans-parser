@@ -1,9 +1,12 @@
-from fastapi import APIRouter, FastAPI, UploadFile, File, Body, Query, HTTPException, BackgroundTasks, Form
+from fastapi import APIRouter, Request, FastAPI, UploadFile, File, Body, Query, HTTPException, BackgroundTasks, Form
+from typing import Any, Dict
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from fastapi.responses import HTMLResponse
 from pydantic import EmailStr, BaseModel
 from typing import List
-from ..models import User
+from mongoengine.errors import ValidationError
+import json
+from ..models import User, Project, Comment
 from .actions_log import register_action
 from ..config import get_settings
 import json
@@ -38,11 +41,18 @@ def send_notification_mail(bg, recipients, motive, attachment=None):
         register_action('backend', 'Requests', 'No hemos enviado ninguna notificacion, debido a que los emails estan desactivados', background=bg)
 
 @router.post("/requests", status_code=201)
-# , request: str = Form(...)):
-async def create_petition(background_tasks: BackgroundTasks, user_email: EmailStr, file: List[UploadFile] = File(default=None)):
+async def create_petition(background_tasks: BackgroundTasks, user_email: EmailStr, request: Request, file: List[UploadFile] = File(default=None)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:  # Should be admin?
+            body = await request.json()
+            p = Project.from_json(json.dumps(body))
+            obs_comment = Comment(author=user, message=body['observations'])
+            p.observations = [obs_comment]
+            try:
+                p.validate()
+            except ValidationError as err:
+                raise HTTPException(status_code=422, detail=str(err))
             created_id = '5f9617c0155221e94556867a'
             background_tasks.add_task(
                 send_notification_mail, background_tasks, creation_recipients, creation_motive)
