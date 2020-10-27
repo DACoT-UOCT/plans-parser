@@ -41,7 +41,7 @@ def send_notification_mail(bg, recipients, motive, attachment=None):
         register_action('backend', 'Requests', 'No hemos enviado ninguna notificacion, debido a que los emails estan desactivados', background=bg)
 
 @router.post("/requests", status_code=201)
-async def create_petition(background_tasks: BackgroundTasks, user_email: EmailStr, request: Request, file: List[UploadFile] = File(default=None)):
+async def create_petition(background_tasks: BackgroundTasks, user_email: EmailStr, request: Request):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:  # Should be admin?
@@ -49,11 +49,14 @@ async def create_petition(background_tasks: BackgroundTasks, user_email: EmailSt
             p = Project.from_json(json.dumps(body))
             obs_comment = Comment(author=user, message=body['observations'])
             p.observations = [obs_comment]
+            p.metadata.img = None
+            p.metadata.pdf_data = None
             try:
                 p.validate()
             except ValidationError as err:
                 raise HTTPException(status_code=422, detail=str(err))
-            created_id = '5f9617c0155221e94556867a'
+            p = p.save()
+            print(p.to_json())
             background_tasks.add_task(
                 send_notification_mail, background_tasks, creation_recipients, creation_motive)
             register_action(user_email, 'Requests', 'El usuario {} ha creado la peticion {} de forma correcta'.format(
