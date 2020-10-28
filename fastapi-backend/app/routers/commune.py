@@ -27,8 +27,8 @@ async def edit_commune(background_tasks: BackgroundTasks, user: EmailStr, reques
     if user:
         if user.is_admin:  
             body = await request.json()
-            commune = body.commune
-            company_email = body.company_email
+            commune = body["commune"]
+            company_email = body["company_email"]
             company = ExternalCompany.objects(email=company_email).first()
             if company:
                 commune_request = Commune.objects(name=commune).first()
