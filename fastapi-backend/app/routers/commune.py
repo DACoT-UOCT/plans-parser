@@ -20,22 +20,24 @@ async def get_communes(background_tasks: BackgroundTasks):
                     'Un usuario ha consultado la lista de comunas', background=background_tasks)
     return r
     
-@router.put('/edit-commune/{name}', tags=["commune"], status_code=204)
-async def edit_commune(background_tasks: BackgroundTasks, user: EmailStr, empresa: EmailStr,name: str):
+@router.put('/edit-commune', tags=["commune"], status_code=204)
+async def edit_commune(background_tasks: BackgroundTasks, user: EmailStr, data: str = Form(...)):
     user = User.objects(email=user).first()
+    commune = data.commune
+    company_email= data.company_email
     # obtener empresa que me envian
     if user == None:
         raise HTTPException(status_code=404, detail="User not found", headers={"X-Error": "Usuario no encontrado"},)
     if user.is_admin == False:
         raise HTTPException(status_code=403, detail="Forbidden access", headers={"X-Error": "Usuario no encontrado"},)
 
-    empresa = ExternalCompany.objects(email=empresa).first()
-    if empresa == None:
+    company = ExternalCompany.objects(email=company_email).first()
+    if company == None:
         raise HTTPException(status_code=404, detail="Company not found", headers={"X-Error": "Empresa no encontrada"},)
-    mongoRequest = Commune.objects(name=name).first()
-    if mongoRequest == "":
+    commune_request = Commune.objects(name=commune).first()
+    if commune_request == "":
         raise HTTPException(status_code=404, detail="Item not found", headers={"X-Error": "No Found"},)
-    mongoRequest.update(set__maintainer=empresa) 
+    commune_request.update(set__maintainer=company) 
 
     background_tasks.add_task(register_action, user, context="Reject Request",
                               action="Actualización de empresa a una comuna", origin="Web")
