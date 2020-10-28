@@ -22,6 +22,7 @@ app.include_router(change_request.router)
 app.include_router(actions_log.router)
 app.include_router(commune.router)
 app.include_router(controller_model.router)
+app.include_router(external_company.router)
 
 
 @app.post("/files/")
