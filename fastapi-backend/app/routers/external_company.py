@@ -1,7 +1,8 @@
-from fastapi import APIRouter, File, Form,BackgroundTasks,UploadFile
-from ..models import ExternalCompany
+from fastapi import APIRouter, File, Form,BackgroundTasks,UploadFile,HTTPException
+from ..models import ExternalCompany,User
 from typing import List
 from pydantic import EmailStr
+from .actions_log import register_action
 
 router = APIRouter()
 
@@ -38,4 +39,21 @@ async def reject_petition(background_tasks: BackgroundTasks,user: EmailStr , fil
     background_tasks.add_task(fm.send_message,message)
     background_tasks.add_task(register_action,user,context= "Reject Request",component= "Sistema", origin="Web")
     return [{"username": "Foo"}, {"username": "Bar"}]
+
+@router.get('/companies', tags=["external_company"],status_code=204)
+async def get_companies(background_tasks: BackgroundTasks,user_email: EmailStr ):
+    user = User.objects(email=user_email).first()
+    if user:
+        if user.is_admin:
+            result = ExternalCompany.objects.exclude('id').all()
+            register_action(user_email, 'Users', 'El usuario {} ha obtenido la lista de usuarios registrados de forma correcta'.format(user_email), background=background_tasks)
+            return result
+        else:
+            register_action(user_email, 'Users', 'El usuario {} ha intenado acceder a la lista de empresas registradas sin autorización'.format(user_email), background=background_tasks)
+            raise HTTPException(status_code=403, detail='Forbidden')
+    else:
+        register_action(user_email, 'Users', 'El usuario {} ha intenado acceder a la lista de empresas registradas, pero no existe'.format(user_email), background=background_tasks)
+        raise HTTPException(status_code=404, detail='User {} not found'.format(user_email))
+
+
 
