@@ -23,13 +23,14 @@ async def get_communes(background_tasks: BackgroundTasks):
 @router.put('/edit-commune', tags=["commune"], status_code=204)
 async def edit_commune(background_tasks: BackgroundTasks, user: EmailStr, request: Request):
     user = User.objects(email=user).first()
-
     if user:
         if user.is_admin:  
             body = await request.json()
             commune = body["commune"]
             company_email = body["company_email"]
             company = ExternalCompany.objects(name=company_email).first()
+            print(commune)
+            print(company_email)
             if company:
                 commune_request = Commune.objects(name=commune).first()
                 if commune_request:
