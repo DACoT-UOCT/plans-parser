@@ -46,6 +46,7 @@ async def edit_commune(background_tasks: BackgroundTasks, user: EmailStr, reques
                     raise HTTPException(
                     status_code=404, detail='Commune {} not found'.format(commune))
             else:
+                print("llego aca")
                 register_action(user, 'Requests', 'El usuario {} ha intenado editar una comuna, pero la compania no existe'.format(
             user), background=background_tasks)
                 raise HTTPException(
