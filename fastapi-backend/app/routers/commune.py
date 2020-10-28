@@ -31,8 +31,10 @@ async def edit_commune(background_tasks: BackgroundTasks, user: EmailStr, reques
             company = ExternalCompany.objects(name=company_email).first()
             print(commune)
             print(company_email)
+            print(company)
             if company:
                 commune_request = Commune.objects(name=commune).first()
+                print(commune_request)
                 if commune_request:
                     commune_request.update(set__maintainer=company) 
                     register_action(user, 'Requests', 'El usuario {} ha editado la comuna {} de forma correcta'.format(
