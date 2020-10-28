@@ -21,42 +21,37 @@ async def get_communes(background_tasks: BackgroundTasks):
     return r
     
 @router.put('/edit-commune', tags=["commune"], status_code=204)
-async def edit_commune(background_tasks: BackgroundTasks, user: EmailStr, request: Request):
-    user = User.objects(email=user).first()
+async def edit_commune(background_tasks: BackgroundTasks, user_email: EmailStr, request: Request):
+    user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:  
             body = await request.json()
             commune = body["commune"]
             company_email = body["company_email"]
             company = ExternalCompany.objects(name=company_email).first()
-            print(commune)
-            print(company_email)
-            print(company)
             if company:
                 commune_request = Commune.objects(name=commune).first()
-                print(commune_request)
                 if commune_request:
                     commune_request.update(set__maintainer=company) 
-                    print("llego aca")
-                    register_action(user, 'Requests', 'El usuario {} ha editado la comuna {} de forma correcta'.format(
+                    register_action(user_email, 'Requests', 'El usuario {} ha editado la comuna {} de forma correcta'.format(
                     user,commune), background=background_tasks)
                     return {"message": "Actualizado Correctamente"}
                 else:
-                    register_action(user, 'Requests', 'El usuario {} ha intenado editar una comuna, pero no existe'.format(
+                    register_action(user_email, 'Requests', 'El usuario {} ha intenado editar una comuna, pero no existe'.format(
                     user), background=background_tasks)
                     raise HTTPException(
                     status_code=404, detail='Commune {} not found'.format(commune))
             else:
-                register_action(user, 'Requests', 'El usuario {} ha intenado editar una comuna, pero la compania no existe'.format(
+                register_action(user_email, 'Requests', 'El usuario {} ha intenado editar una comuna, pero la compania no existe'.format(
             user), background=background_tasks)
                 raise HTTPException(
                 status_code=404, detail='Company {} not found'.format(company_email))
         else:
-            register_action(user, 'Requests', 'El usuario {} ha intenado editar una comuna sin autorizacion'.format(
+            register_action(user_email, 'Requests', 'El usuario {} ha intenado editar una comuna sin autorizacion'.format(
                 user), background=background_tasks)
             raise HTTPException(status_code=403, detail='Forbidden')
     else:
-        register_action(user, 'Requests', 'El usuario {} ha intenado editar una comuna, pero no existe'.format(
+        register_action(user_email, 'Requests', 'El usuario {} ha intenado editar una comuna, pero no existe'.format(
             user), background=background_tasks)
         raise HTTPException(
             status_code=404, detail='User {} not found'.format(user))
