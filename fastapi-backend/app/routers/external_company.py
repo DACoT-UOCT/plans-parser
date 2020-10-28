@@ -40,12 +40,13 @@ router = APIRouter()
     #background_tasks.add_task(register_action,user,context= "Reject Request",component= "Sistema", origin="Web")
     #return [{"username": "Foo"}, {"username": "Bar"}]
 
-@router.get('/companies', tags=["external_company"],status_code=204)
+@router.get('/companies', tags=["external_company"],status_code=200)
 async def get_companies(background_tasks: BackgroundTasks,user_email: EmailStr ):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:
             result = ExternalCompany.objects.exclude('id').all()
+            print("llego aca")
             register_action(user_email, 'Users', 'El usuario {} ha obtenido la lista de usuarios registrados de forma correcta'.format(user_email), background=background_tasks)
             return result
         else:

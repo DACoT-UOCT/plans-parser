@@ -7,7 +7,7 @@ import json
 router = APIRouter()
 
 
-@router.get('/communes')
+@router.get('/communes',status_code=200)
 async def get_communes(background_tasks: BackgroundTasks):
     r = []
     communes = Commune.objects().exclude('id').all()
