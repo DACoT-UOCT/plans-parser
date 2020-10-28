@@ -34,25 +34,25 @@ async def edit_commune(background_tasks: BackgroundTasks, user_email: EmailStr, 
                 if commune_request:
                     commune_request.update(set__maintainer=company) 
                     register_action(user_email, 'Requests', 'El usuario {} ha editado la comuna {} de forma correcta'.format(
-                    user,commune), background=background_tasks)
+                    user_email,commune), background=background_tasks)
                     return {"message": "Actualizado Correctamente"}
                 else:
                     register_action(user_email, 'Requests', 'El usuario {} ha intenado editar una comuna, pero no existe'.format(
-                    user), background=background_tasks)
+                    user_email), background=background_tasks)
                     raise HTTPException(
                     status_code=404, detail='Commune {} not found'.format(commune))
             else:
                 register_action(user_email, 'Requests', 'El usuario {} ha intenado editar una comuna, pero la compania no existe'.format(
-            user), background=background_tasks)
+            user)_email, background=background_tasks)
                 raise HTTPException(
                 status_code=404, detail='Company {} not found'.format(company_email))
         else:
             register_action(user_email, 'Requests', 'El usuario {} ha intenado editar una comuna sin autorizacion'.format(
-                user), background=background_tasks)
+                user_email), background=background_tasks)
             raise HTTPException(status_code=403, detail='Forbidden')
     else:
         register_action(user_email, 'Requests', 'El usuario {} ha intenado editar una comuna, pero no existe'.format(
-            user), background=background_tasks)
+            user_email), background=background_tasks)
         raise HTTPException(
             status_code=404, detail='User {} not found'.format(user))
 
