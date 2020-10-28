@@ -46,8 +46,7 @@ async def get_companies(background_tasks: BackgroundTasks,user_email: EmailStr )
     if user:
         if user.is_admin:
             result = ExternalCompany.objects.exclude('id').all()
-            print("llego aca")
-            register_action(user_email, 'Users', 'El usuario {} ha obtenido la lista de usuarios registrados de forma correcta'.format(user_email), background=background_tasks)
+            register_action(user_email, 'Users', 'El usuario {} ha obtenido la lista de empresas registradas de forma correcta'.format(user_email), background=background_tasks)
             return result
         else:
             register_action(user_email, 'Users', 'El usuario {} ha intenado acceder a la lista de empresas registradas sin autorización'.format(user_email), background=background_tasks)

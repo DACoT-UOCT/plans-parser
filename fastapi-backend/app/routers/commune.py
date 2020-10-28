@@ -20,7 +20,7 @@ async def get_communes(background_tasks: BackgroundTasks):
                     'Un usuario ha consultado la lista de comunas', background=background_tasks)
     return r
     
-@router.put('/edit-commune', tags=["commune"], status_code=204)
+@router.put('/edit-commune', tags=["commune"], status_code=200)
 async def edit_commune(background_tasks: BackgroundTasks, user_email: EmailStr, request: Request):
     user = User.objects(email=user_email).first()
     if user:
