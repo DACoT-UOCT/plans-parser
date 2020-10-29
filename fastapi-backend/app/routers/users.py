@@ -24,6 +24,7 @@ async def create_user(request: Request ,user_email: EmailStr,background_tasks: B
             try:
                 new_user.validate()
             except ValidationError as err:
+                print("llego aca")
                 raise HTTPException(status_code=423, detail=str(err))
             new_user = new_user.save()
             register_action(user_email, 'Users', 'El usuario {} ha creado un usuario forma correcta'.format(
