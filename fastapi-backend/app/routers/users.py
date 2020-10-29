@@ -15,11 +15,13 @@ async def create_user(request: Request ,user_email: EmailStr,background_tasks: B
     if user:
         if user.is_admin:  
             body = await request.json()
+            print(body)
             new_user = User.from_json(json.dumps(body))
             if "company" in body.keys():
                 company = json.loads(body["company"])["name"]
                 company = ExternalCompany.objects(name=company).first()
                 new_user.company = company
+            print("llego aca")
             try:
                 new_user.validate()
             except ValidationError as err:
