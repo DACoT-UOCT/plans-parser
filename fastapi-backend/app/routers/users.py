@@ -83,21 +83,14 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_emai
             edit_user = User.objects(email=edited_user).first()
             body = await request.json()
             if edit_user:
-                company = ExternalCompany.objects(email=body["company"])
-                if company:    
-                    #edit_user.update(**body) # si no funciona pasar body a diccionario
-                    edit_user.is_admin = body["is_admin"]
-                    edit_user.full_name = body["full_name"]
-                    edit_user.rol = body["rol"]
-                    edit_user.area = body["area"]
+                if "company" in body.keys():
+                    company = ExternalCompany.objects(email=body["company"])
                     edit_user.company = company
-                    register_action(user_email, 'Users', 'El usuario {} ha editado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)
-                else:
-                    edit_user.is_admin = body["is_admin"]
-                    edit_user.full_name = body["full_name"]
-                    edit_user.rol = body["rol"]
-                    edit_user.area = body["area"]
-                    register_action(user_email, 'Users', 'El usuario {} ha editado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)
+                edit_user.is_admin = body["is_admin"]
+                edit_user.full_name = body["full_name"]
+                edit_user.rol = body["rol"]
+                edit_user.area = body["area"]
+                register_action(user_email, 'Users', 'El usuario {} ha editado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)
             else:
                 register_action(user_email, 'Users', 'El usuario {} ha intenado editar un usuario que no existe'.format(
                 user_email), background=background_tasks)
