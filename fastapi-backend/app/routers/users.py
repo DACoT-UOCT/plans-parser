@@ -89,6 +89,7 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_emai
                     print(type(body["company"]["name"]))
                     company = ExternalCompany.objects(name=body["company"]["name"])
                     edit_user.company = company
+                print(edit_user.company)
                 edit_user.is_admin = body["is_admin"]
                 edit_user.full_name = body["full_name"]
                 edit_user.rol = body["rol"]
