@@ -26,9 +26,8 @@ async def create_user(request: Request ,user_email: EmailStr,background_tasks: B
             if "company" in body.keys():
                 print(body["company"]["name"])
                 company = body["company"]["name"]
-                
-                #company = ExternalCompany.objects(name=company).first()
-                #new_user.company = company
+                company = ExternalCompany.objects(name=company).first()
+                new_user.company = company
             try:
                 new_user.validate()
             except ValidationError as err:
