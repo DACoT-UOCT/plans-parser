@@ -123,7 +123,7 @@ async def delete_user(background_tasks: BackgroundTasks,edited_user: EmailStr,us
             edit_user = User.objects(email=edited_user).first()
             if edit_user:
                 edit_user.delete()
-                register_action(user, 'Users', 'El usuario {} ha eliminado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)
+                register_action(user_email, 'Users', 'El usuario {} ha eliminado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)
             else:
                 register_action(user_email, 'Users', 'El usuario {} ha intenado eliminar a un usuario que no existe'.format(
                 user_email), background=background_tasks)
