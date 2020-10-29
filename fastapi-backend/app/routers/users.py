@@ -21,6 +21,7 @@ async def create_user(request: Request ,user_email: EmailStr,background_tasks: B
                 new_user.is_admin = False
             else:
                 new_user.is_admin = True
+            print(new_user)
             if "company" in body.keys():
                 company = json.loads(body["company"])["name"]
                 company = ExternalCompany.objects(name=company).first()
