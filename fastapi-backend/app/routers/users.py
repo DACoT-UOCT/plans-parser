@@ -115,8 +115,8 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_emai
             status_code=404, detail='User {} not found'.format(user_email))
     
 
-@router.delete('/delete-user/{edited_user}',tags=["users"],status_code=204)
-async def delete_user(background_tasks: BackgroundTasks,edited_user: str,user_email: EmailStr):
+@router.delete('/delete-user/{edited_user}',tags=["users"],status_code=200)
+async def delete_user(background_tasks: BackgroundTasks,edited_user: Emailstr,user_email: EmailStr):
     user = User.objects(email= user_email).first()
     if user:
         if user.is_admin:
@@ -137,6 +137,7 @@ async def delete_user(background_tasks: BackgroundTasks,edited_user: str,user_em
         register_action(user_email, 'Users', 'El usuario {} ha intenado editar a un usuario, pero no existe'.format(
             user_email), background=background_tasks)
         raise HTTPException(status_code=404, detail="User {} not found".format(user_email),headers={"X-Error": "Usuario no encontrado"},)
+    return {}
         
     
     
