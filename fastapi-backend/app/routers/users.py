@@ -84,10 +84,10 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_emai
             body = await request.json()
             if edit_user:
                 if "company" in body.keys():
-                    print(body["company"]["body"])
-                    print(type(body["company"]["body"]))
+                    print(body["company"]["name"])
+                    print(type(body["company"]["name"]))
                     print(body)
-                    company = ExternalCompany.objects(email=body["company"]["body"])
+                    company = ExternalCompany.objects(email=body["company"]["name"])
                     edit_user.company = company
                 edit_user.is_admin = body["is_admin"]
                 edit_user.full_name = body["full_name"]
