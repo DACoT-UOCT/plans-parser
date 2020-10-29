@@ -364,6 +364,14 @@ def parse_files(files, unique=False, debug_results=False):
         result = process_pages(pages, files)
         if result[0] == RESULT_OK:
             done += 1
+            if debug_results:
+                print('Model: {}'.format(result[1]))
+                for val in result[2].values():
+                    print('stages:')
+                    for stg in val['stages']:
+                        print(stg)
+                    print('intergreens:')
+                    print(val['inters'])
         else:
             failed += 1
         if not result[0] in results:
@@ -378,6 +386,14 @@ def parse_files(files, unique=False, debug_results=False):
             result = process_pages(pages, pdf)
             if result[0] == RESULT_OK:
                 done += 1
+                if debug_results:
+                    print('Model: {}'.format(result[1]))
+                    for val in result[2].values():
+                        print('stages:')
+                        for stg in val['stages']:
+                            print(stg)
+                        print('intergreens:')
+                        print(val['inters'])
             else:
                 failed += 1
             if not result[0] in results:

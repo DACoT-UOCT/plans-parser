@@ -7,3 +7,5 @@ jsonpatch==1.22
 jsonpointer==2.0
 jsonschema==3.2.0
 pdfminer.six==20200726
+fastapi_mail
+flask_mongoengine

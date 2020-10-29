@@ -1,28 +1,28 @@
 import re
 import os
 import csv
-import argparse
+import time
 import json
+import argparse
 import logging
+import datetime
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from bson.json_util import dumps as bson_dumps
 from mongoengine import connect
+from pymongo.operations import ReplaceOne
+from pymongo.errors import BulkWriteError
 
-from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
-from dacot_models import ExternalCompany, UOCTUser, OTUController, ChangeSet, OTUMeta
+from dacot_models import Commune, ExternalCompany, ControllerModel
+from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
+from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
+from dacot_models import JunctionPlanPhaseValue, OTUProgramItem
+
+
+# from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
+# from dacot_models import ExternalCompany, UOCTUser, OTUController, ChangeSet, OTUMeta
 
 global log
-
-def save_async_thread_pool(objects):
-    results = []
-    with ThreadPoolExecutor(max_workers=100) as executor:
-        futures = []
-        for obj in objects:
-            futures.append(executor.submit(lambda: obj.save().reload()))
-        for fut in as_completed(futures):
-            results.append(fut.result())
-    return results
 
 def setup_logging():
     global log
@@ -30,182 +30,347 @@ def setup_logging():
     log = logging.getLogger('seed-db')
     log.setLevel(logging.INFO)
 
+def fast_validate_and_insert(objects, model, replace=False):
+    global log
+    log.info('[fast_insert]: Called with {} {} items'.format(len(objects), model.__name__))
+    log.info('[fast_insert]: Validating objects before bulk write')
+    mongo_objs = []
+    for obj in objects:
+        obj.validate()
+        mongo_objs.append(obj.to_mongo())
+    log.info('[fast_insert]: Validation OK')
+    if replace:
+        log.info('[fast_insert]: Writing objects using bulk_write')
+        ops = []
+        for mongo_obj in mongo_objs:
+            ops.append(ReplaceOne({'_id': mongo_obj.get('_id')}, mongo_obj, upsert=True))
+        insert_res = model._get_collection().bulk_write(ops)
+    else:
+        log.info('[fast_insert]: Writing objects using insert_many')
+        insert_res = model._get_collection().insert_many(mongo_objs)
+    log.info('[fast_insert]: Write command done, collecting objects from remote')
+    if replace:
+        results = model._get_collection().find({'_id': {'$in': [x.get('_id') for x in mongo_objs]}})
+    else:
+        results = model._get_collection().find({'_id': {'$in': insert_res.inserted_ids}})
+    mongo_objs.clear()
+    for r in results:
+        mongo_objs.append(model.from_json(bson_dumps(r)))
+    log.info('[fast_insert]: Validating objects after bulk read')
+    for obj in mongo_objs:
+        obj.validate()
+    log.info('[fast_insert]: Validation OK')
+    log.info('[fast_insert]: Done')
+    return mongo_objs
+
+def fast_validate_and_insert_with_errors(objects, model, replace=False):
+    try:
+        return fast_validate_and_insert(objects, model, replace)
+    except BulkWriteError as bwe:
+        print(bwe.details)
+        raise RuntimeError()
+
+
 def setup_args():
     parser = argparse.ArgumentParser(description='Seed the mongo db')
     parser.add_argument('input', type=str, help='input schedules.json file')
     parser.add_argument('index', type=str, help='CSV index file with relevant columns')
+    parser.add_argument('ctrlls_data', type=str, help='CSV data of controller models')
     parser.add_argument('mongo', type=str, help='mongo server url')
+    parser.add_argument('database', type=str, help='mongo database to use')
     parser.add_argument('--rebuild', action='store_true', help='drop existing data and rebuild collections')
+    parser.add_argument('--extra', action='store_true', help='build and save extra data to the remote db')
     return parser.parse_args()
 
-def drop_data():
+def check_should_continue():
     global log
-    log.info('¡¡¡¡DROPPING OLD DATA!!!!')
-    Junction.drop_collection()
-    OTU.drop_collection()
+    log.warning('')
+    log.warning('THIS ACTION IS IRREVERSIBLE, ALL EXISTING DATA WILL BE DEETED')
+    log.warning('')
+    log.warning('Should we continue?')
+    shlould_continue = input('[yes/no]: ')
+    if shlould_continue == 'yes':
+        return True
+    log.info('Input is not "yes". Aborting operations.')
+    return False
+
+def drop_old_data():
+    global log
+    log.info('Dropping old data')
+    Commune.drop_collection()
     ExternalCompany.drop_collection()
-    UOCTUser.drop_collection()
-    OTUController.drop_collection()
-    ChangeSet.drop_collection()
-    log.info('Done dropping old collections')
+    ControllerModel.drop_collection()
+    User.drop_collection()
+    OTU.drop_collection()
+    Project.drop_collection()
+    Junction.drop_collection()
+    log.info('Done dropping data')
 
-def phase1(jsdata):
-    global log
-    log.info('=' * 60)
-    log.info('Phase 1. Creating initial objects')
-    log.info('=' * 60)
-    log.info('Building models from JSON file')
-    seed_user = UOCTUser(uid=1, full_name='DACoT Automated DB Seeder', email='dacot@santiago.uoct.cl', area='TIC', rut='00000000-0')
-    seed_user = seed_user.save().reload()
-    junctions = []
-    otus = {}
-    total = len(jsdata)
-    i = 0
-    for k, v in jsdata.items():
-        i += 1
-        p = (i / total) * 100
-        log.info('Building model for {} progress {:.2f}%'.format(k, p))
-        plans = []
-        oid = 'X' + k[1:-1] + '0'
-        if not oid in otus:
-            programs = []
-            for day, items in v['program'].items():
-                for item in items:
-                    programs.append(OTUProgramItem(day=day, time=item[0][:5], plan=item[1]))
-            metadata = OTUMeta(version='base', status='SYSTEM', status_user=seed_user)
-            otus[oid] = OTU(oid=oid, program=programs, metadata=metadata)
-        for plid, plan in v['plans'].items():
-            system_start = []
-            for phid, phvalue in plan['system_start'].items():
-                system_start.append(JunctionPlanPhaseValue(phid=phid, value=phvalue))
-            plans.append(JunctionPlan(plid=plid, cycle=plan['cycle'], system_start=system_start))
-        junctions.append(Junction(jid=k, plans=plans, metadata=JunctionMeta()))
-    log.info('Bulk inserting {} junctions in the remote mongo database, this can take a while...'.format(len(junctions)))
-    junctions = Junction.objects.insert(junctions)
-    log.info('Done inserting junctions')
-    log.info('Updatig OTUs with junctions references')
-    i = 0
-    for j in junctions:
-        i += 1
-        p = (i / total) * 100
-        oid = 'X' + j['jid'][1:-1] + '0'
-        log.info('Updating model for {} progress {:.2f}%'.format(oid, p))
-        otus[oid].junctions.append(j)
-    otus = otus.values()
-    log.info('Bulk inserting {} OTUs in the remote mongo database, this can take a while...'.format(len(otus)))
-    otus = OTU.objects.insert(otus)
-    log.info('Done inserting junctions')
-    log.info('=' * 60)
-    log.info('Phase 1. DONE')
-    log.info('=' * 60)
-    return otus, junctions
+def check_csv_line_valid(line, junc_pattern, otu_pattern):
+    if line[0] and line[1] and line[2] and junc_pattern.match(line[3]) and otu_pattern.match(line[2]):
+        return True, line[2], line[1]
+    return False, None, None
 
-def phase2(otus, junctions, csvindex):
-    global log
-    log.info('=' * 60)
-    log.info('Phase 2. Update created objects with CSV index')
-    log.info('=' * 60)
-    log.info('Updatig existing junctions with CSV metadata')
-    for junc in junctions:
-        oid = 'X' + junc['jid'][1:6] + '0'
-        if oid not in csvindex:
-            log.warning('We have the OTU oid={} from the JSON file, but it does not exists in the CSV index'.format(oid))
-            continue
-        elif junc['jid'] not in csvindex[oid]:
-            log.warning('We have the JUNCTION jid={} from the JSON file, but it does not exists in the CSV index'.format(junc['jid']))
-            continue
-        index_data = csvindex[oid][junc['jid']]
-        junc.metadata.sales_id = index_data['sales_id']
-        if 'latitude' in index_data and 'longitude' in index_data:
-            junc.metadata.location = (index_data['latitude'], index_data['longitude'])
-        else:
-            log.warning('Missing location data for jid={} from the CSV index'.format(junc['jid']))
-        junc.metadata.first_access = index_data['first_access']
-        junc.metadata.second_access = index_data['second_access']
-    log.info('Bulk updating {} junctions in the remote mongo database, this can take a while...'.format(len(junctions)))
-    save_async_thread_pool(junctions)
-    log.info('Done updating junctions')
-    log.info('Updatig existing OTUs with CSV metadata')
-    for otu in otus:
-        oid = otu['oid']
-        if oid not in csvindex:
-            log.warning('We have OTU oid={} from JSON file but does not exists in the CSV index'.format(oid))
-            continue
-        index_data = csvindex[oid]
-        index_data_junc = list(csvindex[oid].values())[0]
-        if 'maintainer' in index_data_junc:
-            otu.metadata.maintainer = index_data_junc['maintainer']
-        if 'commune' in index_data_junc:
-            otu.metadata.commune = index_data_junc['commune']
-        if 'controller_model' in index_data_junc:
-            otu.metadata.controller = index_data_junc['controller_model']
-    log.info('Bulk updating {} OTUs in the remote mongo database, this can take a while...'.format(len(otus)))
-    save_async_thread_pool(otus)
-    log.info('Done updating OTUs')
-    log.info('=' * 60)
-    log.info('Phase 2. DONE')
-    log.info('=' * 60)
+def build_csv_index_item(line, ip_pattern):
+    d = {}
+    if line[6] and line[7]:
+        d['commune'] = line[6].strip().upper()
+        d['maintainer'] = line[7].strip().upper()
+    if line[4] and line[5]:
+        d['address_reference'] = '{} - {}'.format(line[4].strip().upper(), line[6].strip().upper())
+    if line[8] and line[9]:
+        d['otu_model'] = line[8].strip().upper()
+        d['otu_company'] = line[9].strip().upper()
+    if line[10] and line[11]:
+        try:
+            lat = float(line[10].replace(',', '.'))
+            lon = float(line[11].replace(',', '.'))
+            if not (-90 < lat < 90 and -180 < lon < 180):
+                raise ValueError()
+        except ValueError:
+            lat = 0.0
+            lon = 0.0
+        d['latitude'] = lat
+        d['longitude'] = lon
+    if ip_pattern.match(line[14]):
+        d['ip_address'] = line[14]
+    if line[0]:
+        d['sales_id'] = int(line[0])
+    return d
 
-def read_args_params(args):
-    global log
-    valid_data_pattern = re.compile(r'J\d{6}\-\d{8}')
-    lat_lon_pattern = re.compile(r'^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$')
-    with open(args.input, 'r') as jdf:
-        jsdata = json.load(jdf)
-    log.info('We have {} keys to upload from JSON'.format(len(jsdata)))
-    csvindex = {}
-    controller_models = {}
-    external_companies = {}
+def read_csv_data(args):
+    index = {}
+    junc_pattern = re.compile(r'J\d{6}\-\d{8}')
+    otu_pattern = re.compile(r'X\d{6}')
+    ipaddr_pattern = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}')
     with open(args.index, 'r', encoding='utf-8-sig') as fp:
         reader = csv.reader(fp, delimiter=';')
         for line in reader:
-            if line[0] != '' and line[1] != '' and line[2] != '' and valid_data_pattern.match(line[3]):
-                if line[2] not in csvindex:
-                    csvindex[line[2]] = {}
-                csvindex[line[2]][line[1]] = {
-                    'sales_id': int(line[0]),
-                    'first_access': line[4],
-                    'second_access': line[5],
-                    'commune': line[6],
-                    'otu_type': line[12],
-                    'tcc': line[13],
-                    'ip_address': line[14],
-                    'isp': line[15],
-                    'head_type': line[19]
-                }
-                if line[9] != '' and line[8] != '':
-                    if (line[9], line[8]) not in controller_models:
-                        if line[9] not in external_companies:
-                            new_company = ExternalCompany(name=line[9]).save().reload()
-                            external_companies[line[9]] = new_company
-                        otu_ctrl = OTUController(company=external_companies[line[9]], model=line[8]).save().reload()
-                        controller_models[(line[9], line[8])] = otu_ctrl
-                    csvindex[line[2]][line[1]]['controller_model'] = controller_models[(line[9], line[8])]
-                    if line[7] != '':
-                        if line[7] not in external_companies:
-                            new_company = ExternalCompany(name=line[7]).save().reload()
-                            external_companies[line[7]] = new_company
-                        csvindex[line[2]][line[1]]['maintainer'] = external_companies[line[7]]
-                if line[10] != '' and line[11] != '' and lat_lon_pattern.match(line[10]) and lat_lon_pattern.match(line[11]):
-                    csvindex[line[2]][line[1]]['latitude'] = float(line[10].replace(',', '.'))
-                    csvindex[line[2]][line[1]]['longitude'] = float(line[11].replace(',', '.'))
-                if line[16] == 'SI':
-                    csvindex[line[2]][line[1]]['has_ups'] = True
-                elif line[16] == 'NO':
-                    csvindex[line[2]][line[1]]['has_ups'] = False
-                # TODO: Add IP Address
-    log.info('We have {} junctions in the CSV index'.format(len(csvindex)))
-    return jsdata, csvindex
+            valid, oid, jid = check_csv_line_valid(line, junc_pattern, otu_pattern)
+            if valid:
+                key = '{}.{}'.format(oid, jid)
+                index[key] = build_csv_index_item(line, ipaddr_pattern)
+                index[key]['oid'] = oid
+                index[key]['jid'] = jid
+    return index
+
+def extract_company_for_commune(index_csv):
+    d = {}
+    for v in index_csv.values():
+        if 'commune' in v and 'maintainer' in v:
+            k = (v['commune'], v['maintainer'])
+            if k not in d:
+                d[k] = 0
+            d[k] += 1
+    l = []
+    for k, v in d.items():
+        l.append((k[0], k[1], v))
+    l = sorted(l, key=lambda v: v[1])
+    d = {}
+    for i in l:
+        if i[0] not in d:
+            d[i[0]] = i[1]
+    return d
+
+def build_external_company_collection(commune_company_dict):
+    s = set(commune_company_dict.values())
+    d = {}
+    for c in s:
+        d[c] = ExternalCompany(name=c)
+    for i in fast_validate_and_insert(d.values(), ExternalCompany):
+        d[i.name] = i
+    return d
+
+def build_commune_collection(index_csv):
+    commune_company = extract_company_for_commune(index_csv)
+    companies = build_external_company_collection(commune_company)
+    l = []
+    for k, v in commune_company.items():
+        l.append(Commune(name=k, maintainer=companies[v]))
+    fast_validate_and_insert(l, Commune)
+
+def build_controller_model_csv_item(line):
+    d = {
+        'company': line[0].strip().upper(),
+        'model': line[1].strip().upper(),
+        'fw': line[2],
+        'check': line[3],
+        'date': datetime.datetime.strptime(line[4], '%d-%m-%Y')
+    }
+    return d
+
+def read_controller_models_csv(args):
+    l = []
+    with open(args.ctrlls_data, 'r', encoding='utf-8-sig') as fp:
+        reader = csv.reader(fp, delimiter=';')
+        for line in reader:
+            l.append(build_controller_model_csv_item(line))
+    return l
+
+def build_controller_model_collection(models_csv):
+    l = []
+    s = set()
+    for m in models_csv:
+        if m['company'] not in s and not ExternalCompany.objects(name=m.get('company')).first():
+            l.append(ExternalCompany(name=m.get('company')))
+            s.add(m.get('company'))
+    fast_validate_and_insert(l, ExternalCompany)
+    l = []
+    for m in models_csv:
+        comp = ExternalCompany.objects(name=m.get('company')).first()
+        l.append(
+            ControllerModel(company=comp, model=m.get('model'),
+                firmware_version=m.get('fw'), checksum=m.get('check'), date=m.get('date'))
+        )
+    fast_validate_and_insert(l, ControllerModel)
+
+def create_users():
+    l = []
+    acme_corp = ExternalCompany(name='ACME Corporation').save().reload()
+    l.append(User(full_name='DACoT Database Seed', email='seed@dacot.uoct.cl', rol='Personal UOCT', area='TIC'))
+    l.append(User(full_name='Admin', email='admin@dacot.uoct.cl', rol='Personal UOCT', area='TIC', is_admin=True))
+    l.append(User(full_name='ACME Employee', email='employee@acmecorp.com', rol='Empresa', area='Mantenedora', company=acme_corp))
+    fast_validate_and_insert(l, User)
+
+def get_companies_dict():
+    comp = {}
+    for c in ExternalCompany.objects.all():
+        comp[c.name] = c
+    return comp
+
+def build_project_meta(csv_index):
+    r = {}
+    comp = get_companies_dict()
+    u = User.objects(email='seed@dacot.uoct.cl').first()
+    for k, v in csv_index.items():
+        rk = k.split('.')[0]
+        m = ProjectMeta(version='base', status='SYSTEM', status_user=u)
+        m.commune = v.get('commune')
+        m.maintainer = comp.get(v.get('maintainer'))
+        r[rk] = m
+    return r
+
+def build_otu(project_metas):
+    l = []
+    d = {}
+    for k in project_metas:
+        o = OTU(oid=k)
+        l.append(o)
+    saved_ids = fast_validate_and_insert(l, OTU)
+    for s in saved_ids:
+        d[s.oid] = s
+    return d
+
+def build_projects(csv_index):
+    metas = build_project_meta(csv_index)
+    otus = build_otu(metas)
+    comps = get_companies_dict()
+    lp = []
+    cmodels = {}
+    otu_cmodels = {}
+    for v in csv_index.values():
+        otus.get(v.get('oid')).metadata = OTUMeta()
+        otus.get(v.get('oid')).metadata.ip_address = v.get('ip_address')
+        cmk = (v.get('otu_company'), v.get('otu_model'))
+        if cmk[0] and cmk[1]:
+            if not cmk[0] in comps:
+                comps[cmk[0]] = ExternalCompany(name=cmk[0]).save().reload()
+            if not cmk in cmodels:
+                cmodels[cmk] = ControllerModel(company=comps[cmk[0]], model=cmk[1]).save().reload()
+            otu_cmodels[v.get('oid')] = cmodels[cmk]
+    for s in fast_validate_and_insert(otus.values(), OTU, replace=True):
+        otus[s.oid] = s
+    for oid in otus:
+        p = Project(metadata=metas.get(oid), otu=otus.get(oid))
+        p.controller = Controller()
+        if oid in otu_cmodels:
+            p.controller.model = otu_cmodels[oid]
+        lp.append(p)
+    fast_validate_and_insert(lp, Project)
+    return otus
+
+def build_junctions(csv_index, otus):
+    lj = []
+    jd = {}
+    od = {}
+    for k, v in csv_index.items():
+        jid = k.split('.')[1]
+        j = Junction(jid=jid, metadata=JunctionMeta())
+        j.metadata.location = (v.get('latitude', 0.0), v.get('longitude', 0.0))
+        j.metadata.address_reference = v.get('address_reference')
+        j.metadata.sales_id = v.get('sales_id')
+        lj.append(j)
+    saved_jids = fast_validate_and_insert(lj, Junction)
+    for saved in saved_jids:
+        jd[saved.jid] = saved
+    for k, v in csv_index.items():
+        oid, jid = k.split('.')
+        otus[oid].junctions.append(jd[jid])
+    saved_oids = fast_validate_and_insert(otus.values(), OTU, replace=True)
+    for saved in saved_oids:
+        od[saved.oid] = saved
+    return jd, od
+
+def read_json_data(args):
+    with open(args.input, 'r') as jsf:
+        return json.load(jsf)
+
+def build_junction_plans(junctions, json_data):
+    for k, v in json_data.items():
+        j = junctions.get(k)
+        if j:
+            for pid, pval in v['plans'].items():
+                s_start = []
+                for phid, phvalue in pval['system_start'].items():
+                    s_start.append(JunctionPlanPhaseValue(phid=phid, value=phvalue))
+                plan = JunctionPlan(plid=pid, cycle=pval['cycle'], system_start=s_start)
+                j.plans.append(plan)
+    jd = {}
+    for j in fast_validate_and_insert(junctions.values(), Junction, replace=True):
+        jd[j.jid] = j
+    return jd
+
+def build_otu_programs(otus, json_data):
+    done = set()
+    programs = {}
+    for k, v in json_data.items():
+        oid = 'X{}0'.format(k[1:-1])
+        if not oid in done:
+            programs[oid] = v.get('program')
+            done.add(oid)
+    for k, v in otus.items():
+        otu_program = []
+        if k in programs:
+            for table, items in programs[k].items():
+                for item in items:
+                    otu_program.append(OTUProgramItem(day=table, time=item[0][:5], plan=item[1]))
+        v.program = otu_program
+    od = {}
+    for o in fast_validate_and_insert(otus.values(), OTU, replace=True):
+        od[o.oid] = o
+    return od
+
+def rebuild(args):
+    if not check_should_continue():
+        return
+    connect(args.database, host=args.mongo)
+    drop_old_data()
+    index_csv = read_csv_data(args)
+    create_users()
+    build_commune_collection(index_csv)
+    controllers_model_csv = read_controller_models_csv(args)
+    build_controller_model_collection(controllers_model_csv)
+    otus = build_projects(index_csv)
+    junctions, otus = build_junctions(index_csv, otus)
+    json_data = read_json_data(args)
+    junctions = build_junction_plans(junctions, json_data)
+    otus = build_otu_programs(otus, json_data)
 
 if __name__ == "__main__":
     global log
     setup_logging()
-    log.info('Started seed-db script')
+    log.info('Started seed-db script v0.2')
     args = setup_args()
-    connect('dacot-dev', host=args.mongo)
     if args.rebuild:
-        drop_data()
-        jsdata, csvindex = read_args_params(args)
-        otus, junctions = phase1(jsdata)
-        phase2(otus, junctions, csvindex)
-    log.info('DONE SEEDING THE DB')
+        rebuild(args)
+    log.info('Done Seeding the remote database')
