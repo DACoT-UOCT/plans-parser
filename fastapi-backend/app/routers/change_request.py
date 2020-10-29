@@ -55,11 +55,16 @@ async def create_petition(background_tasks: BackgroundTasks, user_email: EmailSt
                 try:
                     p.validate()
                     p = p.save()
+                except NotUniqueError as err:
+                    detail = str(err).split(' dup key:')[0].replace('(', '')
+                    register_action(user_email, 'Requests', 'El usuario {} no ha logrado crear una peticion: {}'.format(user_email, detail), background=background_tasks)
+                    return JSONResponse(status_code=422, content={'detail': str(err)})
                 except Exception as err:
-                    raise HTTPException(status_code=422, detail=str(err))
+                    register_action(user_email, 'Requests', 'El usuario {} no ha logrado crear una peticion: {}'.format(user_email, err), background=background_tasks)
+                    return JSONResponse(status_code=422, content={'detail': str(err)})
                 background_tasks.add_task(send_notification_mail, background_tasks, creation_recipients, creation_motive)
                 register_action(user_email, 'Requests', 'El usuario {} ha creado la peticion {} de forma correcta'.format(user_email, p.id), background=background_tasks)
-                p.delete()
+                # p.delete()
                 return JSONResponse(status_code=201, content={'detail': 'Created'})
             else:
                 register_action(user_email, 'Requests', 'El usuario {} ha intenado crear una peticion con un estado no valido: {}'.format(user_email, p.metadata.status), background=background_tasks)
