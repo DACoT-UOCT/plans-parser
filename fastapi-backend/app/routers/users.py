@@ -17,7 +17,7 @@ async def create_user(request: Request ,user_email: EmailStr,background_tasks: B
             body = await request.json()
             new_user = User.from_json(json.dumps(body))
             print(type(body))
-            print(body["company"]["name"])
+            print(body["company"])
             company = body["company"]["name"]
             company = ExternalCompany.objects(name=company).first()
             new_user.company = company
