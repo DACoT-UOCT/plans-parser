@@ -15,16 +15,12 @@ async def create_user(request: Request ,user_email: EmailStr,background_tasks: B
     if user:
         if user.is_admin:  
             body = await request.json()
-            print(body)
             new_user = User.from_json(json.dumps(body))
             #if new_user.is_admin == "False":
             #    new_user.is_admin = False
             #else:
             #    new_user.is_admin = True
-            print(new_user.is_admin)
-            print(type(new_user.is_admin))
             if "company" in body.keys():
-                print(body["company"]["name"])
                 company = body["company"]["name"]
                 company = ExternalCompany.objects(name=company).first()
                 new_user.company = company
@@ -32,7 +28,10 @@ async def create_user(request: Request ,user_email: EmailStr,background_tasks: B
                 new_user.validate()
             except ValidationError as err:
                 raise HTTPException(status_code=422, detail=str(err))
-            new_user = new_user.save()
+            try:
+                new_user = new_user.save()
+            except NotUniqueError as err:
+                raise HTTPException(status_code=422, detail=str(err))
             register_action(user_email, 'Users', 'El usuario {} ha creado un usuario forma correcta'.format(
                 user_email), background=background_tasks)
         else:
