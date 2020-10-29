@@ -90,6 +90,7 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_emai
                 edit_user.full_name = body["full_name"]
                 edit_user.rol = body["rol"]
                 edit_user.area = body["area"]
+                edit_user.reload()
                 register_action(user_email, 'Users', 'El usuario {} ha editado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)
             else:
                 register_action(user_email, 'Users', 'El usuario {} ha intenado editar un usuario que no existe'.format(
