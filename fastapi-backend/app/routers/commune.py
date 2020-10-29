@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Form
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Form, Request
 from ..models import Commune, User,ExternalCompany
 from pydantic import EmailStr
 from .actions_log import register_action
@@ -7,7 +7,7 @@ import json
 router = APIRouter()
 
 
-@router.get('/communes')
+@router.get('/communes',status_code=200)
 async def get_communes(background_tasks: BackgroundTasks):
     r = []
     communes = Commune.objects().exclude('id').all()
@@ -20,25 +20,40 @@ async def get_communes(background_tasks: BackgroundTasks):
                     'Un usuario ha consultado la lista de comunas', background=background_tasks)
     return r
     
-@router.put('/edit-commune', tags=["commune"], status_code=204)
-async def edit_commune(background_tasks: BackgroundTasks, user: EmailStr, data: str = Form(...)):
-    user = User.objects(email=user).first()
-    commune = data.commune
-    company_email= data.company_email
-    # obtener empresa que me envian
-    if user == None:
-        raise HTTPException(status_code=404, detail="User not found", headers={"X-Error": "Usuario no encontrado"},)
-    if user.is_admin == False:
-        raise HTTPException(status_code=403, detail="Forbidden access", headers={"X-Error": "Usuario no encontrado"},)
+@router.put('/edit-commune', tags=["commune"], status_code=200)
+async def edit_commune(background_tasks: BackgroundTasks, user_email: EmailStr, request: Request):
+    user = User.objects(email=user_email).first()
+    if user:
+        if user.is_admin:  
+            body = await request.json()
+            commune = body["commune"]
+            company_email = body["company_email"]
+            company = ExternalCompany.objects(name=company_email).first()
+            if company:
+                commune_request = Commune.objects(name=commune).first()
+                if commune_request:
+                    commune_request.update(set__maintainer=company) 
+                    register_action(user_email, 'Communes', 'El usuario {} ha editado la comuna {} de forma correcta'.format(
+                    user_email,commune), background=background_tasks)
+                    return {"message": "Actualizado Correctamente"}
+                else:
+                    register_action(user_email, 'Communes', 'El usuario {} ha intenado editar una comuna, pero no existe'.format(
+                    user_email), background=background_tasks)
+                    raise HTTPException(
+                    status_code=404, detail='Commune {} not found'.format(commune))
+            else:
+                register_action(user_email, 'Communes', 'El usuario {} ha intenado editar una comuna, pero la compania no existe'.format(
+            user_email), background=background_tasks)
+                raise HTTPException(
+                status_code=404, detail='Company {} not found'.format(company_email))
+        else:
+            register_action(user_email, 'Communes', 'El usuario {} ha intenado editar una comuna sin autorizacion'.format(
+                user_email), background=background_tasks)
+            raise HTTPException(status_code=403, detail='Forbidden')
+    else:
+        register_action(user_email, 'Communes', 'El usuario {} ha intenado editar una comuna, pero no existe'.format(
+            user_email), background=background_tasks)
+        raise HTTPException(
+            status_code=404, detail='User {} not found'.format(user))
 
-    company = ExternalCompany.objects(email=company_email).first()
-    if company == None:
-        raise HTTPException(status_code=404, detail="Company not found", headers={"X-Error": "Empresa no encontrada"},)
-    commune_request = Commune.objects(name=commune).first()
-    if commune_request == "":
-        raise HTTPException(status_code=404, detail="Item not found", headers={"X-Error": "No Found"},)
-    commune_request.update(set__maintainer=company) 
-
-    background_tasks.add_task(register_action, user, context="Reject Request",
-                              action="Actualización de empresa a una comuna", origin="Web")
-    return {"message": "Actualizado Correctamente"}
+    
