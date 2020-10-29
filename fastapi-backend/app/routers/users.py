@@ -116,7 +116,7 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_emai
     
 
 @router.delete('/delete-user/{edited_user}',tags=["users"],status_code=200)
-async def delete_user(background_tasks: BackgroundTasks,edited_user: Emailstr,user_email: EmailStr):
+async def delete_user(background_tasks: BackgroundTasks,edited_user: EmailStr,user_email: EmailStr):
     user = User.objects(email= user_email).first()
     if user:
         if user.is_admin:
