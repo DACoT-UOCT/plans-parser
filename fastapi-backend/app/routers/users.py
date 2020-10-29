@@ -21,11 +21,10 @@ async def create_user(request: Request ,user_email: EmailStr,background_tasks: B
                 company = json.loads(body["company"])["name"]
                 company = ExternalCompany.objects(name=company).first()
                 new_user.company = company
-            print("llego aca")
             try:
                 new_user.validate()
             except ValidationError as err:
-                raise HTTPException(status_code=422, detail=str(err))
+                raise HTTPException(status_code=423, detail=str(err))
             new_user = new_user.save()
             register_action(user_email, 'Users', 'El usuario {} ha creado un usuario forma correcta'.format(
                 user_email), background=background_tasks)
