@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.post('/users', tags=["users"],status_code=201)
 async def create_user(request: Request ,user_email: EmailStr,background_tasks: BackgroundTasks):
-    user = User.objects(email=user).first()
+    user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:  
             body = await request.json()
