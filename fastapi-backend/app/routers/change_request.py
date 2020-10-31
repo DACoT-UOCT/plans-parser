@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Request, FastAPI, UploadFile, File, Body, Query, HTTPException, BackgroundTasks, Form
 from typing import Any, Dict
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import EmailStr, BaseModel
 from typing import List
 from mongoengine.errors import ValidationError
 import json
-from ..models import User, Project, Comment
+from ..models import User, Project, Comment, OTU
 from .actions_log import register_action
 from ..config import get_settings
 import json
@@ -46,31 +46,45 @@ async def create_petition(background_tasks: BackgroundTasks, user_email: EmailSt
     if user:
         if user.is_admin:  # Should be admin?
             body = await request.json()
+            print(json.dumps(body, indent='\t'))
             p = Project.from_json(json.dumps(body))
             obs_comment = Comment(author=user, message=body['observations'])
             p.observations = [obs_comment]
             p.metadata.img = None
             p.metadata.pdf_data = None
-            try:
-                p.validate()
-            except ValidationError as err:
-                raise HTTPException(status_code=422, detail=str(err))
-            p = p.save()
-            print(p.to_json())
-            background_tasks.add_task(
-                send_notification_mail, background_tasks, creation_recipients, creation_motive)
-            register_action(user_email, 'Requests', 'El usuario {} ha creado la peticion {} de forma correcta'.format(
-                user_email, created_id), background=background_tasks)
-            return {}
+            if p.metadata.status == 'NEW':
+                try:
+                    p.validate()
+                    p = p.save()
+                except NotUniqueError as err:
+                    detail = str(err).split(' dup key:')[0].replace('(', '')
+                    register_action(user_email, 'Requests', 'El usuario {} no ha logrado crear una peticion: {}'.format(user_email, detail), background=background_tasks)
+                    return JSONResponse(status_code=422, content={'detail': str(err)})
+                except Exception as err:
+                    register_action(user_email, 'Requests', 'El usuario {} no ha logrado crear una peticion: {}'.format(user_email, err), background=background_tasks)
+                    return JSONResponse(status_code=422, content={'detail': str(err)})
+                background_tasks.add_task(send_notification_mail, background_tasks, creation_recipients, creation_motive)
+                register_action(user_email, 'Requests', 'El usuario {} ha creado la peticion {} de forma correcta'.format(user_email, p.id), background=background_tasks)
+                p.delete()
+                return JSONResponse(status_code=201, content={'detail': 'Created'})
+            else:
+                register_action(user_email, 'Requests', 'El usuario {} ha intenado crear una peticion con un estado no valido: {}'.format(user_email, p.metadata.status), background=background_tasks)
+                return JSONResponse(status_code=422, content={'detail': 'Invalid status'})
         else:
-            register_action(user_email, 'Requests', 'El usuario {} ha intenado crear una peticion sin autorizacion'.format(
-                user_email), background=background_tasks)
-            raise HTTPException(status_code=403, detail='Forbidden')
+            register_action(user_email, 'Requests', 'El usuario {} ha intenado crear una peticion sin autorizacion'.format(user_email), background=background_tasks)
+        return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
     else:
-        register_action(user_email, 'Requests', 'El usuario {} ha intenado crear una peticion, pero no existe'.format(
-            user_email), background=background_tasks)
-        raise HTTPException(
-            status_code=404, detail='User {} not found'.format(user_email))
+        register_action(user_email, 'Requests', 'El usuario {} ha intenado crear una peticion, pero no existe'.format(user_email), background=background_tasks)
+        return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
+
+#             y = OTU.objects(oid=body.get('otu', {}).get('oid')).only('id').first()
+#             x = Project.objects(metadata__version='base', metadata__status='NEW').only('id').first()
+#             print(y)
+#             print(x)
+#             if y:
+#                 y.delete()
+#             if x:
+#                 x.delete()
 
 #    a_user = "Camilo"
 #    email = "darkcamx@gmail.com"
