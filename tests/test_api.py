@@ -1,7 +1,7 @@
 import os
 
-os.environ['mongo_db'] = 'http'
-os.environ['mongo_uri'] = 'http'
+os.environ['mongo_db'] = 'testing-db'
+os.environ['mongo_uri'] = 'mongodb://127.0.0.1'
 
 import unittest
 from fastapi_backend.app import main as production_main
@@ -23,4 +23,7 @@ class TestFastAPI(unittest.TestCase):
 
     def test_action_log_get_parametros_ok_user_no_existe(self):
         response = self.client.get('/actions_log?user_email=user@dominio.cl')
-        print(response)
+        # print(response)
+        # print(response.json())
+        assert response.status_code == 404
+        assert response.json()['detail'] == 'User user@dominio.cl not found'
