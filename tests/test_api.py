@@ -1,22 +1,26 @@
+import os
+
+os.environ['mongo_db'] = 'http'
+os.environ['mongo_uri'] = 'http'
+
 import unittest
-from fastapi_backend.app.main import app
+from fastapi_backend.app import main as production_main
 from fastapi.testclient import TestClient
-
-#app = FastAPI()
-#
-#
-#@app.get("/")
-#async def read_main():
-#    return {"msg": "Hello World"}
-
 
 class TestFastAPI(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestFastAPI, self).__init__(*args, **kwargs)
-        self.client = TestClient(app)
+        self.client = TestClient(production_main.app)
 
-    def test_api_get_root(self):
+    def test_api_get_404_root(self):
         response = self.client.get("/")
-        assert response.status_code == 200
-        assert response.json() == {"msg": "Hello World"}
+        assert response.status_code == 404
+
+    def test_action_log_get_faltan_parametros(self):
+        response = self.client.get('/actions_log')
+        assert response.status_code == 422
+
+    def test_action_log_get_parametros_ok_user_no_existe(self):
+        response = self.client.get('/actions_log?user_email=user@dominio.cl')
+        print(response)
