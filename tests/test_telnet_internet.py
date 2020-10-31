@@ -7,6 +7,7 @@ class TestTelnetExecutorInternet(unittest.TestCase):
         self.executor = TelnetCommandExecutor('telehack.com')
 
     def test_cowsay_session(self):
+        self.skipTest('Ignored')
         self.executor.reset()
         self.executor.read_lines()
         self.executor.command('cowsay', 'cowsay Works!')
@@ -21,6 +22,7 @@ class TestTelnetExecutorInternet(unittest.TestCase):
         self.assertEqual('>', results['cowsay'][0][-1])
 
     def test_start_and_exit_session(self):
+        self.skipTest('Ignored')
         self.executor.reset()
         self.executor.command('end-session', 'exit')
         self.executor.run()
