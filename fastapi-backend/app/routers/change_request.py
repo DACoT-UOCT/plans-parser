@@ -46,6 +46,7 @@ async def create_petition(background_tasks: BackgroundTasks, user_email: EmailSt
     if user:
         if user.is_admin:  # Should be admin?
             body = await request.json()
+            print(json.dumps(body, indent='\t'))
             p = Project.from_json(json.dumps(body))
             obs_comment = Comment(author=user, message=body['observations'])
             p.observations = [obs_comment]
@@ -64,7 +65,7 @@ async def create_petition(background_tasks: BackgroundTasks, user_email: EmailSt
                     return JSONResponse(status_code=422, content={'detail': str(err)})
                 background_tasks.add_task(send_notification_mail, background_tasks, creation_recipients, creation_motive)
                 register_action(user_email, 'Requests', 'El usuario {} ha creado la peticion {} de forma correcta'.format(user_email, p.id), background=background_tasks)
-                # p.delete()
+                p.delete()
                 return JSONResponse(status_code=201, content={'detail': 'Created'})
             else:
                 register_action(user_email, 'Requests', 'El usuario {} ha intenado crear una peticion con un estado no valido: {}'.format(user_email, p.metadata.status), background=background_tasks)
