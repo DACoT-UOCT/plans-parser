@@ -15,24 +15,23 @@ async def create_user(request: Request ,user_email: EmailStr,background_tasks: B
     if user:
         if user.is_admin:  
             body = await request.json()
-            print(body)
             new_user = User.from_json(json.dumps(body))
             #if new_user.is_admin == "False":
             #    new_user.is_admin = False
             #else:
             #    new_user.is_admin = True
-            print(new_user.is_admin)
-            print(type(new_user.is_admin))
             if "company" in body.keys():
-                company = json.loads(body["company"])#["name"]
-                print(type(body["company"]))
-                #company = ExternalCompany.objects(name=company).first()
-                #new_user.company = company
+                company = body["company"]["name"]
+                company = ExternalCompany.objects(name=company).first()
+                new_user.company = company
             try:
                 new_user.validate()
             except ValidationError as err:
                 raise HTTPException(status_code=422, detail=str(err))
-            new_user = new_user.save()
+            try:
+                new_user = new_user.save()
+            except NotUniqueError as err:
+                raise HTTPException(status_code=422, detail=str(err))
             register_action(user_email, 'Users', 'El usuario {} ha creado un usuario forma correcta'.format(
                 user_email), background=background_tasks)
         else:
@@ -84,21 +83,15 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_emai
             edit_user = User.objects(email=edited_user).first()
             body = await request.json()
             if edit_user:
-                company = ExternalCompany.objects(email=body["company"])
-                if company:    
-                    #edit_user.update(**body) # si no funciona pasar body a diccionario
-                    edit_user.is_admin = body["is_admin"]
-                    edit_user.full_name = body["full_name"]
-                    edit_user.rol = body["rol"]
-                    edit_user.area = body["area"]
-                    edit_user.company = company
-                    register_action(user_email, 'Users', 'El usuario {} ha editado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)
-                else:
-                    edit_user.is_admin = body["is_admin"]
-                    edit_user.full_name = body["full_name"]
-                    edit_user.rol = body["rol"]
-                    edit_user.area = body["area"]
-                    register_action(user_email, 'Users', 'El usuario {} ha editado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)
+                if "company" in body.keys():
+                    company = ExternalCompany.objects(name=body["company"]["name"]).first()
+                    edit_user.update(set__company=company) 
+                edit_user.is_admin = body["is_admin"]
+                edit_user.full_name = body["full_name"]
+                edit_user.rol = body["rol"]
+                edit_user.area = body["area"]
+                edit_user.save()
+                register_action(user_email, 'Users', 'El usuario {} ha editado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)
             else:
                 register_action(user_email, 'Users', 'El usuario {} ha intenado editar un usuario que no existe'.format(
                 user_email), background=background_tasks)
@@ -116,15 +109,15 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_emai
             status_code=404, detail='User {} not found'.format(user_email))
     
 
-@router.delete('/delete-user/{edited_user}',tags=["users"],status_code=204)
-async def delete_user(background_tasks: BackgroundTasks,edited_user: str,user_email: EmailStr):
+@router.delete('/delete-user/{edited_user}',tags=["users"],status_code=200)
+async def delete_user(background_tasks: BackgroundTasks,edited_user: EmailStr,user_email: EmailStr):
     user = User.objects(email= user_email).first()
     if user:
         if user.is_admin:
             edit_user = User.objects(email=edited_user).first()
             if edit_user:
                 edit_user.delete()
-                register_action(user, 'Users', 'El usuario {} ha eliminado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)
+                register_action(user_email, 'Users', 'El usuario {} ha eliminado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)
             else:
                 register_action(user_email, 'Users', 'El usuario {} ha intenado eliminar a un usuario que no existe'.format(
                 user_email), background=background_tasks)
@@ -138,6 +131,7 @@ async def delete_user(background_tasks: BackgroundTasks,edited_user: str,user_em
         register_action(user_email, 'Users', 'El usuario {} ha intenado editar a un usuario, pero no existe'.format(
             user_email), background=background_tasks)
         raise HTTPException(status_code=404, detail="User {} not found".format(user_email),headers={"X-Error": "Usuario no encontrado"},)
+    return {}
         
     
     
