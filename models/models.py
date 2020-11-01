@@ -179,10 +179,10 @@ class ChangeSet(Document):
 
 class ActionsLog(Document):
     meta = {'collection': 'ActionsLog'}
-    user = StringField(max_length=200, required=True)
-    context = StringField(max_length=200, required=True)
-    action = StringField(max_length=200, required=True)
-    origin = StringField(max_length=200, required=True)
+    user = StringField(max_length=120, required=True)
+    context = StringField(max_length=120, required=True)
+    action = StringField(required=True)
+    origin = StringField(max_length=120, required=True)
     date = DateTimeField(default=datetime.now)
 
 class Project(Document):
