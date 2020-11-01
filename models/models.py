@@ -6,6 +6,9 @@ from mongoengine import GenericReferenceField, DictField, BooleanField
 
 from datetime import datetime
 
+# TODO: Make index
+# TODO: Deletion flags (Cascade, DENY, etc)
+
 # Junction Model ====
 
 class JunctionPlanIntergreenValue(EmbeddedDocument):
@@ -31,7 +34,7 @@ class JunctionPlan(EmbeddedDocument):
 
 class JunctionMeta(EmbeddedDocument):
     location = PointField(required=True)
-    sales_id = IntField(min_value=0, required=True)
+    sales_id = IntField(min_value=0, required=True) # This field cannot be unique, the hash function collides in f(J001121) and f(J001122)!!
     address_reference = StringField()
 
 class Junction(Document):
