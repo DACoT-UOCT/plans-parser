@@ -210,7 +210,8 @@ class ActionsLog(Document):
 class Project(Document):
     meta = {'collection': 'Project'}
     metadata = EmbeddedDocumentField(ProjectMeta, required=True)
-    otu = ReferenceField(OTU, required=True, unique_with='metadata.version')
+    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
+    otu = ReferenceField(OTU, required=True)
     controller = EmbeddedDocumentField(Controller)
     headers = EmbeddedDocumentListField(HeaderItem) # PDF
     ups = EmbeddedDocumentField(UPS) # PDF
@@ -225,6 +226,7 @@ class Project(Document):
                     saved_juncs = Junction._get_collection().insert_many([x.to_mongo() for x in self.otu.junctions], session=sess)
                     self.otu.junctions = saved_juncs.inserted_ids
                     saved_otu = OTU._get_collection().insert_one(self.otu.to_mongo(), session=sess)
+                    self.oid = self.otu.oid
                     self.otu = saved_otu.inserted_id
                     Project._get_collection().insert_one(self.to_mongo(), session=sess)
                     self.validate()

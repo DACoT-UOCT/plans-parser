@@ -281,7 +281,7 @@ def build_projects(csv_index):
     for s in fast_validate_and_insert(otus.values(), OTU, replace=True):
         otus[s.oid] = s
     for oid in otus:
-        p = Project(metadata=metas.get(oid), otu=otus.get(oid))
+        p = Project(metadata=metas.get(oid), otu=otus.get(oid), oid=oid)
         p.controller = Controller()
         if oid in otu_cmodels:
             p.controller.model = otu_cmodels[oid]
