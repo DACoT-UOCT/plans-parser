@@ -6,11 +6,16 @@ from pydantic import EmailStr, BaseModel
 from typing import List
 from mongoengine.errors import ValidationError
 import json
-from ..models import User, Project, Comment, OTU
+from ..models import User, Project, Comment, OTU, FileField, Commune, Junction, DACoTBackendException
+from ..models import ControllerModel, ExternalCompany
 from .actions_log import register_action
 from ..config import get_settings
 import json
 from mongoengine.errors import ValidationError, NotUniqueError
+from pymongo.errors import DuplicateKeyError
+import base64
+import magic
+import datetime
 
 router = APIRouter()
 
@@ -23,6 +28,10 @@ creation_motive = 'Se ha creado una solicitud de instalacion.\nRevisar lo más p
 
 creation_recipients = ['cponce@alumnos.inf.utfsm.cl']
 
+STATUS_OK = 'El usuario {} ha creado la peticion {} de forma correcta'
+STATUS_FORBIDDEN = 'El usuario {} ha intenado crear una peticion sin autorizacion'
+STATUS_ERROR = 'El usuario {} no ha logrado crear una peticion: {}'
+STATUS_USER_NOT_FOUND = 'El usuario {} ha intenado crear una peticion, pero no existe'
 
 def send_notification_mail(bg, recipients, motive, attachment=None):
     message = MessageSchema(
@@ -40,84 +49,87 @@ def send_notification_mail(bg, recipients, motive, attachment=None):
     else:
         register_action('backend', 'Requests', 'No hemos enviado ninguna notificacion, debido a que los emails estan desactivados', background=bg)
 
+def __base64file_to_bytes(base64data):
+    _, filedata = base64data.split(',')
+    try:
+        b64bytes = base64.b64decode(filedata)
+    except Exception as excep:
+        return False, str(excep)
+    mime = magic.from_buffer(b64bytes[0:2048], mime=True)
+    if mime in ['image/jpeg', 'application/pdf']:
+        return b64bytes, mime
+    else:
+        return False, 'Invalid content-type of file data: {}'.format(mime)
+
+def __build_otu_from_dict(otu_dict):
+    junc_objs = []
+    for junc in otu_dict['junctions']:
+        new_obj = Junction.from_json(json.dumps(junc))
+        new_obj.metadata.sales_id = round((int(junc['jid'][1:]) * 11) / 13.0)
+        new_obj.metadata.location = (0, 0) # FIXME: Get this value from frontend
+        new_obj.validate()
+        junc_objs.append(new_obj)
+    del otu_dict['junctions']
+    otu_obj = OTU.from_json(json.dumps(otu_dict))
+    otu_obj.junctions = junc_objs
+    return otu_obj
+
+def __build_new_project(req_dict, user, bgtask):
+    p = Project.from_json(json.dumps(req_dict))
+    p.metadata.status_date = datetime.datetime.now()
+    p.metadata.status_user = user
+    if user.rol == 'Empresa':
+        p.metadata.maintainer = user.company
+    #; p.metadata.commune = Commune.objects(name=p['metadata']['commune'].upper()).first() # FIXME: ValidationError (Project:None) (commune.StringField only accepts string values: ['metadata'])
+    obs_comment = Comment(author=user, message=req_dict['observations'])
+    p.observations = [obs_comment]
+    p.metadata.img = None
+    p.metadata.pdf_data = None
+    file_bytes_img, type_or_err_img = __base64file_to_bytes(req_dict['metadata']['img'])
+    if not file_bytes_img:
+        register_action(user.email, 'Requests', STATUS_ERROR.format(user.email, type_or_err_img), background=bgtask)
+        raise DACoTBackendException(status_code=422, details='Img: {}'.format(str(type_or_err_img)))
+    file_bytes_pdf, type_or_err_pdf = __base64file_to_bytes(req_dict['metadata']['pdf_data'])
+    if not file_bytes_pdf:
+        register_action(user.email, 'Requests', STATUS_ERROR.format(user.email, type_or_err_pdf), background=bgtask)
+        raise DACoTBackendException(status_code=422, details='PDF: {}'.format(str(type_or_err_pdf)))
+    p.otu = __build_otu_from_dict(req_dict['otu'])
+    ctrl_model_dict = req_dict['controller']['model']
+    p.controller.model = ControllerModel.objects(
+        company=ExternalCompany.objects(name=ctrl_model_dict['company']['name']).first(),
+        model=ctrl_model_dict['model'],
+        firmware_version=ctrl_model_dict['firmware_version'],
+        checksum=ctrl_model_dict['checksum'],
+        date=datetime.datetime.fromtimestamp(ctrl_model_dict['date']['$date'] / 1000)
+    ).first()
+    if not p.controller.model:
+        raise DACoTBackendException(status_code=422, details='Controller model not found: {}'.format(ctrl_model_dict))
+    return p, {'img': (file_bytes_img, type_or_err_img), 'pdf': (file_bytes_pdf, type_or_err_pdf)}
+
 @router.post("/requests", status_code=201)
-async def create_petition(background_tasks: BackgroundTasks, user_email: EmailStr, request: Request):
+async def create_petition(bgtask: BackgroundTasks, user_email: EmailStr, request: Request):
     user = User.objects(email=user_email).first()
     if user:
-        if user.is_admin:  # Should be admin?
+        if user.is_admin or user.rol == 'Empresa':
             body = await request.json()
-            print(json.dumps(body, indent='\t'))
-            p = Project.from_json(json.dumps(body))
-            obs_comment = Comment(author=user, message=body['observations'])
-            p.observations = [obs_comment]
-            p.metadata.img = None
-            p.metadata.pdf_data = None
-            if p.metadata.status == 'NEW':
+            if body['metadata']['status'] == 'NEW':
                 try:
-                    p.validate()
-                    p = p.save()
-                except NotUniqueError as err:
-                    detail = str(err).split(' dup key:')[0].replace('(', '')
-                    register_action(user_email, 'Requests', 'El usuario {} no ha logrado crear una peticion: {}'.format(user_email, detail), background=background_tasks)
-                    return JSONResponse(status_code=422, content={'detail': str(err)})
-                except Exception as err:
-                    register_action(user_email, 'Requests', 'El usuario {} no ha logrado crear una peticion: {}'.format(user_email, err), background=background_tasks)
-                    return JSONResponse(status_code=422, content={'detail': str(err)})
-                background_tasks.add_task(send_notification_mail, background_tasks, creation_recipients, creation_motive)
-                register_action(user_email, 'Requests', 'El usuario {} ha creado la peticion {} de forma correcta'.format(user_email, p.id), background=background_tasks)
-                p.delete()
-                return JSONResponse(status_code=201, content={'detail': 'Created'})
-            else:
-                register_action(user_email, 'Requests', 'El usuario {} ha intenado crear una peticion con un estado no valido: {}'.format(user_email, p.metadata.status), background=background_tasks)
-                return JSONResponse(status_code=422, content={'detail': 'Invalid status'})
+                    new_project, files = __build_new_project(body, user, bgtask)
+                    new_project.save_with_transaction()
+                    new_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
+                    new_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
+                except DACoTBackendException as err:
+                    register_action(user.email, 'Requests', STATUS_ERROR.format(user.email, err), background=bgtask)
+                    return JSONResponse(status_code=err.get_status(), content={'detail': err.get_details()})
+                else:
+                    register_action(user.email, 'Requests', STATUS_OK.format(user.email, new_project.id), background=bgtask)
+                    return JSONResponse(status_code=201, content={'detail': 'Created'})
         else:
-            register_action(user_email, 'Requests', 'El usuario {} ha intenado crear una peticion sin autorizacion'.format(user_email), background=background_tasks)
-        return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
+            register_action(user_email, 'Requests', STATUS_FORBIDDEN.format(user_email), background=bgtask)
+            return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
     else:
-        register_action(user_email, 'Requests', 'El usuario {} ha intenado crear una peticion, pero no existe'.format(user_email), background=background_tasks)
+        register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
-
-#             y = OTU.objects(oid=body.get('otu', {}).get('oid')).only('id').first()
-#             x = Project.objects(metadata__version='base', metadata__status='NEW').only('id').first()
-#             print(y)
-#             print(x)
-#             if y:
-#                 y.delete()
-#             if x:
-#                 x.delete()
-
-#    a_user = "Camilo"
-#    email = "darkcamx@gmail.com"
-#    motivo = "e"
-#    #background_tasks.add_task(register_action,a_user,context= "POST",component= "Sistema", origin="web")
-#    #mongoRequest = models.Request.from_json(json.dumps(json.loads(request)))
-#    #mongoRequest = models.Request.from_json(json.dumps(request))
-#    #mongoRequest = (json.loads(request))['otu']
-#    otu_seq = []
-#    request_data = json.loads(request)
-#    for seq in request_data['secuencias']:
-#        otu_seq.extend([json.loads(models.OTUSequenceItem(
-#            seqid=seqid).to_json()) for seqid in seq])
-#    print(otu_seq)
-#    request_data['secuencias'] = otu_seq
-#    request_data['metadata']['status_date'] = {
-#        "$date": request_data['metadata']['status_date']}
-#    request_data['metadata']['installation_date'] = {
-#        "$date": request_data['metadata']['installation_date']}
-#    mongoRequest = models.Request.from_json(json.dumps(request_data))
-#    # print(json.loads(request)['data'])
-#    # print(type(file))
-#    print(file)
-#    try:
-#        mongoRequest.validate()
-#    except ValidationError as error:
-#        return error
-#    try:
-#        mongoRequest.save()
-#    except NotUniqueError:
-#        raise HTTPException(status_code=409, detail="Duplicated Item", headers={
-#                            "X-Error": "There goes my error"},)
-#
 
 
 # @router.put('/accept-request/{id}', tags=["requests"], status_code=204)
