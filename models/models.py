@@ -4,12 +4,34 @@ from mongoengine import Document, PointField, StringField, ListField, DateTimeFi
 from mongoengine import EmbeddedDocumentField, EmailField, FileField, LongField, ReferenceField
 from mongoengine import GenericReferenceField, DictField, BooleanField
 
+from mongoengine import get_connection
+
+from mongoengine.errors import ValidationError, NotUniqueError
+from pymongo.errors import DuplicateKeyError
+
 from datetime import datetime
 
 # TODO: Make index
 # TODO: Deletion flags (Cascade, DENY, etc)
 
 # Junction Model ====
+
+class DACoTBackendException(Exception):
+    def __init__(self, status_code=500, details='Internal Server Error'):
+        self._code = status_code
+        self._detail = details
+
+    def __str__(self):
+        return "{}: status_code={} details='{}'".format(self.__class__.__name__, self._code, self._detail)
+
+    def __repr__(self):
+        return "{} (status_code={}, details={})".format(self.__class__.__name__, self._code, self._detail)
+
+    def get_status(self):
+        return self._code
+
+    def get_details(self):
+        return self._detail
 
 class JunctionPlanIntergreenValue(EmbeddedDocument):
     phfrom = IntField(min_value=1, required=True)
@@ -194,3 +216,18 @@ class Project(Document):
     ups = EmbeddedDocumentField(UPS) # PDF
     poles = EmbeddedDocumentField(Poles) # PDF
     observations = EmbeddedDocumentListField(Comment) # PDF
+
+    # BUG: mongoengine still don't support ACID-Transactions. See https://github.com/MongoEngine/mongoengine/issues/1839
+    def save_with_transaction(self):
+        try:
+            with get_connection().start_session() as sess:
+                with sess.start_transaction():
+                    saved_juncs = Junction._get_collection().insert_many([x.to_mongo() for x in self.otu.junctions], session=sess)
+                    self.otu.junctions = saved_juncs.inserted_ids
+                    saved_otu = OTU._get_collection().insert_one(self.otu.to_mongo(), session=sess)
+                    self.otu = saved_otu.inserted_id
+                    Project._get_collection().insert_one(self.to_mongo(), session=sess)
+                    self.validate()
+        except (NotUniqueError, DuplicateKeyError, ValidationError) as err:
+            raise DACoTBackendException(status_code=422, details='Error at Project.save_with_transaction: {}'.format(err))
+        return self
