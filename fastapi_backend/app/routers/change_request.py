@@ -107,7 +107,7 @@ def __build_new_project(req_dict, user, bgtask):
     return p, {'img': (file_bytes_img, type_or_err_img), 'pdf': (file_bytes_pdf, type_or_err_pdf)}
 
 @router.post("/requests", status_code=201)
-async def create_petition(bgtask: BackgroundTasks, user_email: EmailStr, request: Request):
+async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Empresa':
@@ -123,7 +123,32 @@ async def create_petition(bgtask: BackgroundTasks, user_email: EmailStr, request
                     return JSONResponse(status_code=err.get_status(), content={'detail': err.get_details()})
                 else:
                     register_action(user.email, 'Requests', STATUS_OK.format(user.email, new_project.id), background=bgtask)
+                    # TODO: Send email
                     return JSONResponse(status_code=201, content={'detail': 'Created'})
+        else:
+            register_action(user_email, 'Requests', STATUS_FORBIDDEN.format(user_email), background=bgtask)
+            return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
+    else:
+        register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
+        return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
+
+@router.get('/requests')
+async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr):
+    user = User.objects(email=user_email).first()
+    if user:
+        if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
+            if user.rol == 'Empresa':
+                requests = Project.objects(metadata__status__in=['NEW', 'UPDATE'], metadata__status_user=user).only('oid', 'metadata.status').exclude('id')
+            else:
+                requests = Project.objects(metadata__status__in=['NEW', 'UPDATE', 'APPROVED']).only('oid', 'metadata.status').exclude('id')
+            requests = [r.to_mongo().to_dict() for r in requests]
+            # BUG: mongoengine returns default fields when using `only`. See https://github.com/MongoEngine/mongoengine/issues/2030
+            for r in requests:
+                r.pop('headers')
+                r.pop('observations') # FIXME: Is this ok? check with frontend.
+                r['metadata'].pop('status_date')
+                r['metadata'].pop('region')
+            return JSONResponse(status_code=200, content=requests)
         else:
             register_action(user_email, 'Requests', STATUS_FORBIDDEN.format(user_email), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
@@ -206,27 +231,7 @@ async def create_petition(bgtask: BackgroundTasks, user_email: EmailStr, request
 #     return [{"username": "Foo"}, {"username": "Bar"}]
 # 
 # 
-# @router.get('/request', tags=["requests"])
-# async def read_otu(background_tasks: BackgroundTasks, user: EmailStr):
-#     a_user = "Camilo"
-#     request_list = []
-#     user_f = models.UOCTUser.objects(email=user).first()
-#     if user_f == None:
-#         raise HTTPException(status_code=404, detail="User not found", headers={
-#                             "X-Error": "Usuario no encontrado"},)
-#         return
-#     # 'Empresa', 'Personal UOCT
-#     print(user_f.rol)
-#     if user_f.rol == 'Empresa':
-#         for request in models.Request.objects(metadata__status__in=["NEW", "UPDATE", "APPROVED"], metadata__status_user=user).only('oid', 'metadata.status'):
-#             request_list.append(json.loads(request.to_json()))
-#     else:
-#         for request in models.Request.objects(metadata__status__in=["NEW", "UPDATE"]).only('oid', 'metadata.status'):
-#             request_list.append(json.loads(request.to_json()))
-#     # print(requestdb.to_json()) # NEW , UPDATE
-#     background_tasks.add_task(
-#         register_action, user, context="Request NEW and UPDATE OTUs", component="Sistema", origin="web")
-#     return request_list
+
 # 
 # 
 # @router.get('/request/{id}', tags=["requests"])
