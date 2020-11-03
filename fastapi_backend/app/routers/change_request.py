@@ -28,10 +28,10 @@ creation_motive = 'Se ha creado una solicitud de instalacion.\nRevisar lo más p
 
 creation_recipients = ['cponce@alumnos.inf.utfsm.cl']
 
-STATUS_OK = 'El usuario {} ha creado la peticion {} de forma correcta'
-STATUS_FORBIDDEN = 'El usuario {} ha intenado crear una peticion sin autorizacion'
-STATUS_ERROR = 'El usuario {} no ha logrado crear una peticion: {}'
-STATUS_USER_NOT_FOUND = 'El usuario {} ha intenado crear una peticion, pero no existe'
+STATUS_CREATE_OK = 'El usuario {} ha creado la peticion {} de forma correcta'
+STATUS_CREATE_FORBIDDEN = 'El usuario {} ha intenado crear una peticion sin autorizacion'
+STATUS_CREATE_ERROR = 'El usuario {} no ha logrado crear una peticion: {}'
+STATUS_USER_NOT_FOUND = 'El usuario {} no existe'
 
 def send_notification_mail(bg, recipients, motive, attachment=None):
     message = MessageSchema(
@@ -87,11 +87,11 @@ def __build_new_project(req_dict, user, bgtask):
     p.metadata.pdf_data = None
     file_bytes_img, type_or_err_img = __base64file_to_bytes(req_dict['metadata']['img'])
     if not file_bytes_img:
-        register_action(user.email, 'Requests', STATUS_ERROR.format(user.email, type_or_err_img), background=bgtask)
+        register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, type_or_err_img), background=bgtask)
         raise DACoTBackendException(status_code=422, details='Img: {}'.format(str(type_or_err_img)))
     file_bytes_pdf, type_or_err_pdf = __base64file_to_bytes(req_dict['metadata']['pdf_data'])
     if not file_bytes_pdf:
-        register_action(user.email, 'Requests', STATUS_ERROR.format(user.email, type_or_err_pdf), background=bgtask)
+        register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, type_or_err_pdf), background=bgtask)
         raise DACoTBackendException(status_code=422, details='PDF: {}'.format(str(type_or_err_pdf)))
     p.otu = __build_otu_from_dict(req_dict['otu'])
     ctrl_model_dict = req_dict['controller']['model']
@@ -116,17 +116,17 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                 try:
                     new_project, files = __build_new_project(body, user, bgtask)
                     new_project.save_with_transaction()
-                    new_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
+                    new_project.metadata.img.put(files['img'][0], content_type=files['img'][1]) # TODO: Optimization = Search for md5 instead of re-inserting file
                     new_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
                 except DACoTBackendException as err:
-                    register_action(user.email, 'Requests', STATUS_ERROR.format(user.email, err), background=bgtask)
+                    register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, err), background=bgtask)
                     return JSONResponse(status_code=err.get_status(), content={'detail': err.get_details()})
                 else:
-                    register_action(user.email, 'Requests', STATUS_OK.format(user.email, new_project.id), background=bgtask)
+                    register_action(user.email, 'Requests', STATUS_CREATE_OK.format(user.email, new_project.id), background=bgtask)
                     # TODO: Send email
                     return JSONResponse(status_code=201, content={'detail': 'Created'})
         else:
-            register_action(user_email, 'Requests', STATUS_FORBIDDEN.format(user_email), background=bgtask)
+            register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
     else:
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
@@ -150,11 +150,58 @@ async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr):
                 r['metadata'].pop('region')
             return JSONResponse(status_code=200, content=requests)
         else:
-            register_action(user_email, 'Requests', STATUS_FORBIDDEN.format(user_email), background=bgtask)
+            register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
     else:
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
+
+@router.get('/requests/{id}')
+async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id: str):
+    user = User.objects(email=user_email).first()
+    if user:
+        if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
+            request = Project.objects(metadata__status__in=['NEW', 'UPDATE', 'APPROVED'], oid=id).exclude('id', 'metadata.pdf_data').first()
+            request.select_related()
+            defer = request.to_mongo()
+            defer['metadata']['status_user'] = request.metadata.status_user.to_mongo()
+            del defer['metadata']['status_user']['_id']
+            if 'company' in defer['metadata']['status_user']:
+                defer['metadata']['status_user']['company'] = request.metadata.status_user.company.to_mongo()
+                del defer['metadata']['status_user']['company']['_id']
+            defer['metadata']['maintainer'] = request.metadata.maintainer.to_mongo()
+            del defer['metadata']['maintainer']['_id']
+            defer['otu'] = request.otu.to_mongo()
+            del defer['otu']['_id']
+            defer['controller']['model'] = request.controller.model.to_mongo()
+            del defer['controller']['model']['_id']
+            if 'company' in defer['controller']['model']:
+                defer['controller']['model']['company'] = request.controller.model.company.to_mongo()
+                del defer['controller']['model']['company']['_id']
+            for idx, obs in enumerate(defer['observations']):
+                obs['author'] = request.observations[idx].author.to_mongo()
+                if 'company' in obs['author']:
+                    obs['author']['company'] = request.observations[idx].author.company.to_mongo()
+                    del obs['author']['company']['_id']
+                del obs['author']['_id']
+            for idx, _ in enumerate(defer['otu']['junctions']):
+                defer['otu']['junctions'] = request.otu.junctions[idx].to_mongo()
+                del defer['otu']['junctions']['_id']
+            return defer.to_dict()
+        else:
+            register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
+            return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
+    else:
+        register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
+        return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
+
+@router.get('/requests/{id}/accept')
+async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id: str):
+    return JSONResponse(status_code=200, content={})
+
+@router.get('/requests/{id}/reject')
+async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id: str):
+    return JSONResponse(status_code=200, content={})
 
 
 # @router.put('/accept-request/{id}', tags=["requests"], status_code=204)
