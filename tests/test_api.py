@@ -1,7 +1,7 @@
 import os
 
 os.environ['mongo_db'] = 'testing-db'
-os.environ['mongo_uri'] = 'mongodb://127.0.0.1'
+os.environ['mongo_uri'] = 'mongomock://127.0.0.1'
 
 import unittest
 from fastapi_backend.app import main as production_main
