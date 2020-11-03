@@ -2,7 +2,6 @@ from fastapi import APIRouter, Body, Path, HTTPException, BackgroundTasks
 from flask_mongoengine import MongoEngine
 from pydantic import BaseModel, EmailStr
 from mongoengine import EmailField
-from flask_mongoengine.wtf import model_form
 from ..models import OTU
 from .actions_log import register_action
 import json
