@@ -192,6 +192,13 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id:
             for idx, _ in enumerate(defer['otu']['junctions']):
                 defer['otu']['junctions'][idx] = request.otu.junctions[idx].to_mongo()
                 del defer['otu']['junctions'][idx]['_id']
+            # Why? Who knows
+            defer['metadata']['status_date'] = {
+                '$date': int(defer['metadata']['status_date'].timestamp() * 1000)
+            }
+            defer['metadata']['installation_date'] = {
+                '$date': int(defer['metadata']['installation_date'].timestamp() * 1000)
+            }
             return defer.to_dict()
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
