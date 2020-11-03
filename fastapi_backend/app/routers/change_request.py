@@ -121,7 +121,8 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                 try:
                     new_project, files = __build_new_project(body, user, bgtask)
                     new_project.save_with_transaction()
-                    new_project.metadata.img.put(files['img'][0], content_type=files['img'][1]) # TODO: Optimization = Search for md5 instead of re-inserting file
+                    # TODO: Optimization = Search for md5 instead of re-inserting file
+                    new_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     new_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
                 except DACoTBackendException as err:
                     register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, err), background=bgtask)
@@ -199,6 +200,7 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id:
             defer['metadata']['installation_date'] = {
                 '$date': int(defer['metadata']['installation_date'].timestamp() * 1000)
             }
+            defer['observations'] = defer['observations'][0]['message']
             return defer.to_dict()
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
