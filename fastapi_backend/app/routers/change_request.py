@@ -78,8 +78,9 @@ def __build_new_project(req_dict, user, bgtask):
     p = Project.from_json(json.dumps(req_dict)) # FIXME: try/catch for invalid json
     p.metadata.status_date = datetime.datetime.now()
     p.metadata.status_user = user
-    if user.rol == 'Empresa':
-        p.metadata.maintainer = user.company
+    p.metadata.maintainer = ExternalCompany.objects(name=req_dict['metadata']['maintainer']).first()
+    if not p.metadata.maintainer:
+        raise DACoTBackendException(status_code=422, details='ExternalCompany not found: {}'.format(req_dict['metadata']['maintainer']))
     #; p.metadata.commune = Commune.objects(name=p['metadata']['commune'].upper()).first() # FIXME: ValidationError (Project:None) (commune.StringField only accepts string values: ['metadata'])
     obs_comment = Comment(author=user, message=req_dict['observations'])
     p.observations = [obs_comment]
