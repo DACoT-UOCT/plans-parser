@@ -56,7 +56,7 @@ def __base64file_to_bytes(base64data):
     except Exception as excep:
         return False, str(excep)
     mime = magic.from_buffer(b64bytes[0:2048], mime=True)
-    if mime in ['image/jpeg', 'application/pdf']:
+    if mime in ['image/jpeg', 'image/png', 'application/pdf']:
         return b64bytes, mime
     else:
         return False, 'Invalid content-type of file data: {}'.format(mime)
