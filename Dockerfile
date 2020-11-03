@@ -1,11 +1,11 @@
-from tiangolo/uvicorn-gunicorn-fastapi:python3.8-slim-2020-06-06
-run apt update && apt install -y libmagic1 && rm -rf /var/lib/apt/lists/*
-run python -m pip install --upgrade pip
-copy requirements.txt requirements.txt
-run python -m pip install -r requirements.txt
-copy fastapi_backend/app /app
-copy models /app/models
-copy run-api.sh /run-api.sh
-expose 8080
-workdir /
-entrypoint /bin/bash /run-api.sh
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8-slim-2020-06-06
+RUN apt update && apt install -y libmagic1 && rm -rf /var/lib/apt/lists/*
+RUN python -m pip install --upgrade pip
+COPY requirements.txt requirements.txt
+RUN python -m pip install -r requirements.txt
+COPY fastapi_backend/app /app
+COPY models /app/models
+COPY run-api.sh /run-api.sh
+EXPOSE 8080
+WORKDIR /
+ENTRYPOINT /bin/bash /run-api.sh
