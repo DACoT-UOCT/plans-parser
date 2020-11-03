@@ -10,7 +10,6 @@ from ..models import User, Project, Comment, OTU, FileField, Commune, Junction, 
 from ..models import ControllerModel, ExternalCompany
 from .actions_log import register_action
 from ..config import get_settings
-import json
 from mongoengine.errors import ValidationError, NotUniqueError
 from pymongo.errors import DuplicateKeyError
 import base64
@@ -112,7 +111,10 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Empresa':
-            body = await request.json()
+            try:
+                body = await request.json()
+            except json.decoder.JSONDecodeError as err:
+                return JSONResponse(status_code=422, content={'detail': 'Invalid JSON document: {}'.format(err)})
             if body['metadata']['status'] == 'NEW':
                 try:
                     new_project, files = __build_new_project(body, user, bgtask)
