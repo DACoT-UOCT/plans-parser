@@ -228,7 +228,8 @@ class Project(Document):
                     saved_otu = OTU._get_collection().insert_one(self.otu.to_mongo(), session=sess)
                     self.oid = self.otu.oid
                     self.otu = saved_otu.inserted_id
-                    Project._get_collection().insert_one(self.to_mongo(), session=sess)
+                    saved_proj = Project._get_collection().insert_one(self.to_mongo(), session=sess)
+                    self['id'] = saved_proj.inserted_id
                     self.validate()
         except (NotUniqueError, DuplicateKeyError, ValidationError) as err:
             raise DACoTBackendException(status_code=422, details='Error at Project.save_with_transaction: {}'.format(err))
