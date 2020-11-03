@@ -161,7 +161,7 @@ async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr):
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.get('/requests/{id}')
+@router.get('/requests/{id}') # TODO: Fix date and image
 async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id: str):
     user = User.objects(email=user_email).first()
     if user:
@@ -190,8 +190,8 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id:
                     del obs['author']['company']['_id']
                 del obs['author']['_id']
             for idx, _ in enumerate(defer['otu']['junctions']):
-                defer['otu']['junctions'] = request.otu.junctions[idx].to_mongo()
-                del defer['otu']['junctions']['_id']
+                defer['otu']['junctions'][idx] = request.otu.junctions[idx].to_mongo()
+                del defer['otu']['junctions'][idx]['_id']
             return defer.to_dict()
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
