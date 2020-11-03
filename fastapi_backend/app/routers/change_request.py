@@ -75,7 +75,7 @@ def __build_otu_from_dict(otu_dict):
     return otu_obj
 
 def __build_new_project(req_dict, user, bgtask):
-    p = Project.from_json(json.dumps(req_dict))
+    p = Project.from_json(json.dumps(req_dict)) # FIXME: try/catch for invalid json
     p.metadata.status_date = datetime.datetime.now()
     p.metadata.status_user = user
     if user.rol == 'Empresa':
@@ -99,8 +99,8 @@ def __build_new_project(req_dict, user, bgtask):
         company=ExternalCompany.objects(name=ctrl_model_dict['company']['name']).first(),
         model=ctrl_model_dict['model'],
         firmware_version=ctrl_model_dict['firmware_version'],
-        checksum=ctrl_model_dict['checksum'],
-        date=datetime.datetime.fromtimestamp(ctrl_model_dict['date']['$date'] / 1000)
+        checksum=ctrl_model_dict['checksum']
+        # date=datetime.datetime.fromtimestamp(ctrl_model_dict['date']['$date'] / 1000)
     ).first()
     if not p.controller.model:
         raise DACoTBackendException(status_code=422, details='Controller model not found: {}'.format(ctrl_model_dict))
