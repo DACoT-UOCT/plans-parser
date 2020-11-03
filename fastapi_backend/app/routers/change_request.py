@@ -74,7 +74,10 @@ def __build_otu_from_dict(otu_dict):
     return otu_obj
 
 def __build_new_project(req_dict, user, bgtask):
-    p = Project.from_json(json.dumps(req_dict)) # FIXME: try/catch for invalid json
+    try:
+        p = Project.from_json(json.dumps(req_dict))
+    except Exception as err:
+        raise DACoTBackendException(status_code=422, details='Invalid JSON data for Project model: {}'.format(err))
     p.metadata.status_date = datetime.datetime.now()
     p.metadata.status_user = user
     p.metadata.maintainer = ExternalCompany.objects(name=req_dict['metadata']['maintainer']).first()
