@@ -195,12 +195,24 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id:
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.get('/requests/{id}/accept')
-async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id: str):
-    return JSONResponse(status_code=200, content={})
+# FIXME: Add image support to accept and reject
+@router.put('/requests/{id}/accept')
+async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id: str, request: Request):
+    user = User.objects(email=user_email).first()
+    if user:
+        if user.is_admin or user.rol == 'Personal UOCT':
+            body = await request.json()
+            print(body)
+            return JSONResponse(status_code=200, content={})
+        else:
+            register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
+            return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
+    else:
+        register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
+        return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.get('/requests/{id}/reject')
-async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id: str):
+@router.put('/requests/{id}/reject')
+async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id: str, request: Request):
     return JSONResponse(status_code=200, content={})
 
 
@@ -277,35 +289,4 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id:
 #         register_action, user, context="Reject Request", component="Sistema", origin="Web")
 #     return [{"username": "Foo"}, {"username": "Bar"}]
 # 
-# 
-
-# 
-# 
-# @router.get('/request/{id}', tags=["requests"])
-# async def read_otu(background_tasks: BackgroundTasks, id=str):
-#     otudb = models.Request.objects(oid=id)
-#     # print(otudb.to_json())
-#     if not otudb:
-#         raise HTTPException(status_code=404, detail="Item not found", headers={
-#                             "X-Error": "No Found"},)
-#     otuj = json.loads((otudb[0]).to_json())
-#     #maintainer = (json.loads((otudb[0]).metadata.to_json()))['maintainer']
-#     # print(maintainer)
-#     #status_user = json.loads((otudb[0]).metadata.status_user)
-#     #controller = json.loads((otudb[0]).metadata.controller)
-#     #company = json.loads((otudb[0]).metadata.controller.company)
-#     # if otudb[0].metadata.to_mongo()['maintainer'] != '':
-#     #otuj['metadata']['maintainer']= json.loads((otudb[0]).metadata.maintainer.to_json())
-#     # if otudb[0].metadata.to_mongo()['status_user'] != '':
-#     #   otuj['metadata']['status_user']= json.loads((otudb[0]).metadata.status_user.to_json())
-#     # if otudb[0].metadata.to_mongo()['controller'] != '':
-#     #otuj['metadata']['controller']= json.loads((otudb[0]).metadata.controller.to_json())
-#     # if otudb[0].metadata.controller.to_mongo()['controller'] != '':
-#     #otuj['metadata']['controller']['company']= json.loads((otudb[0]).metadata.controller.company.to_json())
-# 
-#     # for idx, junc in enumerate(otudb[0].junctions):
-#     #otuj['junctions'][idx] = json.loads(junc.to_json())
-# 
-#     #background_tasks.add_task(register_action,a_user,context= "Request OTU",component= "Sistema", origin="web")
-#     return otuj
 # 
