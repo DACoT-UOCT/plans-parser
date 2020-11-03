@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, FastAPI, UploadFile, File, Body, Query, HTTPException, BackgroundTasks, Form
+from fastapi import APIRouter, Request, FastAPI, UploadFile, File, Body, Query, HTTPException, BackgroundTasks, Form, Path
 from typing import Any, Dict
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -80,6 +80,8 @@ def __build_new_project(req_dict, user, bgtask):
         raise DACoTBackendException(status_code=422, details='Invalid JSON data for Project model: {}'.format(err))
     p.metadata.status_date = datetime.datetime.now()
     p.metadata.status_user = user
+    if user.rol == 'Empresa':
+        p.metadata.installation_company = user.company
     p.metadata.maintainer = ExternalCompany.objects(name=req_dict['metadata']['maintainer']).first()
     if not p.metadata.maintainer:
         raise DACoTBackendException(status_code=422, details='ExternalCompany not found: {}'.format(req_dict['metadata']['maintainer']))
@@ -145,9 +147,14 @@ async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr):
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
             if user.rol == 'Empresa':
-                requests = Project.objects(metadata__status__in=['NEW', 'UPDATE'], metadata__status_user=user).only('oid', 'metadata.status').exclude('id')
+                requests_by_maintainer = Project.objects(metadata__status__in=['NEW', 'UPDATE', 'APPROVED', 'REJECTED'], metadata__maintainer=user.company).only('oid', 'metadata.status').exclude('id')
+                requests_by_installation_user = Project.objects(metadata__status__in=['NEW', 'UPDATE', 'APPROVED', 'REJECTED'], metadata__installation_company=user.company).only('oid', 'metadata.status').exclude('id')
+                requests = dict()
+                for req in list(requests_by_maintainer) + list(requests_by_installation_user):
+                    requests[req.oid] = req
+                requests = requests.values()
             else:
-                requests = Project.objects(metadata__status__in=['NEW', 'UPDATE', 'APPROVED']).only('oid', 'metadata.status').exclude('id')
+                requests = Project.objects().only('oid', 'metadata.status').exclude('id') # TODO: Check this
             requests = [r.to_mongo().to_dict() for r in requests]
             # BUG: mongoengine returns default fields when using `only`. See https://github.com/MongoEngine/mongoengine/issues/2030
             for r in requests:
@@ -163,12 +170,12 @@ async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr):
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.get('/requests/{id}') # TODO: Fix date and image
-async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id: str):
+@router.get('/requests/{oid}') # TODO: Fix date and image
+async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
-            request = Project.objects(metadata__status__in=['NEW', 'UPDATE', 'APPROVED'], oid=id).exclude('id', 'metadata.pdf_data').first()
+            request = Project.objects(metadata__status__in=['NEW', 'UPDATE', 'APPROVED', 'REJECTED'], oid=oid).exclude('id', 'metadata.pdf_data').first()
             request.select_related()
             defer = request.to_mongo()
             defer['metadata']['status_user'] = request.metadata.status_user.to_mongo()
@@ -212,13 +219,13 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id:
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 # FIXME: Add image support to accept and reject
-@router.put('/requests/{id}/accept')
-async def accept_request(bgtask: BackgroundTasks, user_email: EmailStr, id: str, request: Request):
+@router.put('/requests/{oid}/accept')
+async def accept_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT':
             body = await request.json()
-            print(body)
+            # print(body) # {'comentario': 'hola po', 'file': 'base64', 'mails': ['sebalreves@gmail.com']}
             return JSONResponse(status_code=200, content={})
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
@@ -227,15 +234,19 @@ async def accept_request(bgtask: BackgroundTasks, user_email: EmailStr, id: str,
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.put('/requests/{id}/reject')
-async def reject_request(bgtask: BackgroundTasks, user_email: EmailStr, id: str, request: Request):
+@router.put('/requests/{oid}/reject')
+async def reject_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
     return JSONResponse(status_code=200, content={})
 
-@router.put('/requests/{id}/pdf')
-async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, id: str):
+@router.put('/requests/{oid}/pdf')
+async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
     return JSONResponse(status_code=200, content={})
 
-# @router.put('/accept-request/{id}', tags=["requests"], status_code=204)
+@router.put('/requests/{oid}/delete')
+async def delete_request(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+    return JSONResponse(status_code=200, content={})
+
+# @router.put('/accept-request/{oid}', tags=["requests"], status_code=204)
 # async def accept_petition(background_tasks: BackgroundTasks, user: EmailStr, file: List[UploadFile] = File(default=None), id=str, data: str = Form(...)):
 #     a_user = "cponce"
 #     email = json.loads(data)["mails"]
@@ -272,7 +283,7 @@ async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, id: str):
 #     return [{"username": "Foo"}, {"username": "Bar"}]
 # 
 # 
-# @router.put('/reject-request/{id}', tags=["requests"], status_code=204)
+# @router.put('/reject-request/{oid}', tags=["requests"], status_code=204)
 # async def reject_petition(background_tasks: BackgroundTasks, user: EmailStr, file: List[UploadFile] = File(default=None), id=str, data: str = Form(...)):
 #     a_user = "cponce"
 #     email = json.loads(data)["mails"]

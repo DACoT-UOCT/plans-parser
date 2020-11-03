@@ -121,6 +121,7 @@ class ProjectMeta(EmbeddedDocument):
     status_date = DateTimeField(default=datetime.utcnow, required=True)
     status_user = ReferenceField(User, required=True)
     installation_date = DateTimeField() # PDF
+    installation_company = ReferenceField(ExternalCompany)
     maintainer = ReferenceField(ExternalCompany)
     commune = StringField()
     region = StringField(default='Metropolitana', required=True)
