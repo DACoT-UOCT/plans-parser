@@ -10,10 +10,9 @@ from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
-app.add_middleware(CORSMiddleware, allow_origins=[
-                   '*'], allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
+app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
-connect(get_settings().mongo_db, host=get_settings().mongo_uri)
+connect(host=get_settings().mongo_uri)
 
 app.include_router(users.router)
 app.include_router(otu.router)
