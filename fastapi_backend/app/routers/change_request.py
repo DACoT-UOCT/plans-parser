@@ -103,7 +103,6 @@ def __build_new_project(req_dict, user, bgtask):
         model=ctrl_model_dict['model'],
         firmware_version=ctrl_model_dict['firmware_version'],
         checksum=ctrl_model_dict['checksum']
-        # date=datetime.datetime.fromtimestamp(ctrl_model_dict['date']['$date'] / 1000)
     ).first()
     if not p.controller.model:
         raise DACoTBackendException(status_code=422, details='Controller model not found: {}'.format(ctrl_model_dict))
@@ -203,7 +202,7 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id:
 
 # FIXME: Add image support to accept and reject
 @router.put('/requests/{id}/accept')
-async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id: str, request: Request):
+async def accept_request(bgtask: BackgroundTasks, user_email: EmailStr, id: str, request: Request):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT':
@@ -218,9 +217,12 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id:
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.put('/requests/{id}/reject')
-async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, id: str, request: Request):
+async def reject_request(bgtask: BackgroundTasks, user_email: EmailStr, id: str, request: Request):
     return JSONResponse(status_code=200, content={})
 
+@router.put('/requests/{id}/pdf')
+async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, id: str):
+    return JSONResponse(status_code=200, content={})
 
 # @router.put('/accept-request/{id}', tags=["requests"], status_code=204)
 # async def accept_petition(background_tasks: BackgroundTasks, user: EmailStr, file: List[UploadFile] = File(default=None), id=str, data: str = Form(...)):
