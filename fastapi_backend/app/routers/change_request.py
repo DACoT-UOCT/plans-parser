@@ -19,9 +19,12 @@ import datetime
 router = APIRouter()
 
 header = '<html><body><p>Solicitud de nueva instalacion<br></p></body></html>'
-accept = '<html><body><p>Su solicitud ha sido Aceptada<br></p></body></html>'
-reject = '<html><body><p>Su solicitud ha sido Rechazada<br></p></body></html>'
 footer = '<html><body><p>Thanks for using fastapi-mail</p></body></html>'
+
+UPDATE_MOTIVE_MESSAGES = {
+    'ACCEPTED': '<html><body><p>Su solicitud ha sido Aceptada<br></p></body></html>',
+    'REJECTED': '<html><body><p>Su solicitud ha sido Rechazada<br></p></body></html>'
+}
 
 creation_motive = 'Se ha creado una solicitud de instalacion.\nRevisar lo más pronto posible.'
 
@@ -132,7 +135,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     return JSONResponse(status_code=err.get_status(), content={'detail': err.get_details()})
                 else:
                     register_action(user.email, 'Requests', STATUS_CREATE_OK.format(user.email, new_project.id), background=bgtask)
-                    # TODO: Send email
+                    background_tasks.add_task(send_notification_mail, background_tasks, creation_recipients, creation_motive)
                     return JSONResponse(status_code=201, content={'detail': 'Created'})
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
@@ -170,12 +173,14 @@ async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr):
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.get('/requests/{oid}') # TODO: Fix date and image
+@router.get('/requests/{oid}')
 async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
             request = Project.objects(metadata__status__in=['NEW', 'UPDATE', 'APPROVED', 'REJECTED'], oid=oid).exclude('id', 'metadata.pdf_data').first()
+            if not request:
+                return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
             request.select_related()
             defer = request.to_mongo()
             defer['metadata']['status_user'] = request.metadata.status_user.to_mongo()
@@ -208,8 +213,11 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, oid
             defer['metadata']['installation_date'] = {
                 '$date': int(defer['metadata']['installation_date'].timestamp() * 1000)
             }
-            defer['observations'] = defer['observations'][0]['message']
+            defer['observations'] = defer['observations'][-1]['message']
             defer['metadata']['img'] = 'data:{};base64,{}'.format(request.metadata.img.content_type, base64.b64encode(request.metadata.img.read()).decode('utf-8'))
+            if 'installation_company' in defer['metadata']:
+                defer['metadata']['installation_company'] = request.metadata.installation_company.to_mongo()
+                del defer['metadata']['installation_company']['_id']
             return defer.to_dict()
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
@@ -218,14 +226,22 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, oid
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-# FIXME: Add image support to accept and reject
-@router.put('/requests/{oid}/accept')
-async def accept_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+async def __process_accept_or_reject(oid, new_status, user_email, request, bgtask):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT':
-            body = await request.json()
-            # print(body) # {'comentario': 'hola po', 'file': 'base64', 'mails': ['sebalreves@gmail.com']}
+            try:
+                body = await request.json()
+            except json.decoder.JSONDecodeError as err:
+                return JSONResponse(status_code=422, content={'detail': 'Invalid JSON document: {}'.format(err)})
+            request = Project.objects(metadata__status__in=['NEW', 'UPDATE'], oid=oid).exclude('metadata.pdf_data').first()
+            if not request:
+                return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
+            # request.metadata.status = new_status #FIXME: Apply this
+            request.observations.append(Comment(author=user, message=body['comentario']))
+            request.save()
+            # TODO: send bae64file as attachment
+            bgtask.add_task(send_notification_mail, bgtask, body['mails'], UPDATE_MOTIVE_MESSAGES[new_status])
             return JSONResponse(status_code=200, content={})
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
@@ -234,9 +250,13 @@ async def accept_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
+@router.put('/requests/{oid}/accept')
+async def accept_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+    return await __process_accept_or_reject(oid, 'ACCEPTED', user_email, request, bgtask)
+
 @router.put('/requests/{oid}/reject')
 async def reject_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
-    return JSONResponse(status_code=200, content={})
+    return await __process_accept_or_reject(oid, 'REJECTED', user_email, request, bgtask)
 
 @router.put('/requests/{oid}/pdf')
 async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
@@ -245,78 +265,3 @@ async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, oid: str =
 @router.put('/requests/{oid}/delete')
 async def delete_request(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
     return JSONResponse(status_code=200, content={})
-
-# @router.put('/accept-request/{oid}', tags=["requests"], status_code=204)
-# async def accept_petition(background_tasks: BackgroundTasks, user: EmailStr, file: List[UploadFile] = File(default=None), id=str, data: str = Form(...)):
-#     a_user = "cponce"
-#     email = json.loads(data)["mails"]
-#     #file= [json.loads(data)["file"]]
-#     #motivo= "Motivo"
-#     motivo = json.loads(data)["comentario"]
-#     mongoRequest = models.Request.objects(oid=id)
-#     if mongoRequest == "":
-#         raise HTTPException(status_code=404, detail="Item not found", headers={
-#                             "X-Error": "No Found"},)
-#         return
-#     #Request = json.loads((mongoRequest[0]).to_json())
-#     mongoRequest.update(set__metadata__status="APPROVED")
-#     if file != None:
-#         message = MessageSchema(
-#             subject="Fastapi-Mail module",
-#             recipients=email,  # List of receipients, as many as you can pass
-#             body=accept+"Motivo: " + motivo + footer,
-#             subtype="html",
-#             attachments=file
-#         )
-#     else:
-#         message = MessageSchema(
-#             subject="Fastapi-Mail module",
-#             recipients=email,  # List of receipients, as many as you can pass
-#             body=accept+"Motivo: " + motivo + footer,
-#             subtype="html",
-#         )
-#     fm = FastMail(mail_conf)
-# 
-#     background_tasks.add_task(fm.send_message, message)
-#     background_tasks.add_task(
-#         register_action, user, context="Accept Request", component="Sistema", origin="Web")
-#     return [{"username": "Foo"}, {"username": "Bar"}]
-# 
-# 
-# @router.put('/reject-request/{oid}', tags=["requests"], status_code=204)
-# async def reject_petition(background_tasks: BackgroundTasks, user: EmailStr, file: List[UploadFile] = File(default=None), id=str, data: str = Form(...)):
-#     a_user = "cponce"
-#     email = json.loads(data)["mails"]
-#     #file= [json.loads(data)["file"]]
-#     motivo = "Motivo"
-#     motivo = json.loads(data)["comentario"]
-#     mongoRequest = models.Request.objects(oid=id)
-#     if mongoRequest == "":
-#         raise HTTPException(status_code=404, detail="Item not found", headers={
-#                             "X-Error": "No Found"},)
-#         return
-#     #Request = json.loads((mongoRequest[0]).to_json())
-#     mongoRequest.update(set__metadata__status="REJECTED")
-#     if file != None:
-#         message = MessageSchema(
-#             subject="Fastapi-Mail module",
-#             recipients=email,  # List of receipients, as many as you can pass
-#             body=reject+"Motivo: " + motivo + footer,
-#             subtype="html",
-#             attachments=file
-#         )
-#     else:
-#         message = MessageSchema(
-#             subject="Fastapi-Mail module",
-#             recipients=email,  # List of receipients, as many as you can pass
-#             body=reject+"Motivo: " + motivo + footer,
-#             subtype="html",
-#         )
-#     fm = FastMail(mail_conf)
-# 
-#     background_tasks.add_task(fm.send_message, message)
-#     background_tasks.add_task(
-#         register_action, user, context="Reject Request", component="Sistema", origin="Web")
-#     return [{"username": "Foo"}, {"username": "Bar"}]
-# 
-# 
