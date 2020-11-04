@@ -18,10 +18,6 @@ from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
 from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
 from dacot_models import JunctionPlanPhaseValue, OTUProgramItem
 
-
-# from dacot_models import OTUProgramItem, JunctionPlan, JunctionPlanPhaseValue, Junction, JunctionMeta, OTU
-# from dacot_models import ExternalCompany, UOCTUser, OTUController, ChangeSet, OTUMeta
-
 global log
 
 def setup_logging():
