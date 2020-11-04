@@ -10,11 +10,8 @@ def setup_logging():
     global log
     log_fmt = ('%(asctime)s - %(name)s - %(levelname)s - %(message)s', '%d-%b-%y %H:%M:%S')
     logging.basicConfig(format=log_fmt[0], datefmt=log_fmt[1])
-    # fout = logging.FileHandler('export-agent.log')
-    # fout.setFormatter(logging.Formatter(log_fmt[0], datefmt=log_fmt[1]))
     log = logging.getLogger('export-agent')
     log.setLevel(logging.INFO)
-    # log.addHandler(fout)
 
 def build_schedules(from_env=False):
     global log
