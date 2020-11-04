@@ -13,8 +13,9 @@ async def get_communes(background_tasks: BackgroundTasks):
     communes = Commune.objects().exclude('id').all()
     for c in communes:
         defer = c.to_mongo()
-        defer['maintainer'] = c.maintainer.to_mongo()
-        del defer['maintainer']['_id']
+        if 'maintainer' in defer:
+            defer['maintainer'] = c.maintainer.to_mongo()
+            del defer['maintainer']['_id']
         r.append(defer.to_dict())
     register_action('Desconocido', 'Commune',
                     'Un usuario ha consultado la lista de comunas', background=background_tasks)
