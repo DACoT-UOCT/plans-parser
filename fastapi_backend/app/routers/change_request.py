@@ -28,7 +28,7 @@ UPDATE_MOTIVE_MESSAGES = {
 
 creation_motive = 'Se ha creado una solicitud de instalacion.\nRevisar lo más pronto posible.'
 
-creation_recipients = ['cponce@alumnos.inf.utfsm.cl']
+creation_recipients = get_settings().mail_creation_recipients
 
 STATUS_CREATE_OK = 'El usuario {} ha creado la peticion {} de forma correcta'
 STATUS_CREATE_FORBIDDEN = 'El usuario {} ha intenado crear una peticion sin autorizacion'
@@ -135,8 +135,11 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     return JSONResponse(status_code=err.get_status(), content={'detail': err.get_details()})
                 else:
                     register_action(user.email, 'Requests', STATUS_CREATE_OK.format(user.email, new_project.id), background=bgtask)
-                    background_tasks.add_task(send_notification_mail, background_tasks, creation_recipients, creation_motive)
+                    bgtask.add_task(send_notification_mail, bgtask, creation_recipients, creation_motive)
                     return JSONResponse(status_code=201, content={'detail': 'Created'})
+            else:
+                register_action(user.email, 'Requests', 'El usuario {} ha intentado enviar una solicitud con estado invalido: {}'.format(user.email, body['metadata']['status']), background=bgtask)
+                return JSONResponse(status_code=err.get_status(), content={'detail': err.get_details()})
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
@@ -237,7 +240,7 @@ async def __process_accept_or_reject(oid, new_status, user_email, request, bgtas
             request = Project.objects(metadata__status__in=['NEW', 'UPDATE'], oid=oid).exclude('metadata.pdf_data').first()
             if not request:
                 return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
-            # request.metadata.status = new_status #FIXME: Apply this
+            request.metadata.status = new_status
             request.observations.append(Comment(author=user, message=body['comentario']))
             request.save()
             # TODO: send bae64file as attachment

@@ -1,6 +1,8 @@
 from pydantic import BaseSettings
+from typing import List
 from fastapi_mail import FastMail, MessageSchema
 from functools import lru_cache
+from fastapi.logger import logger
 
 class ConnectionConfig(BaseSettings):
     MAIL_USERNAME: str
@@ -22,8 +24,11 @@ class Settings(BaseSettings):
     mail_tls: bool = False
     mail_ssl: bool = False
     mail_config: ConnectionConfig = None
+    mail_creation_recipients: List[str] = set()
 
 settings = Settings()
+logger.info('Started with settings: {}'.format(settings))
+
 
 if settings.mail_enabled:
     settings.mail_config = ConnectionConfig(
