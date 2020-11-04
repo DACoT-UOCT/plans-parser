@@ -12,6 +12,7 @@ from .actions_log import register_action
 from ..config import get_settings
 from mongoengine.errors import ValidationError, NotUniqueError
 from pymongo.errors import DuplicateKeyError
+import io
 import base64
 import magic
 import datetime
@@ -43,7 +44,7 @@ def send_notification_mail(bg, recipients, motive, attachment=None):
         subtype="html"
     )
     if attachment:
-        message.attachments = attachment
+        message.attachments = [attachment]
     if get_settings().mail_enabled:
         fm = FastMail(get_settings().mail_config)
         bg.add_task(fm.send_message, message)
@@ -243,8 +244,16 @@ async def __process_accept_or_reject(oid, new_status, user_email, request, bgtas
             request.metadata.status = new_status
             request.observations.append(Comment(author=user, message=body['comentario']))
             request.save()
-            # TODO: send bae64file as attachment
-            bgtask.add_task(send_notification_mail, bgtask, body['mails'], UPDATE_MOTIVE_MESSAGES[new_status])
+            if body['file']:
+                file_data, file_type = __base64file_to_bytes(body['file'])
+                if file_data:
+                    attachment_file = UploadFile('attachment.{}'.format(file_type.split('/')[1]), file=io.BytesIO(file_data))
+                    bgtask.add_task(send_notification_mail, bgtask, body['mails'], UPDATE_MOTIVE_MESSAGES[new_status], attachment=attachment_file)
+                else:
+                    # TODO: Log? Exception?
+                    pass
+            else:
+                bgtask.add_task(send_notification_mail, bgtask, body['mails'], UPDATE_MOTIVE_MESSAGES[new_status])
             return JSONResponse(status_code=200, content={})
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
