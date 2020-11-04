@@ -13,6 +13,10 @@ class TestFastAPI(unittest.TestCase):
         super(TestFastAPI, self).__init__(*args, **kwargs)
         self.client = TestClient(production_main.app)
 
+    @classmethod
+    def setUpClass(cls):
+        print('On setUpClass')
+
     def test_api_get_404_root(self):
         response = self.client.get("/")
         assert response.status_code == 404
