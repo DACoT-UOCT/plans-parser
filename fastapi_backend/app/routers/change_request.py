@@ -217,11 +217,14 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, oid
             defer['metadata']['status_date'] = {
                 '$date': int(defer['metadata']['status_date'].timestamp() * 1000)
             }
-            defer['metadata']['installation_date'] = {
-                '$date': int(defer['metadata']['installation_date'].timestamp() * 1000)
-            }
-            defer['observations'] = defer['observations'][-1]['message']
-            defer['metadata']['img'] = 'data:{};base64,{}'.format(request.metadata.img.content_type, base64.b64encode(request.metadata.img.read()).decode('utf-8'))
+            if 'installation_date' in defer['metadata']:
+                defer['metadata']['installation_date'] = {
+                    '$date': int(defer['metadata']['installation_date'].timestamp() * 1000)
+                }
+            if 'observations' in defer and len(defer['observations']) > 0:
+                defer['observations'] = defer['observations'][-1]['message']
+            if 'img' in defer['metadata']:
+                defer['metadata']['img'] = 'data:{};base64,{}'.format(request.metadata.img.content_type, base64.b64encode(request.metadata.img.read()).decode('utf-8'))
             if 'installation_company' in defer['metadata']:
                 defer['metadata']['installation_company'] = request.metadata.installation_company.to_mongo()
                 del defer['metadata']['installation_company']['_id']
