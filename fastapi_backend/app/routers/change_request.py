@@ -22,7 +22,7 @@ header = '<html><body><p>Solicitud de nueva instalacion<br></p></body></html>'
 footer = '<html><body><p>Thanks for using fastapi-mail</p></body></html>'
 
 UPDATE_MOTIVE_MESSAGES = {
-    'ACCEPTED': '<html><body><p>Su solicitud ha sido Aceptada<br></p></body></html>',
+    'APPROVED': '<html><body><p>Su solicitud ha sido Aceptada<br></p></body></html>',
     'REJECTED': '<html><body><p>Su solicitud ha sido Rechazada<br></p></body></html>'
 }
 
@@ -255,7 +255,7 @@ async def __process_accept_or_reject(oid, new_status, user_email, request, bgtas
 
 @router.put('/requests/{oid}/accept')
 async def accept_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
-    return await __process_accept_or_reject(oid, 'ACCEPTED', user_email, request, bgtask)
+    return await __process_accept_or_reject(oid, 'APPROVED', user_email, request, bgtask)
 
 @router.put('/requests/{oid}/reject')
 async def reject_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
