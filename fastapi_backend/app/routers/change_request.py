@@ -273,6 +273,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     updated_project.metadata.version = 'latest'
                     if latest:
                         updated_project.id = pid
+                    print(updated_project.id)
                     updated_project.save()
                     #update_project, files = __edit_project(body, user, bgtask)
                     #if update_project.metadata.region != project.metadata.region and not user.is_admin:
