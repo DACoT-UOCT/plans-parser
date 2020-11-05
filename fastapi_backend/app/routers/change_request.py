@@ -230,9 +230,9 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     #p.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
                     #p.save
                     jids = []
-                    latest = Project.objects(oid=body['oid'],metadata__version='latest').exclude('id').first()
+                    latest = Project.objects(oid=body['oid'],metadata__version='latest').first()
                     if not latest:
-                        base = Project.objects(oid=body['oid'],metadata__version='base').exclude('id').first()
+                        base = Project.objects(oid=body['oid'],metadata__version='base').first()
                         if not base:
                             raise DACoTBackendException(status_code=422, details='Project not found: {}'.format(body['oid']))
                         for j in base.otu.junctions:
@@ -273,7 +273,6 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     updated_project.metadata.version = 'latest'
                     if latest:
                         updated_project.id = pid
-                    print(updated_project.id)
                     updated_project.save()
                     #update_project, files = __edit_project(body, user, bgtask)
                     #if update_project.metadata.region != project.metadata.region and not user.is_admin:
