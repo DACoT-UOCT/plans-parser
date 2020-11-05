@@ -155,7 +155,7 @@ def __build_otu_from_dict(otu_dict):
     otu_obj.junctions = junc_objs
     return otu_obj
 
-def __build_new_project(req_dict, user, bgtask):
+def __build_new_project(req_dict, user, bgtask,task):
     try:
         p = Project.from_json(json.dumps(req_dict))
     except Exception as err:
@@ -192,86 +192,6 @@ def __build_new_project(req_dict, user, bgtask):
     if not p.controller.model:
         raise DACoTBackendException(status_code=422, details='Controller model not found: {}'.format(ctrl_model_dict))
     return p, {'img': (file_bytes_img, type_or_err_img), 'pdf': (file_bytes_pdf, type_or_err_pdf)}
-
-def __edit_project(req_dict, user, bgtask):
-    try:
-        p = Project.from_json(json.dumps(req_dict))
-    except Exception as err:
-        raise DACoTBackendException(status_code=422, details='Invalid JSON data for Project model: {}'.format(err))
-    p.metadata.status_date = datetime.datetime.now()
-    p.metadata.status_user = user
-    if user.rol == 'Empresa':
-        p.metadata.installation_company = user.company
-    p.metadata.maintainer = ExternalCompany.objects(name=req_dict['metadata']['maintainer']).first()
-    if not p.metadata.maintainer:
-        raise DACoTBackendException(status_code=422, details='ExternalCompany not found: {}'.format(req_dict['metadata']['maintainer']))
-    #; p.metadata.commune = Commune.objects(name=p['metadata']['commune'].upper()).first() # FIXME: ValidationError (Project:None) (commune.StringField only accepts string values: ['metadata'])
-    obs_comment = Comment(author=user, message=req_dict['observations'])
-    p.observations = [obs_comment]
-    p.metadata.img = None
-    p.metadata.pdf_data = None
-    file_bytes_img, type_or_err_img = __base64file_to_bytes(req_dict['metadata']['img'])
-    if not file_bytes_img:
-        register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, type_or_err_img), background=bgtask)
-        raise DACoTBackendException(status_code=422, details='Img: {}'.format(str(type_or_err_img)))
-    file_bytes_pdf, type_or_err_pdf = __base64file_to_bytes(req_dict['metadata']['pdf_data'])
-    if not file_bytes_pdf:
-        register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, type_or_err_pdf), background=bgtask)
-        raise DACoTBackendException(status_code=422, details='PDF: {}'.format(str(type_or_err_pdf)))
-    otu = OTU.objects(oid=req_dict['otu']['oid']).first()
-    if not otu:
-        p.otu = __build_otu_from_dict(req_dict['otu'])
-    ctrl_model_dict = req_dict['controller']['model']
-    p.controller.model = ControllerModel.objects(
-        company=ExternalCompany.objects(name=ctrl_model_dict['company']['name']).first(),
-        model=ctrl_model_dict['model'],
-        firmware_version=ctrl_model_dict['firmware_version'],
-        checksum=ctrl_model_dict['checksum']
-    ).first()
-    if not p.controller.model:
-        raise DACoTBackendException(status_code=422, details='Controller model not found: {}'.format(ctrl_model_dict))
-    return p, {'img': (file_bytes_img, type_or_err_img), 'pdf': (file_bytes_pdf, type_or_err_pdf)}
-
-def __edit2_project(req_dict, user, bgtask):
-    project = Project.objects(oid=req_dict['oid']).exclude('id', 'metadata.pdf_data').first()
-    if not project:
-        raise DACoTBackendException(status_code=422, details='Project not found: {}'.format(req_dict['oid']))
-    if project.metadata.region != req_dict['metadata']['region'] and not user.is_admin:
-        register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(project.metadata.region), background=bgtask)
-        return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
-    project.metadata.status_date = datetime.datetime.now()
-    project.metadata.status_user = user
-    if user.rol == 'Empresa':
-        project.metadata.installation_company = user.company
-    project.metadata.maintainer = ExternalCompany.objects(name=req_dict['metadata']['maintainer']).first()
-    if not project.metadata.maintainer:
-        raise DACoTBackendException(status_code=422, details='ExternalCompany not found: {}'.format(req_dict['metadata']['maintainer']))
-    #; p.metadata.commune = Commune.objects(name=p['metadata']['commune'].upper()).first() # FIXME: ValidationError (Project:None) (commune.StringField only accepts string values: ['metadata'])
-    obs_comment = Comment(author=user, message=req_dict['observations'])
-    project.observations = [obs_comment]
-    project.metadata.img = None
-    project.metadata.pdf_data = None
-    file_bytes_img, type_or_err_img = __base64file_to_bytes(req_dict['metadata']['img'])
-    if not file_bytes_img:
-        register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, type_or_err_img), background=bgtask)
-        raise DACoTBackendException(status_code=422, details='Img: {}'.format(str(type_or_err_img)))
-    file_bytes_pdf, type_or_err_pdf = __base64file_to_bytes(req_dict['metadata']['pdf_data'])
-    if not file_bytes_pdf:
-        register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, type_or_err_pdf), background=bgtask)
-        raise DACoTBackendException(status_code=422, details='PDF: {}'.format(str(type_or_err_pdf)))
-    otu = OTU.objects(oid=req_dict['otu']['oid']).first()
-    if not otu:
-        p.otu = __build_otu_from_dict(req_dict['otu'])
-    ctrl_model_dict = req_dict['controller']['model']
-    project.controller.model = ControllerModel.objects(
-        company=ExternalCompany.objects(name=ctrl_model_dict['company']['name']).first(),
-        model=ctrl_model_dict['model'],
-        firmware_version=ctrl_model_dict['firmware_version'],
-        checksum=ctrl_model_dict['checksum']
-    ).first()
-    if not project.controller.model:
-        raise DACoTBackendException(status_code=422, details='Controller model not found: {}'.format(ctrl_model_dict))
-    return project, {'img': (file_bytes_img, type_or_err_img), 'pdf': (file_bytes_pdf, type_or_err_pdf)}
 
 
 @router.post("/requests", status_code=201)
@@ -330,7 +250,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     updated_project, files = __build_new_project(dereferenced_p, user, bgtask)
                     if user.is_admin:
                         updated_project.metadata.status = 'SYSTEM'
-                    updated_project = updated_project.save_with_transaction()
+                    #updated_project = updated_project.save_with_transaction()
                     # TODO: Optimization = Search for md5 instead of re-inserting file
                     updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
