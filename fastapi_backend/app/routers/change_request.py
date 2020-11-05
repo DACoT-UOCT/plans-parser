@@ -229,14 +229,23 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     #p.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     #p.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
                     #p.save
-                    latest = Project.objects(oid=body['oid'],metadata__version='latest').exclude('id').first()
+                    jids = []
+                    latest = Project.objects(oid=body['oid'],metadata__version='latest').first()
                     if not latest:
-                        base = Project.objects(oid=body['oid'],metadata__version='base').exclude('id').first()
+                        base = Project.objects(oid=body['oid'],metadata__version='base').first()
                         if not base:
                             raise DACoTBackendException(status_code=422, details='Project not found: {}'.format(body['oid']))
+                        for j in base.otu.junctions:
+                            jids.append(j.id)
+                        oid = base.otu.id
+                        pid = base.id
                         dereferenced_p = dereference_project(base)
-                        dereferenced_p['metadata']['status'] = 'latest'
+                        dereferenced_p['metadata']['version'] = 'latest'
                     else:
+                        pid = latest.id
+                        oid = latest.otu.id
+                        for j in latest.otu.junctions:
+                            jids.append(j.id)
                         dereferenced_p = dereference_project(latest)
                     if dereferenced_p['metadata']['commune'] != body['metadata']['commune'] and not user.is_admin:
                         register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Comuna: {}".format(project.metadata.region), background=bgtask)
@@ -245,18 +254,25 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                         register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(project.metadata.region), background=bgtask)
                         return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
                     patch = jsonpatch.make_patch(dereferenced_p,body)
-                    #print(patch)
                     patch.apply(dereferenced_p,in_place=True)
-                    updated_project, files = __build_new_project(dereferenced_p, user, bgtask)
+                    project_user = User.objects(email=dereferenced_p['metadata']['status_user']['email']).first()
+                    updated_project, files = __build_new_project(dereferenced_p, project_user, bgtask)
                     if user.is_admin:
                         updated_project.metadata.status = 'SYSTEM'
                     #updated_project = updated_project.save_with_transaction()
                     # TODO: Optimization = Search for md5 instead of re-inserting file
+                    index = 0
                     for j in updated_project.otu.junctions:
-                        j.save()
+                        j.id = jids[index]
+                        j.save() #asignar id
+                        index+=1
+                    updated_project.otu.id = oid
                     updated_project.otu.save()
                     updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
+                    updated_project.metadata.version = 'latest'
+                    if latest:
+                        updated_project.id = pid
                     updated_project.save()
                     #update_project, files = __edit_project(body, user, bgtask)
                     #if update_project.metadata.region != project.metadata.region and not user.is_admin:
