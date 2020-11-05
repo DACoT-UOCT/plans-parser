@@ -391,10 +391,10 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, oid
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
-            if user.is_admin:
-                request = Project.objects(oid=oid).exclude('id', 'metadata.pdf_data').first()
-            else:
+            if user.rol == 'Empresa':
                 request = Project.objects(metadata__status__in=['NEW', 'UPDATE', 'APPROVED', 'REJECTED'], oid=oid).exclude('id', 'metadata.pdf_data').first()
+            else:
+                request = Project.objects(oid=oid).exclude('id', 'metadata.pdf_data').first()
             if not request:
                 return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
             """
