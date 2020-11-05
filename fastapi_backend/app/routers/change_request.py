@@ -309,9 +309,9 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     #p.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     #p.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
                     #p.save
-                    latest = Project.objects(oid=body['oid'],metadata__status='latest').exclude('id').first()
+                    latest = Project.objects(oid=body['oid'],metadata__version='latest').exclude('id').first()
                     if not latest:
-                        base = Project.objects(oid=body['oid'],metadata__status='base').exclude('id').first()
+                        base = Project.objects(oid=body['oid'],metadata__version='base').exclude('id').first()
                         if not base:
                             raise DACoTBackendException(status_code=422, details='Project not found: {}'.format(body['oid']))
                         dereferenced_p = dereference_project(base)
