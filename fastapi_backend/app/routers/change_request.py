@@ -326,7 +326,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                         return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
                     patch = jsonpatch.make_patch(body,dereferenced_p)
                     #print(patch)
-                    patch.apply(dereferenced_p,inplace=True)
+                    patch.apply(dereferenced_p,in_place=True)
                     updated_project, files = __build_new_project(dereferenced_p, user, bgtask)
                     if user.is_admin:
                         updated_project.metadata.status = 'SYSTEM'
