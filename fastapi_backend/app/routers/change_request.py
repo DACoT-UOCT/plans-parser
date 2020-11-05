@@ -252,7 +252,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                         updated_project.metadata.status = 'SYSTEM'
                     #updated_project = updated_project.save_with_transaction()
                     # TODO: Optimization = Search for md5 instead of re-inserting file
-                    for j in updated_project.junctions:
+                    for j in updated_project.otu.junctions:
                         j.to_mongo().save()
                     updated_project.otu.save()
                     updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
