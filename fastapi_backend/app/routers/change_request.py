@@ -468,6 +468,6 @@ async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, 
         item['date'] = {
             '$date': int(item['date'].timestamp() * 1000) # Why? Who knows
         }
+        del item['changes']
         res.append(item)
-    print(res)
     return res
