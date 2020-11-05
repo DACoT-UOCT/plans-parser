@@ -240,7 +240,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                         oid = base.otu.id
                         pid = base.id
                         dereferenced_p = dereference_project(base)
-                        dereferenced_p['metadata']['status'] = 'latest'
+                        dereferenced_p['metadata']['version'] = 'latest'
                     else:
                         pid = latest.id
                         oid = latest.otu.id
