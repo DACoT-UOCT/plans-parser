@@ -219,6 +219,7 @@ def __update_by_admin(user, body, bgtask):
         oid = latest_otu.id
         for j in latest_otu.junctions:
             jids.append(j.id)
+        latest.otu = latest_otu
         dereferenced_p = dereference_project(latest)
         if dereferenced_p['metadata']['commune'] != body['metadata']['commune'] and not user.is_admin:
             # register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Comuna: {}".format(project.metadata.region), background=bgtask)
@@ -226,8 +227,7 @@ def __update_by_admin(user, body, bgtask):
         if dereferenced_p['metadata']['commune'] != body['metadata']['region'] and not user.is_admin:
             # register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(project.metadata.region), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
-        # patch = jsonpatch.make_patch(dereferenced_p, body)
-        patch = jsonpatch.make_patch(body, dereferenced_p)
+        patch = jsonpatch.make_patch(dereferenced_p, body)
         patch.apply(dereferenced_p, in_place=True)
         project_user = User.objects(email=dereferenced_p['metadata']['status_user']['email']).first()
         updated_project, files = __build_new_project(dereferenced_p, project_user, bgtask)
