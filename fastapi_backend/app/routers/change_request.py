@@ -469,4 +469,5 @@ async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, 
             '$date': int(item['date'].timestamp() * 1000) # Why? Who knows
         }
         res.append(item)
+    print(res)
     return res
