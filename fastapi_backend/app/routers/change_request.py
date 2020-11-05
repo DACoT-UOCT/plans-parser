@@ -463,7 +463,7 @@ async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, 
     res = []
     for change in changes:
         item = change.to_mongo().to_dict()
-        item['vid'] = item.id
+        item['vid'] = change.id
         del item['_id']
         item['date'] = {
             '$date': int(item['date'].timestamp() * 1000) # Why? Who knows
