@@ -203,7 +203,6 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                 body = await request.json()
             except json.decoder.JSONDecodeError as err:
                 return JSONResponse(status_code=422, content={'detail': 'Invalid JSON document: {}'.format(err)})
-            print(body)
             if body['metadata']['status'] == 'NEW':
                 try:
                     new_project, files = __build_new_project(body, user, bgtask)
