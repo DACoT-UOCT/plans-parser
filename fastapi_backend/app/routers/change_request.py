@@ -203,7 +203,7 @@ def __update_by_admin(user, body, bgtask):
         #p.save
         jids = []
         latest = Project.objects(oid=body['oid'], metadata__version='latest').first() # BUG: Seeded latest have reference to base
-        latest_otu = OTU.objects(oid=latest.oid,  metadata__version='latest').first()
+        latest_otu = OTU.objects(oid=latest.oid,  version='latest').first()
         # if not latest:
         #     base = Project.objects(oid=body['oid'], metadata__version='base').first()
         #     if not base:
