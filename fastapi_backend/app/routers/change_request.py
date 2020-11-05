@@ -356,7 +356,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     return JSONResponse(status_code=201, content={'detail': 'Created'})
             else:
                 register_action(user.email, 'Requests', 'El usuario {} ha intentado enviar una solicitud con estado invalido: {}'.format(user.email, body['metadata']['status']), background=bgtask)
-                return JSONResponse(status_code=err.get_status(), content={'detail': err.get_details()})
+                return JSONResponse(status_code=422, content={'detail': 'Invalid status'})
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
