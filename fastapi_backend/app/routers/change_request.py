@@ -155,7 +155,7 @@ def __build_otu_from_dict(otu_dict):
     otu_obj.junctions = junc_objs
     return otu_obj
 
-def __build_new_project(req_dict, user, bgtask,task):
+def __build_new_project(req_dict, user, bgtask):
     try:
         p = Project.from_json(json.dumps(req_dict))
     except Exception as err:
@@ -252,6 +252,9 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                         updated_project.metadata.status = 'SYSTEM'
                     #updated_project = updated_project.save_with_transaction()
                     # TODO: Optimization = Search for md5 instead of re-inserting file
+                    for j in updated_project.junctions:
+                        j.to_mongo().save()
+                    updated_project.otu.save()
                     updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
                     updated_project.save()
