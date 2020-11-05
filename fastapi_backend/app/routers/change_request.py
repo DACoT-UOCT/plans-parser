@@ -459,7 +459,7 @@ async def delete_request(bgtask: BackgroundTasks, user_email: EmailStr, oid: str
 
 @router.get('/versions/{oid}')
 async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
-    changes = ChangeSet.objects(apply_to_id=oid).order_by('-date').all()
+    changes = ChangeSet.objects(apply_to_id=oid).order_by('-date').exclude('apply_to', 'changes').all()
     res = []
     for change in changes:
         item = change.to_mongo().to_dict()
