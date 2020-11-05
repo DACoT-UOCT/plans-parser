@@ -238,10 +238,11 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                         for j in base.otu.junctions:
                             jids.append(j.id)
                         oid = base.otu.id
+                        pid = base.id
                         dereferenced_p = dereference_project(base)
                         dereferenced_p['metadata']['status'] = 'latest'
                     else:
-                        #latestid
+                        pid = latest.id
                         oid = latest.otu.id
                         for j in latest.otu.junctions:
                             jids.append(j.id)
@@ -269,7 +270,8 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     updated_project.otu.save()
                     updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
-                    print(updated_project.observations)
+                    #print(updated_project.observations)
+                    updated_project.id = pid
                     updated_project.save()
                     #update_project, files = __edit_project(body, user, bgtask)
                     #if update_project.metadata.region != project.metadata.region and not user.is_admin:
