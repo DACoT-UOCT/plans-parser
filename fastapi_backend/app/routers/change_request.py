@@ -271,6 +271,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
                     print(updated_project.id)
                     print(updated_project.metadata.version)
+                    print(updated_project.metadata.status_user.full_name)
                     updated_project.id = pid
                     updated_project.save()
                     #update_project, files = __edit_project(body, user, bgtask)
