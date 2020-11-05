@@ -168,6 +168,7 @@ def __build_new_project(req_dict, user, bgtask):
     if not p.metadata.maintainer:
         raise DACoTBackendException(status_code=422, details='ExternalCompany not found: {}'.format(req_dict['metadata']['maintainer']))
     #; p.metadata.commune = Commune.objects(name=p['metadata']['commune'].upper()).first() # FIXME: ValidationError (Project:None) (commune.StringField only accepts string values: ['metadata'])
+    p.metadata.commune = req_dict['metadata']['comune']
     obs_comment = Comment(author=user, message=req_dict['observations'])
     p.observations = [obs_comment]
     p.metadata.img = None
@@ -317,6 +318,12 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                         dereferenced_p['metadata']['status'] = 'latest'
                     else:
                         dereferenced_p = dereference_project(latest)
+                    if dereferenced_p['metadata']['commune'] != body['metadata']['commune'] and not user.is_admin:
+                        register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Comuna: {}".format(project.metadata.region), background=bgtask)
+                        return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
+                    if dereferenced_p['metadata']['commune'] != body['metadata']['region'] and not user.is_admin:
+                        register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(project.metadata.region), background=bgtask)
+                        return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
                     patch = jsonpatch.make_patch(body,dereferenced_p)
                     print(patch)
                     patch.apply(dereferenced_p,inplace=True)
