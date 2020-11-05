@@ -168,7 +168,7 @@ def __build_new_project(req_dict, user, bgtask):
     if not p.metadata.maintainer:
         raise DACoTBackendException(status_code=422, details='ExternalCompany not found: {}'.format(req_dict['metadata']['maintainer']))
     #; p.metadata.commune = Commune.objects(name=p['metadata']['commune'].upper()).first() # FIXME: ValidationError (Project:None) (commune.StringField only accepts string values: ['metadata'])
-    p.metadata.commune = req_dict['metadata']['comune']
+    p.metadata.commune = req_dict['metadata']['commune']
     obs_comment = Comment(author=user, message=req_dict['observations'])
     p.observations = [obs_comment]
     p.metadata.img = None
