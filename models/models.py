@@ -61,7 +61,8 @@ class JunctionMeta(EmbeddedDocument):
 
 class Junction(Document):
     meta = {'collection': 'Junction'}
-    jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True)
+    version = StringField(choices=['base', 'latest'], required=True, default='base')
+    jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True, unique_with='version')
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan)
 
@@ -178,7 +179,8 @@ class OTUMeta(EmbeddedDocument):
 
 class OTU(Document):
     meta = {'collection': 'OTU'}
-    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True)
+    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='version')
+    version = StringField(choices=['base', 'latest'], required=True, default='base')
     metadata = EmbeddedDocumentField(OTUMeta)
     program = EmbeddedDocumentListField(OTUProgramItem) # PDF
     sequences = EmbeddedDocumentListField(OTUSequenceItem) # PDF
@@ -190,8 +192,10 @@ class OTU(Document):
 class ChangeSet(Document):
     meta = {'collection': 'ChangeSets'}
     apply_to = GenericReferenceField(choices=[OTU, Junction], required=True)
+    apply_to_id = StringField(regex=r'(X\d{5}0|J\d{6})', min_length=7, max_length=7, required=True)
     date = DateTimeField(default=datetime.utcnow, required=True)
     changes = ListField(DictField(), required=True)
+    message = StringField()
 
     def __clean_special_chars_patch(self):
         self.changes = json.loads(json.dumps(self.changes).replace('$', '%$'))

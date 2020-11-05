@@ -19,6 +19,7 @@ from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
 from dacot_models import JunctionPlanPhaseValue, OTUProgramItem
 
 global log
+global is_diff # FIXME: Should be a parameter, not a global variable
 
 def setup_logging():
     global log
@@ -76,6 +77,7 @@ def setup_args():
     parser.add_argument('database', type=str, help='mongo database to use')
     parser.add_argument('--rebuild', action='store_true', help='drop existing data and rebuild collections')
     parser.add_argument('--extra', action='store_true', help='build and save extra data to the remote db')
+    parser.add_argument('--diffdb', action='store_true', help='the remote db will be used for patch generation')
     return parser.parse_args()
 
 def check_should_continue():
@@ -247,10 +249,13 @@ def build_project_meta(csv_index):
     return r
 
 def build_otu(project_metas):
+    global is_diff
     l = []
     d = {}
     for k in project_metas:
         o = OTU(oid=k)
+        if is_diff:
+            o.version = 'latest'
         l.append(o)
     saved_ids = fast_validate_and_insert(l, OTU)
     for s in saved_ids:
@@ -258,6 +263,7 @@ def build_otu(project_metas):
     return d
 
 def build_projects(csv_index):
+    global is_diff
     metas = build_project_meta(csv_index)
     otus = build_otu(metas)
     comps = get_companies_dict()
@@ -278,6 +284,8 @@ def build_projects(csv_index):
         otus[s.oid] = s
     for oid in otus:
         p = Project(metadata=metas.get(oid), otu=otus.get(oid), oid=oid)
+        if is_diff:
+            p.metadata.version = 'latest'
         p.controller = Controller()
         if oid in otu_cmodels:
             p.controller.model = otu_cmodels[oid]
@@ -286,6 +294,7 @@ def build_projects(csv_index):
     return otus
 
 def build_junctions(csv_index, otus):
+    global is_diff
     lj = []
     jd = {}
     od = {}
@@ -295,6 +304,8 @@ def build_junctions(csv_index, otus):
         j.metadata.location = (v.get('latitude', 0.0), v.get('longitude', 0.0))
         j.metadata.address_reference = v.get('address_reference')
         j.metadata.sales_id = v.get('sales_id')
+        if is_diff:
+            j.version = 'latest'
         lj.append(j)
     saved_jids = fast_validate_and_insert(lj, Junction)
     for saved in saved_jids:
@@ -346,6 +357,29 @@ def build_otu_programs(otus, json_data):
         od[o.oid] = o
     return od
 
+def build_latest_versions():
+    global is_diff
+    lstj = []
+    lsto = []
+    lstp = []
+    if is_diff:
+        return
+    for junc in Junction.objects.all():
+        junc.version = 'latest'
+        junc.id = None
+        lstj.append(junc)
+    for otu in OTU.objects.all():
+        otu.version = 'latest'
+        otu.id = None
+        lsto.append(otu)
+    for proj in Project.objects.all():
+        proj.metadata.version = 'latest'
+        proj.id = None
+        lstp.append(proj)
+    fast_validate_and_insert(lstj, Junction)
+    fast_validate_and_insert(lsto, OTU)
+    fast_validate_and_insert(lstp, Project)
+
 def rebuild(args):
     if not check_should_continue():
         return
@@ -361,12 +395,17 @@ def rebuild(args):
     json_data = read_json_data(args)
     junctions = build_junction_plans(junctions, json_data)
     otus = build_otu_programs(otus, json_data)
+    build_latest_versions()
 
 if __name__ == "__main__":
-    global log
+    global log, is_diff
     setup_logging()
     log.info('Started seed-db script v0.2')
     args = setup_args()
+    if args.diffdb:
+        is_diff = True
+    else:
+        is_diff = False
     if args.rebuild:
         rebuild(args)
     log.info('Done Seeding the remote database')
