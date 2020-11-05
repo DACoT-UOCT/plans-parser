@@ -153,6 +153,7 @@ def __build_otu_from_dict(otu_dict):
     del otu_dict['junctions']
     otu_obj = OTU.from_json(json.dumps(otu_dict))
     otu_obj.junctions = junc_objs
+    print(otu_obj.to_mongo())
     return otu_obj
 
 def __build_new_project(req_dict, user, bgtask):
@@ -193,6 +194,78 @@ def __build_new_project(req_dict, user, bgtask):
         raise DACoTBackendException(status_code=422, details='Controller model not found: {}'.format(ctrl_model_dict))
     return p, {'img': (file_bytes_img, type_or_err_img), 'pdf': (file_bytes_pdf, type_or_err_pdf)}
 
+def __update_by_admin(user, body, bgtask):
+    try:
+        #using edit2
+        #p , files = __edit2_project(body,user,bgtask)
+        #p.save() o p.save_with_transaction()
+        #p.metadata.img.put(files['img'][0], content_type=files['img'][1])
+        #p.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
+        #p.save
+        jids = []
+        latest = Project.objects(oid=body['oid'], metadata__version='latest').first()
+        if not latest:
+            base = Project.objects(oid=body['oid'], metadata__version='base').first()
+            if not base:
+                raise DACoTBackendException(status_code=422, details='Project not found: {}'.format(body['oid']))
+            for j in base.otu.junctions:
+                jids.append(j.id)
+            oid = base.otu.id
+            pid = base.id
+            dereferenced_p = dereference_project(base)
+            dereferenced_p['metadata']['version'] = 'latest'
+        else:
+            pid = latest.id
+            oid = latest.otu.id
+            for j in latest.otu.junctions:
+                jids.append(j.id)
+            dereferenced_p = dereference_project(latest)
+        if dereferenced_p['metadata']['commune'] != body['metadata']['commune'] and not user.is_admin:
+            # register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Comuna: {}".format(project.metadata.region), background=bgtask)
+            return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
+        if dereferenced_p['metadata']['commune'] != body['metadata']['region'] and not user.is_admin:
+            # register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(project.metadata.region), background=bgtask)
+            return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
+        patch = jsonpatch.make_patch(dereferenced_p, body)
+        patch.apply(dereferenced_p,in_place=True)
+        project_user = User.objects(email=dereferenced_p['metadata']['status_user']['email']).first()
+        updated_project, files = __build_new_project(dereferenced_p, project_user, bgtask)
+        if user.is_admin:
+            updated_project.metadata.status = 'SYSTEM'
+        #updated_project = updated_project.save_with_transaction()
+        # TODO: Optimization = Search for md5 instead of re-inserting file
+        index = 0
+        for j in updated_project.otu.junctions:
+            j.id = jids[index]
+            j.save() #asignar id
+            index+=1
+        updated_project.otu.id = oid
+        updated_project.otu.save()
+        updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
+        updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
+        updated_project.metadata.version = 'latest'
+        if latest:
+            updated_project.id = pid
+        updated_project.save()
+        #update_project, files = __edit_project(body, user, bgtask)
+        #if update_project.metadata.region != project.metadata.region and not user.is_admin:
+        #    register_action(user_email, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(update_project.metadata.region), background=bgtask)
+        #    return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
+        #updated_project = Project(**update_project)
+        #updated_project.save_with_transaction()
+        #updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
+        #updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
+        #if user.is_admin:
+        #    updated_project.metadata.status= 'SYSTEM'
+        #updated_project.save()
+    except DACoTBackendException as err:
+        register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, err), background=bgtask)
+        return JSONResponse(status_code=err.get_status(), content={'detail': err.get_details()})
+    else:
+        register_action(user.email, 'Requests', STATUS_CREATE_OK.format(user.email, updated_project.id), background=bgtask)
+        if not user.is_admin:
+            bgtask.add_task(send_notification_mail, bgtask, creation_recipients, creation_motive)
+        return JSONResponse(status_code=201, content={'detail': 'Created'})
 
 @router.post("/requests", status_code=201)
 async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request):
@@ -222,77 +295,10 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                         bgtask.add_task(send_notification_mail, bgtask, creation_recipients, creation_motive)
                     return JSONResponse(status_code=201, content={'detail': 'Created'})
             elif body['metadata']['status'] == 'UPDATE': #oid comuna region
-                try:
-                    #using edit2
-                    #p , files = __edit2_project(body,user,bgtask)
-                    #p.save() o p.save_with_transaction()
-                    #p.metadata.img.put(files['img'][0], content_type=files['img'][1])
-                    #p.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
-                    #p.save
-                    jids = []
-                    latest = Project.objects(oid=body['oid'],metadata__version='latest').first()
-                    if not latest:
-                        base = Project.objects(oid=body['oid'],metadata__version='base').first()
-                        if not base:
-                            raise DACoTBackendException(status_code=422, details='Project not found: {}'.format(body['oid']))
-                        for j in base.otu.junctions:
-                            jids.append(j.id)
-                        oid = base.otu.id
-                        pid = base.id
-                        dereferenced_p = dereference_project(base)
-                        dereferenced_p['metadata']['version'] = 'latest'
-                    else:
-                        pid = latest.id
-                        oid = latest.otu.id
-                        for j in latest.otu.junctions:
-                            jids.append(j.id)
-                        dereferenced_p = dereference_project(latest)
-                    if dereferenced_p['metadata']['commune'] != body['metadata']['commune'] and not user.is_admin:
-                        register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Comuna: {}".format(project.metadata.region), background=bgtask)
-                        return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
-                    if dereferenced_p['metadata']['commune'] != body['metadata']['region'] and not user.is_admin:
-                        register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(project.metadata.region), background=bgtask)
-                        return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
-                    patch = jsonpatch.make_patch(dereferenced_p,body)
-                    patch.apply(dereferenced_p,in_place=True)
-                    project_user = User.objects(email=dereferenced_p['metadata']['status_user']['email']).first()
-                    updated_project, files = __build_new_project(dereferenced_p, project_user, bgtask)
-                    if user.is_admin:
-                        updated_project.metadata.status = 'SYSTEM'
-                    #updated_project = updated_project.save_with_transaction()
-                    # TODO: Optimization = Search for md5 instead of re-inserting file
-                    index = 0
-                    for j in updated_project.otu.junctions:
-                        j.id = jids[index]
-                        j.save() #asignar id
-                        index+=1
-                    updated_project.otu.id = oid
-                    updated_project.otu.save()
-                    updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
-                    updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
-                    updated_project.metadata.version = 'latest'
-                    if latest:
-                        updated_project.id = pid
-                    updated_project.save()
-                    #update_project, files = __edit_project(body, user, bgtask)
-                    #if update_project.metadata.region != project.metadata.region and not user.is_admin:
-                    #    register_action(user_email, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(update_project.metadata.region), background=bgtask)
-                    #    return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
-                    #updated_project = Project(**update_project)
-                    #updated_project.save_with_transaction()
-                    #updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
-                    #updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
-                    #if user.is_admin:
-                    #    updated_project.metadata.status= 'SYSTEM'
-                    #updated_project.save()
-                except DACoTBackendException as err:
-                    register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, err), background=bgtask)
-                    return JSONResponse(status_code=err.get_status(), content={'detail': err.get_details()})
+                if user.is_admin:
+                    return __update_by_admin(user, body, bgtask)
                 else:
-                    register_action(user.email, 'Requests', STATUS_CREATE_OK.format(user.email, updated_project.id), background=bgtask)
-                    if not user.is_admin:
-                        bgtask.add_task(send_notification_mail, bgtask, creation_recipients, creation_motive)
-                    return JSONResponse(status_code=201, content={'detail': 'Created'})
+                    return JSONResponse(status_code=422, content={'detail': 'NOT IMPLEMENTED'})
             else:
                 register_action(user.email, 'Requests', 'El usuario {} ha intentado enviar una solicitud con estado invalido: {}'.format(user.email, body['metadata']['status']), background=bgtask)
                 return JSONResponse(status_code=422, content={'detail': 'Invalid status'})
