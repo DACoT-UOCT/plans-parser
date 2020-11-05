@@ -318,14 +318,14 @@ async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr):
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
             if user.rol == 'Empresa':
-                requests_by_maintainer = Project.objects(metadata__status__in=['NEW', 'UPDATE', 'APPROVED', 'REJECTED'], metadata__maintainer=user.company).only('oid', 'metadata.status').exclude('id')
-                requests_by_installation_user = Project.objects(metadata__status__in=['NEW', 'UPDATE', 'APPROVED', 'REJECTED'], metadata__installation_company=user.company).only('oid', 'metadata.status').exclude('id')
+                requests_by_maintainer = Project.objects(metadata__version='latest', metadata__status__in=['NEW', 'UPDATE', 'APPROVED', 'REJECTED'], metadata__maintainer=user.company).only('oid', 'metadata.status').exclude('id')
+                requests_by_installation_user = Project.objects(metadata__version='latest', metadata__status__in=['NEW', 'UPDATE', 'APPROVED', 'REJECTED'], metadata__installation_company=user.company).only('oid', 'metadata.status').exclude('id')
                 requests = dict()
                 for req in list(requests_by_maintainer) + list(requests_by_installation_user):
                     requests[req.oid] = req
                 requests = requests.values()
             else:
-                requests = Project.objects().only('oid', 'metadata.status').exclude('id') # TODO: Check this
+                requests = Project.objects(metadata__version='latest').only('oid', 'metadata.status').exclude('id') # TODO: Check this
             requests = [r.to_mongo().to_dict() for r in requests]
             # BUG: mongoengine returns default fields when using `only`. See https://github.com/MongoEngine/mongoengine/issues/2030
             for r in requests:
