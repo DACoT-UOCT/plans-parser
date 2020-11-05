@@ -273,6 +273,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     print(updated_project.id)
                     print(updated_project.metadata.version)
                     print(updated_project.metadata.status)
+                    updated_project.metadata.version = 'latest'
                     updated_project.id = pid
                     updated_project.save()
                     #update_project, files = __edit_project(body, user, bgtask)
