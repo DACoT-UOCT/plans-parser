@@ -221,7 +221,6 @@ def __update_by_admin(user, body, bgtask):
             jids.append(j.id)
         latest.otu = latest_otu
         dereferenced_p = dereference_project(latest)
-        print(dereferenced_p)
         if dereferenced_p['metadata']['commune'] != body['metadata']['commune'] and not user.is_admin:
             # register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Comuna: {}".format(project.metadata.region), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
@@ -229,7 +228,6 @@ def __update_by_admin(user, body, bgtask):
             # register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(project.metadata.region), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
         patch = jsonpatch.make_patch(dereferenced_p, body)
-        print(patch)
         patch.apply(dereferenced_p, in_place=True)
         project_user = User.objects(email=dereferenced_p['metadata']['status_user']['email']).first()
         updated_project, files = __build_new_project(dereferenced_p, project_user, bgtask)
@@ -243,8 +241,8 @@ def __update_by_admin(user, body, bgtask):
             j.save() #asignar id
             index+=1
         updated_project.otu.id = oid
+        updated_project.otu.version = 'latest'
         updated_project.otu.save()
-        print(updated_project.otu.to_mongo())
         updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
         updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
         updated_project.metadata.version = 'latest'
