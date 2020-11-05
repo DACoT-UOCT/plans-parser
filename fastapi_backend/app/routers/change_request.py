@@ -471,3 +471,23 @@ async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, 
         del item['changes']
         res.append(item)
     return res
+
+@router.get('/versions/{oid}/base')
+async def get_version_base(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+    user = User.objects(email=user_email).first()
+    if user:
+        if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
+            if user.rol == 'Empresa':
+                request = Project.objects(metadata__version='base', metadata__status__in=['NEW', 'UPDATE', 'APPROVED', 'REJECTED'], oid=oid).exclude('id', 'metadata.pdf_data').first()
+            else:
+                request = Project.objects(metadata__version='base', oid=oid).exclude('id', 'metadata.pdf_data').first()
+            if not request:
+                return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
+            project = dereference_project(request)
+            return project
+        else:
+            register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
+            return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
+    else:
+        register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
+        return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
