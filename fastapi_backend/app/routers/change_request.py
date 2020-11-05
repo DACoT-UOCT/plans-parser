@@ -243,11 +243,11 @@ def __update_by_admin(user, body, bgtask):
         updated_project.otu.id = oid
         updated_project.otu.version = 'latest'
         updated_project.otu.save()
-        updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
-        updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
-        updated_project.metadata.version = 'latest'
-        updated_project.id = pid
-        updated_project.save()
+         # updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
+         # updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
+         # updated_project.metadata.version = 'latest'
+         # updated_project.id = pid
+         # updated_project.save()
         #update_project, files = __edit_project(body, user, bgtask)
         #if update_project.metadata.region != project.metadata.region and not user.is_admin:
         #    register_action(user_email, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(update_project.metadata.region), background=bgtask)
