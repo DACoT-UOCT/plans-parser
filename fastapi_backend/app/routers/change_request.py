@@ -237,11 +237,12 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                             raise DACoTBackendException(status_code=422, details='Project not found: {}'.format(body['oid']))
                         for j in base.otu.junctions:
                             jids.append(j.id)
+                        oid = base.otu.id
                         dereferenced_p = dereference_project(base)
                         dereferenced_p['metadata']['status'] = 'latest'
                     else:
                         #latestid
-                        #oids = 
+                        oid = latest.otu.id
                         for j in latest.otu.junctions:
                             jids.append(j.id)
                         dereferenced_p = dereference_project(latest)
@@ -264,6 +265,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                         j.id = jids[index]
                         j.save() #asignar id
                         index+=1
+                    updated_project.otu.id = oid
                     updated_project.otu.save()
                     updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
