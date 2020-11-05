@@ -324,7 +324,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     if dereferenced_p['metadata']['commune'] != body['metadata']['region'] and not user.is_admin:
                         register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(project.metadata.region), background=bgtask)
                         return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
-                    patch = jsonpatch.make_patch(body,dereferenced_p)
+                    patch = jsonpatch.make_patch(dereferenced_p,body)
                     #print(patch)
                     patch.apply(dereferenced_p,in_place=True)
                     updated_project, files = __build_new_project(dereferenced_p, user, bgtask)
