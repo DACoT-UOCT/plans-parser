@@ -229,14 +229,21 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     #p.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     #p.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
                     #p.save
+                    jids = []
                     latest = Project.objects(oid=body['oid'],metadata__version='latest').exclude('id').first()
                     if not latest:
                         base = Project.objects(oid=body['oid'],metadata__version='base').exclude('id').first()
                         if not base:
                             raise DACoTBackendException(status_code=422, details='Project not found: {}'.format(body['oid']))
+                        for j in base.otu.junctions:
+                            jids.append(j.id)
                         dereferenced_p = dereference_project(base)
                         dereferenced_p['metadata']['status'] = 'latest'
                     else:
+                        #latestid
+                        #oids = 
+                        for j in latest.otu.junctions:
+                            jids.append(j.id)
                         dereferenced_p = dereference_project(latest)
                     if dereferenced_p['metadata']['commune'] != body['metadata']['commune'] and not user.is_admin:
                         register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Comuna: {}".format(project.metadata.region), background=bgtask)
@@ -252,8 +259,11 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                         updated_project.metadata.status = 'SYSTEM'
                     #updated_project = updated_project.save_with_transaction()
                     # TODO: Optimization = Search for md5 instead of re-inserting file
+                    index = 0
                     for j in updated_project.otu.junctions:
-                        j.save()
+                        j.id = jids[index]
+                        j.save() #asignar id
+                        index+=1
                     updated_project.otu.save()
                     updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
