@@ -221,6 +221,7 @@ def __update_by_admin(user, body, bgtask):
             jids.append(j.id)
         latest.otu = latest_otu
         dereferenced_p = dereference_project(latest)
+        print(dereferenced_p)
         if dereferenced_p['metadata']['commune'] != body['metadata']['commune'] and not user.is_admin:
             # register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Comuna: {}".format(project.metadata.region), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
