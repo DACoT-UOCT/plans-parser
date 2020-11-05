@@ -457,4 +457,16 @@ async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, oid: str =
 async def delete_request(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
     return JSONResponse(status_code=200, content={})
 
-
+@router.get('/versions/{oid}')
+async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+    changes = ChangeSet.objects(apply_to_id=oid).order_by('-date').all()
+    res = []
+    for change in changes:
+        item = change.to_mongo().to_dict()
+        item['vid'] = item.id
+        del item['_id']
+        item['date'] = {
+            '$date': int(item['date'].timestamp() * 1000) # Why? Who knows
+        }
+        res.append(item)
+    return res
