@@ -173,14 +173,16 @@ def __build_new_project(req_dict, user, bgtask):
     p.observations = [obs_comment]
     p.metadata.img = None
     p.metadata.pdf_data = None
-    file_bytes_img, type_or_err_img = __base64file_to_bytes(req_dict['metadata']['img'])
-    if not file_bytes_img:
-        register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, type_or_err_img), background=bgtask)
-        raise DACoTBackendException(status_code=422, details='Img: {}'.format(str(type_or_err_img)))
-    file_bytes_pdf, type_or_err_pdf = __base64file_to_bytes(req_dict['metadata']['pdf_data'])
-    if not file_bytes_pdf:
-        register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, type_or_err_pdf), background=bgtask)
-        raise DACoTBackendException(status_code=422, details='PDF: {}'.format(str(type_or_err_pdf)))
+    if 'img' in req_dict['metadata']:
+        file_bytes_img, type_or_err_img = __base64file_to_bytes(req_dict['metadata']['img'])
+        if not file_bytes_img:
+            register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, type_or_err_img), background=bgtask)
+            raise DACoTBackendException(status_code=422, details='Img: {}'.format(str(type_or_err_img)))
+    if 'pdf_data' in req_dict['metadata']:
+        file_bytes_pdf, type_or_err_pdf = __base64file_to_bytes(req_dict['metadata']['pdf_data'])
+        if not file_bytes_pdf:
+            register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, type_or_err_pdf), background=bgtask)
+            raise DACoTBackendException(status_code=422, details='PDF: {}'.format(str(type_or_err_pdf)))
     p.otu = __build_otu_from_dict(req_dict['otu'])
     ctrl_model_dict = req_dict['controller']['model']
     p.controller.model = ControllerModel.objects(
@@ -248,7 +250,7 @@ def __update_by_admin(user, body, bgtask):
         updated_project.metadata.version = 'latest'
         updated_project.id = pid
         updated_project.save()
-        change = ChangeSet(apply_to_id=oid, apply_to=updated_project.otu, changes=patch, message='MANUAL_UPDATE LUL')
+        change = ChangeSet(apply_to_id=updated_project.oid, apply_to=updated_project.otu, changes=patch, message='MANUAL_UPDATE LUL')
         change.save()
         #update_project, files = __edit_project(body, user, bgtask)
         #if update_project.metadata.region != project.metadata.region and not user.is_admin:
