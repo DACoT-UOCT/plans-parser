@@ -7,7 +7,7 @@ from typing import List
 from mongoengine.errors import ValidationError
 import json
 from ..models import User, Project, Comment, OTU, FileField, Commune, Junction, DACoTBackendException
-from ..models import ControllerModel, ExternalCompany
+from ..models import ControllerModel, ExternalCompany, ChangeSet
 from .actions_log import register_action
 from ..config import get_settings
 from mongoengine.errors import ValidationError, NotUniqueError
@@ -242,12 +242,14 @@ def __update_by_admin(user, body, bgtask):
             index+=1
         updated_project.otu.id = oid
         updated_project.otu.version = 'latest'
-        updated_project.otu.save()
-         # updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
-         # updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
-         # updated_project.metadata.version = 'latest'
-         # updated_project.id = pid
-         # updated_project.save()
+        updated_project.otu.save() # BUG: THIS DONT WORKS
+        updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
+        updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
+        updated_project.metadata.version = 'latest'
+        updated_project.id = pid
+        updated_project.save()
+        change = ChangeSet(apply_to_id=oid, apply_to=updated_project.otu, changes=patch, message='MANUAL_UPDATE LUL')
+        change.save()
         #update_project, files = __edit_project(body, user, bgtask)
         #if update_project.metadata.region != project.metadata.region and not user.is_admin:
         #    register_action(user_email, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(update_project.metadata.region), background=bgtask)
@@ -452,3 +454,5 @@ async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, oid: str =
 @router.put('/requests/{oid}/delete')
 async def delete_request(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
     return JSONResponse(status_code=200, content={})
+
+
