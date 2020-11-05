@@ -270,11 +270,9 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
                     updated_project.otu.save()
                     updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
-                    print(updated_project.id)
-                    print(updated_project.metadata.version)
-                    print(updated_project.metadata.status)
                     updated_project.metadata.version = 'latest'
-                    updated_project.id = pid
+                    if latest:
+                        updated_project.id = pid
                     updated_project.save()
                     #update_project, files = __edit_project(body, user, bgtask)
                     #if update_project.metadata.region != project.metadata.region and not user.is_admin:
