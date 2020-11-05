@@ -202,7 +202,8 @@ def __update_by_admin(user, body, bgtask):
         #p.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
         #p.save
         jids = []
-        latest = Project.objects(oid=body['oid'], metadata__version='latest').first()
+        latest = Project.objects(oid=body['oid'], metadata__version='latest').first() # BUG: Seeded latest have reference to base
+        latest_otu = OTU.objects(oid=latest.oid,  metadata__version='latest').first()
         # if not latest:
         #     base = Project.objects(oid=body['oid'], metadata__version='base').first()
         #     if not base:
@@ -215,8 +216,8 @@ def __update_by_admin(user, body, bgtask):
         #     dereferenced_p['metadata']['version'] = 'latest'
         # else:
         pid = latest.id
-        oid = latest.otu.id
-        for j in latest.otu.junctions:
+        oid = latest_otu.id
+        for j in latest_otu.junctions:
             jids.append(j.id)
         dereferenced_p = dereference_project(latest)
         if dereferenced_p['metadata']['commune'] != body['metadata']['commune'] and not user.is_admin:
