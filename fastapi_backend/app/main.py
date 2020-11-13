@@ -14,7 +14,7 @@ app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, 
 
 connect(host=get_settings().mongo_uri)
 
-app.include_router(google_auth)
+app.include_router(google_auth.router)
 app.include_router(users.router)
 app.include_router(otu.router)
 app.include_router(junctions.router)
