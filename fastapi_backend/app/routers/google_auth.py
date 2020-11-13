@@ -173,7 +173,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 
 
 
-@app.post(f"{SWAP_TOKEN_ENDPOINT}", response_model=Token, tags=["security"])
+@router.post(f"{SWAP_TOKEN_ENDPOINT}", response_model=Token, tags=["security"])
 async def swap_token(request: Request = None):
     if not request.headers.get("X-Requested-With"):
         raise HTTPException(status_code=400, detail="Incorrect headers")
@@ -253,34 +253,34 @@ async def swap_token(request: Request = None):
 
 
 
-@app.get("/")
+@router.get("/")
 async def homepage():
     return "Welcome to the security test!"
 
 
-@app.get(f"{ERROR_ROUTE}", tags=["security"])
+@router.get(f"{ERROR_ROUTE}", tags=["security"])
 async def login_error():
     return "Something went wrong logging in!"
 
 
-@app.get("/logout", tags=["security"])
+@router.get("/logout", tags=["security"])
 async def route_logout_and_remove_cookie():
     response = RedirectResponse(url="/")
     response.delete_cookie(COOKIE_AUTHORIZATION_NAME, domain=COOKIE_DOMAIN)
     return response
 
 
-@app.get("/secure_endpoint", tags=["security"])
+@router.get("/secure_endpoint", tags=["security"])
 async def get_open_api_endpoint(current_user: User = Depends(get_current_active_user)):
     response = "How cool is this?"
     return response
 
 
-@app.get("/users/me/", response_model=User, tags=["users"])
+@router.get("/users/me/", response_model=User, tags=["users"])
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
-@app.get("/users/me/items/", tags=["users"])
+@router.get("/users/me/items/", tags=["users"])
 async def read_own_items(current_user: User = Depends(get_current_active_user)):
     return [{"item_id": "Foo", "owner": current_user.full_name}]
