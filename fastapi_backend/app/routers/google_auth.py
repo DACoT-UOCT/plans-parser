@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime, timedelta
-from models import User
+from models import User as modelUser
 import jwt
 from jwt import PyJWTError
 
@@ -125,7 +125,7 @@ oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="/token")
 #app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
 def get_user_by_email(email: str):
-    users = User.objects()
+    users = modelUser.objects()
     for user in users:
         if user.email == email:
             user_dict = user.to_mongo()
