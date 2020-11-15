@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime, timedelta
-from models import User as modelUser
+from ..models import User as modelUser
 import jwt
 from jwt import PyJWTError
 
