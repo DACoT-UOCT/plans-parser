@@ -113,7 +113,7 @@ class User(Document):
 
 class Comment(EmbeddedDocument):
     date = DateTimeField(default=datetime.utcnow, required=True)
-    message = StringField(max_length=255, required=True)
+    message = StringField(required=True)
     author = ReferenceField(User, required=True)
 
 class ProjectMeta(EmbeddedDocument):
@@ -239,3 +239,9 @@ class Project(Document):
         except (NotUniqueError, DuplicateKeyError, ValidationError) as err:
             raise DACoTBackendException(status_code=422, details='Error at Project.save_with_transaction: {}'.format(err))
         return self
+
+class PlanParseFailedMessage(Document):
+    meta = {'collection': 'PlanParseFailedMessage'}
+    date = DateTimeField(default=datetime.now, required=True)
+    plans = ListField(StringField(), required=True)
+    message = EmbeddedDocumentField(Comment, required=True)
