@@ -1,7 +1,8 @@
 from fastapi import Depends, FastAPI, Header, HTTPException, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from mongoengine import connect
-from .routers import otu, junctions, users, actions_log, controller_model, commune, change_request, external_company,google_auth
+from .routers import otu, junctions, users, actions_log, controller_model, commune
+from .routers import change_request, external_company, google_auth, failed_plans
 from .config import get_settings
 from functools import lru_cache
 import os
@@ -23,6 +24,7 @@ app.include_router(actions_log.router)
 app.include_router(commune.router)
 app.include_router(controller_model.router)
 app.include_router(external_company.router)
+app.include_router(failed_plans.router)
 
 
 @app.post("/files/")
