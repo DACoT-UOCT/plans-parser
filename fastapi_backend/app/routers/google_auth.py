@@ -129,6 +129,7 @@ def get_user_by_email(email: str):
     for user in users:
         if user.email == email:
             user_dict = user.to_mongo()
+            #print(user_dict)
             return User(**user_dict)
 
 
@@ -162,7 +163,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         token_data = TokenData(email=email)
     except PyJWTError:
         raise credentials_exception
-    user = get_user_by_email(fake_users_db, email=token_data.email)
+    user = get_user_by_email(email=token_data.email)
     if user is None:
         raise credentials_exception
     return user
