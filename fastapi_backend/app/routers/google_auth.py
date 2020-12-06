@@ -30,7 +30,7 @@ router = APIRouter()
 COOKIE_AUTHORIZATION_NAME = "Authorization"
 COOKIE_DOMAIN = "dacot.duckdns.org"
 
-PROTOCOL = "http://"
+PROTOCOL = "https://"
 FULL_HOST_NAME = "dacot.duckdns.org"
 PORT_NUMBER = 80
 
