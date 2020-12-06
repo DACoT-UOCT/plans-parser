@@ -129,3 +129,10 @@ class TestFastAPI(unittest.TestCase):
     def test_get_otu_invalid_regex(self):
         response = self.client.get('/otu/invalid')
         assert response.status_code == 422
+
+    def test_get_base_project_version(self):
+        response = self.client.get('/versions/X001110/base?user_email=admin@dacot.uoct.cl')
+        assert response.status_code == 200
+        proj = response.json()
+        assert proj['oid'] == 'X001110'
+        assert proj['metadata']['version'] == 'base'

@@ -39,47 +39,41 @@ STATUS_USER_NOT_FOUND = 'El usuario {} no existe'
 
 def dereference_project(request):
     request.select_related()
-    defer = request.to_mongo()
-    defer['metadata']['status_user'] = request.metadata.status_user.to_mongo()
-    del defer['metadata']['status_user']['_id']
-    if 'company' in defer['metadata']['status_user']:
-        defer['metadata']['status_user']['company'] = request.metadata.status_user.company.to_mongo()
-        del defer['metadata']['status_user']['company']['_id']
-    defer['metadata']['maintainer'] = request.metadata.maintainer.to_mongo()
-    del defer['metadata']['maintainer']['_id']
-    defer['otu'] = request.otu.to_mongo()
-    del defer['otu']['_id']
-    defer['controller']['model'] = request.controller.model.to_mongo()
-    del defer['controller']['model']['_id']
-    if 'company' in defer['controller']['model']:
-        defer['controller']['model']['company'] = request.controller.model.company.to_mongo()
-        del defer['controller']['model']['company']['_id']
-    for idx, obs in enumerate(defer['observations']):
+    res = request.to_mongo()
+    res['metadata']['status_user'] = request.metadata.status_user.to_mongo()
+    del res['metadata']['status_user']['_id']
+    if 'company' in res['metadata']['status_user']:
+        res['metadata']['status_user']['company'] = request.metadata.status_user.company.to_mongo()
+        del res['metadata']['status_user']['company']['_id']
+    res['metadata']['maintainer'] = request.metadata.maintainer.to_mongo()
+    del res['metadata']['maintainer']['_id']
+    res['controller']['model'] = request.controller.model.to_mongo()
+    del res['controller']['model']['_id']
+    if 'company' in res['controller']['model']:
+        res['controller']['model']['company'] = request.controller.model.company.to_mongo()
+        del res['controller']['model']['company']['_id']
+    for idx, obs in enumerate(res['observations']):
         obs['author'] = request.observations[idx].author.to_mongo()
         if 'company' in obs['author']:
             obs['author']['company'] = request.observations[idx].author.company.to_mongo()
             del obs['author']['company']['_id']
         del obs['author']['_id']
-    for idx, _ in enumerate(defer['otu']['junctions']):
-        defer['otu']['junctions'][idx] = request.otu.junctions[idx].to_mongo()
-        del defer['otu']['junctions'][idx]['_id']
     # Why? Who knows
-    defer['metadata']['status_date'] = {
-        '$date': int(defer['metadata']['status_date'].timestamp() * 1000)
+    res['metadata']['status_date'] = {
+        '$date': int(res['metadata']['status_date'].timestamp() * 1000)
     }
-    if 'installation_date' in defer['metadata']:
-        defer['metadata']['installation_date'] = {
-            '$date': int(defer['metadata']['installation_date'].timestamp() * 1000)
+    if 'installation_date' in res['metadata']:
+        res['metadata']['installation_date'] = {
+            '$date': int(res['metadata']['installation_date'].timestamp() * 1000)
         }
-    if 'observations' in defer and len(defer['observations']) > 0:
-        defer['observations'] = defer['observations'][-1]['message']
-    if 'img' in defer['metadata']:
-        defer['metadata']['img'] = 'data:{};base64,{}'.format(request.metadata.img.content_type, base64.b64encode(request.metadata.img.read()).decode('utf-8'))
-    if 'installation_company' in defer['metadata']:
-        defer['metadata']['installation_company'] = request.metadata.installation_company.to_mongo()
-        del defer['metadata']['installation_company']['_id']
-    return defer.to_dict()
-
+    if 'observations' in res and len(res['observations']) > 0:
+        res['observations'] = res['observations'][-1]['message']
+    if 'img' in res['metadata']:
+        res['metadata']['img'] = 'data:{};base64,{}'.format(request.metadata.img.content_type, base64.b64encode(request.metadata.img.read()).decode('utf-8'))
+    if 'installation_company' in res['metadata']:
+        res['metadata']['installation_company'] = request.metadata.installation_company.to_mongo()
+        del res['metadata']['installation_company']['_id']
+    return res.to_dict()
 
 async def __process_accept_or_reject(oid, new_status, user_email, request, bgtask):
     user = User.objects(email=user_email).first()
@@ -483,8 +477,7 @@ async def get_version_base(user_email: EmailStr, oid: str = Path(..., min_length
                 request = Project.objects(metadata__version='base', oid=oid).exclude('id', 'metadata.pdf_data').first()
             if not request:
                 return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
-            project = dereference_project(request)
-            return project
+            return dereference_project(request)
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
