@@ -13,13 +13,23 @@ from mongoengine import connect
 from pymongo.operations import ReplaceOne
 from pymongo.errors import BulkWriteError
 
-from dacot_models import Commune, ExternalCompany, ControllerModel
-from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
-from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
-from dacot_models import JunctionPlanPhaseValue, OTUProgramItem
-
-global log
-global is_diff # FIXME: Should be a parameter, not a global variable
+if os.environ.get('RUNNING_TEST'):
+    from .dacot_models import Commune, ExternalCompany, ControllerModel
+    from .dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
+    from .dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
+    from .dacot_models import JunctionPlanPhaseValue, OTUProgramItem
+    class log:
+        @staticmethod
+        def info(msg):
+            print(msg)
+    is_diff = False
+else:
+    from dacot_models import Commune, ExternalCompany, ControllerModel
+    from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
+    from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
+    from dacot_models import JunctionPlanPhaseValue, OTUProgramItem
+    log = None
+    is_diff = None # FIXME: Should be a parameter, not a global variable
 
 def setup_logging():
     global log
@@ -401,10 +411,10 @@ def rebuild(args):
     build_latest_versions()
 
 if __name__ == "__main__":
-    global log, is_diff
     setup_logging()
     log.info('Started seed-db script v0.2')
     args = setup_args()
+    print(args)
     if args.diffdb:
         is_diff = True
     else:
@@ -412,3 +422,22 @@ if __name__ == "__main__":
     if args.rebuild:
         rebuild(args)
     log.info('Done Seeding the remote database')
+
+def seed_from_interpreter(uri, db, ctrl, juncs, scheds):
+    print('[seed_from_interpreter] Called!')
+    args = argparse.Namespace(
+        database=db, diffdb=False, extra=False, ctrlls_data=ctrl,
+        index=juncs, input=scheds, mongo=uri, rebuild=True
+    )
+    drop_old_data()
+    index_csv = read_csv_data(args)
+    create_users()
+    build_commune_collection(index_csv)
+    controllers_model_csv = read_controller_models_csv(args)
+    build_controller_model_collection(controllers_model_csv)
+    otus = build_projects(index_csv)
+    junctions, otus = build_junctions(index_csv, otus)
+    json_data = read_json_data(args)
+    junctions = build_junction_plans(junctions, json_data)
+    otus = build_otu_programs(otus, json_data)
+    build_latest_versions()
