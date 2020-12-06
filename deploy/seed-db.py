@@ -391,7 +391,7 @@ def rebuild(args):
     junctions, otus = build_junctions(index_csv, otus)
     json_data = read_json_data(args)
     junctions = build_junction_plans(junctions, json_data)
-    otus = build_otu_programs(otus, json_data)
+    projects = build_otu_programs(otus, json_data, projects)
     build_latest_versions()
 
 if __name__ == "__main__":
