@@ -13,13 +13,23 @@ from mongoengine import connect
 from pymongo.operations import ReplaceOne
 from pymongo.errors import BulkWriteError
 
-from dacot_models import Commune, ExternalCompany, ControllerModel
-from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
-from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
-from dacot_models import JunctionPlanPhaseValue, OTUProgramItem
-
-global log
-global is_diff # FIXME: Should be a parameter, not a global variable
+if os.environ.get('RUNNING_TEST'):
+    from .dacot_models import Commune, ExternalCompany, ControllerModel
+    from .dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
+    from .dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
+    from .dacot_models import JunctionPlanPhaseValue, OTUProgramItem
+    class log:
+        @staticmethod
+        def info(msg):
+            print(msg)
+    is_diff = False
+else:
+    from dacot_models import Commune, ExternalCompany, ControllerModel
+    from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
+    from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
+    from dacot_models import JunctionPlanPhaseValue, OTUProgramItem
+    log = None
+    is_diff = None # FIXME: Should be a parameter, not a global variable
 
 def setup_logging():
     global log
@@ -99,9 +109,7 @@ def drop_old_data():
     ExternalCompany.drop_collection()
     ControllerModel.drop_collection()
     User.drop_collection()
-    OTU.drop_collection()
     Project.drop_collection()
-    Junction.drop_collection()
     log.info('Done dropping data')
 
 def check_csv_line_valid(line, junc_pattern, otu_pattern):
@@ -227,6 +235,9 @@ def create_users():
     acme_corp = ExternalCompany(name='ACME Corporation').save().reload()
     l.append(User(full_name='DACoT Database Seed', email='seed@dacot.uoct.cl', rol='Personal UOCT', area='TIC'))
     l.append(User(full_name='Admin', email='admin@dacot.uoct.cl', rol='Personal UOCT', area='TIC', is_admin=True))
+    l.append(User(full_name='Carlos Ponce', email='carlos.ponce@sansano.usm.cl', rol='Personal UOCT', area='TIC', is_admin=True))
+    l.append(User(full_name='Sebastian Muñoz', email='sebastian.munozd@sansano.usm.cl', rol='Personal UOCT', area='TIC', is_admin=True))
+    l.append(User(full_name='Nicolas Grandon', email='ngrandon@uoct.cl', rol='Personal UOCT', area='TIC', is_admin=True))
     l.append(User(full_name='ACME Employee', email='employee@acmecorp.com', rol='Empresa', area='Mantenedora', company=acme_corp))
     fast_validate_and_insert(l, User)
 
@@ -257,8 +268,8 @@ def build_otu(project_metas):
         if is_diff:
             o.version = 'latest'
         l.append(o)
-    saved_ids = fast_validate_and_insert(l, OTU)
-    for s in saved_ids:
+    # saved_ids = fast_validate_and_insert(l, OTU)
+    for s in l:
         d[s.oid] = s
     return d
 
@@ -280,7 +291,7 @@ def build_projects(csv_index):
             if not cmk in cmodels:
                 cmodels[cmk] = ControllerModel(company=comps[cmk[0]], model=cmk[1]).save().reload()
             otu_cmodels[v.get('oid')] = cmodels[cmk]
-    for s in fast_validate_and_insert(otus.values(), OTU, replace=True):
+    for s in otus.values():
         otus[s.oid] = s
     for oid in otus:
         p = Project(metadata=metas.get(oid), otu=otus.get(oid), oid=oid)
@@ -290,8 +301,7 @@ def build_projects(csv_index):
         if oid in otu_cmodels:
             p.controller.model = otu_cmodels[oid]
         lp.append(p)
-    fast_validate_and_insert(lp, Project)
-    return otus
+    return otus, lp
 
 def build_junctions(csv_index, otus):
     global is_diff
@@ -307,14 +317,12 @@ def build_junctions(csv_index, otus):
         if is_diff:
             j.version = 'latest'
         lj.append(j)
-    saved_jids = fast_validate_and_insert(lj, Junction)
-    for saved in saved_jids:
+    for saved in lj:
         jd[saved.jid] = saved
     for k, v in csv_index.items():
         oid, jid = k.split('.')
         otus[oid].junctions.append(jd[jid])
-    saved_oids = fast_validate_and_insert(otus.values(), OTU, replace=True)
-    for saved in saved_oids:
+    for saved in otus.values():
         od[saved.oid] = saved
     return jd, od
 
@@ -333,11 +341,11 @@ def build_junction_plans(junctions, json_data):
                 plan = JunctionPlan(plid=pid, cycle=pval['cycle'], system_start=s_start)
                 j.plans.append(plan)
     jd = {}
-    for j in fast_validate_and_insert(junctions.values(), Junction, replace=True):
+    for j in junctions.values():
         jd[j.jid] = j
     return jd
 
-def build_otu_programs(otus, json_data):
+def build_otu_programs(otus, json_data, projects):
     done = set()
     programs = {}
     for k, v in json_data.items():
@@ -353,32 +361,21 @@ def build_otu_programs(otus, json_data):
                     otu_program.append(OTUProgramItem(day=table, time=item[0][:5], plan=item[1]))
         v.program = otu_program
     od = {}
-    for o in fast_validate_and_insert(otus.values(), OTU, replace=True):
+    for o in otus.values():
         od[o.oid] = o
-    return od
+    projects = fast_validate_and_insert_with_errors(projects, Project)
+    return projects
 
 def build_latest_versions():
     global is_diff
-    lstj = []
-    lsto = []
     lstp = []
     if is_diff:
         return
-    for junc in Junction.objects.all():
-        junc.version = 'latest'
-        junc.id = None
-        lstj.append(junc)
-    for otu in OTU.objects.all():
-        otu.version = 'latest'
-        otu.id = None
-        lsto.append(otu)
     for proj in Project.objects.all():
         proj.metadata.version = 'latest'
         proj.id = None
         lstp.append(proj)
-    fast_validate_and_insert(lstj, Junction)
-    fast_validate_and_insert(lsto, OTU)
-    fast_validate_and_insert(lstp, Project)
+    fast_validate_and_insert_with_errors(lstp, Project)
 
 def rebuild(args):
     if not check_should_continue():
@@ -394,14 +391,14 @@ def rebuild(args):
     junctions, otus = build_junctions(index_csv, otus)
     json_data = read_json_data(args)
     junctions = build_junction_plans(junctions, json_data)
-    otus = build_otu_programs(otus, json_data)
+    projects = build_otu_programs(otus, json_data, projects)
     build_latest_versions()
 
 if __name__ == "__main__":
-    global log, is_diff
     setup_logging()
     log.info('Started seed-db script v0.2')
     args = setup_args()
+    print(args)
     if args.diffdb:
         is_diff = True
     else:
@@ -409,3 +406,22 @@ if __name__ == "__main__":
     if args.rebuild:
         rebuild(args)
     log.info('Done Seeding the remote database')
+
+def seed_from_interpreter(uri, db, ctrl, juncs, scheds):
+    print('[seed_from_interpreter] Called!')
+    args = argparse.Namespace(
+        database=db, diffdb=False, extra=False, ctrlls_data=ctrl,
+        index=juncs, input=scheds, mongo=uri, rebuild=True
+    )
+    drop_old_data()
+    index_csv = read_csv_data(args)
+    create_users()
+    build_commune_collection(index_csv)
+    controllers_model_csv = read_controller_models_csv(args)
+    build_controller_model_collection(controllers_model_csv)
+    otus, projects = build_projects(index_csv)
+    junctions, otus = build_junctions(index_csv, otus)
+    json_data = read_json_data(args)
+    junctions = build_junction_plans(junctions, json_data)
+    projects = build_otu_programs(otus, json_data, projects)
+    build_latest_versions()

@@ -40,47 +40,41 @@ STATUS_USER_NOT_FOUND = 'El usuario {} no existe'
 
 def dereference_project(request):
     request.select_related()
-    defer = request.to_mongo()
-    defer['metadata']['status_user'] = request.metadata.status_user.to_mongo()
-    del defer['metadata']['status_user']['_id']
-    if 'company' in defer['metadata']['status_user']:
-        defer['metadata']['status_user']['company'] = request.metadata.status_user.company.to_mongo()
-        del defer['metadata']['status_user']['company']['_id']
-    defer['metadata']['maintainer'] = request.metadata.maintainer.to_mongo()
-    del defer['metadata']['maintainer']['_id']
-    defer['otu'] = request.otu.to_mongo()
-    del defer['otu']['_id']
-    defer['controller']['model'] = request.controller.model.to_mongo()
-    del defer['controller']['model']['_id']
-    if 'company' in defer['controller']['model']:
-        defer['controller']['model']['company'] = request.controller.model.company.to_mongo()
-        del defer['controller']['model']['company']['_id']
-    for idx, obs in enumerate(defer['observations']):
+    res = request.to_mongo()
+    res['metadata']['status_user'] = request.metadata.status_user.to_mongo()
+    del res['metadata']['status_user']['_id']
+    if 'company' in res['metadata']['status_user']:
+        res['metadata']['status_user']['company'] = request.metadata.status_user.company.to_mongo()
+        del res['metadata']['status_user']['company']['_id']
+    res['metadata']['maintainer'] = request.metadata.maintainer.to_mongo()
+    del res['metadata']['maintainer']['_id']
+    res['controller']['model'] = request.controller.model.to_mongo()
+    del res['controller']['model']['_id']
+    if 'company' in res['controller']['model']:
+        res['controller']['model']['company'] = request.controller.model.company.to_mongo()
+        del res['controller']['model']['company']['_id']
+    for idx, obs in enumerate(res['observations']):
         obs['author'] = request.observations[idx].author.to_mongo()
         if 'company' in obs['author']:
             obs['author']['company'] = request.observations[idx].author.company.to_mongo()
             del obs['author']['company']['_id']
         del obs['author']['_id']
-    for idx, _ in enumerate(defer['otu']['junctions']):
-        defer['otu']['junctions'][idx] = request.otu.junctions[idx].to_mongo()
-        del defer['otu']['junctions'][idx]['_id']
     # Why? Who knows
-    defer['metadata']['status_date'] = {
-        '$date': int(defer['metadata']['status_date'].timestamp() * 1000)
+    res['metadata']['status_date'] = {
+        '$date': int(res['metadata']['status_date'].timestamp() * 1000)
     }
-    if 'installation_date' in defer['metadata']:
-        defer['metadata']['installation_date'] = {
-            '$date': int(defer['metadata']['installation_date'].timestamp() * 1000)
+    if 'installation_date' in res['metadata']:
+        res['metadata']['installation_date'] = {
+            '$date': int(res['metadata']['installation_date'].timestamp() * 1000)
         }
-    if 'observations' in defer and len(defer['observations']) > 0:
-        defer['observations'] = defer['observations'][-1]['message']
-    if 'img' in defer['metadata']:
-        defer['metadata']['img'] = 'data:{};base64,{}'.format(request.metadata.img.content_type, base64.b64encode(request.metadata.img.read()).decode('utf-8'))
-    if 'installation_company' in defer['metadata']:
-        defer['metadata']['installation_company'] = request.metadata.installation_company.to_mongo()
-        del defer['metadata']['installation_company']['_id']
-    return defer.to_dict()
-
+    if 'observations' in res and len(res['observations']) > 0:
+        res['observations'] = res['observations'][-1]['message']
+    if 'img' in res['metadata']:
+        res['metadata']['img'] = 'data:{};base64,{}'.format(request.metadata.img.content_type, base64.b64encode(request.metadata.img.read()).decode('utf-8'))
+    if 'installation_company' in res['metadata']:
+        res['metadata']['installation_company'] = request.metadata.installation_company.to_mongo()
+        del res['metadata']['installation_company']['_id']
+    return res.to_dict()
 
 async def __process_accept_or_reject(oid, new_status, user_email, request, bgtask):
     user = User.objects(email=user_email).first()
@@ -185,6 +179,7 @@ def __build_new_project(req_dict, user, bgtask):
             register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, type_or_err_pdf), background=bgtask)
             raise DACoTBackendException(status_code=422, details='PDF: {}'.format(str(type_or_err_pdf)))
     p.otu = __build_otu_from_dict(req_dict['otu'])
+    p.oid = p.otu.oid
     ctrl_model_dict = req_dict['controller']['model']
     p.controller.model = ControllerModel.objects(
         company=ExternalCompany.objects(name=ctrl_model_dict['company']['name']).first(),
@@ -198,37 +193,14 @@ def __build_new_project(req_dict, user, bgtask):
 
 def __update_by_admin(user, body, bgtask):
     try:
-        #using edit2
-        #p , files = __edit2_project(body,user,bgtask)
-        #p.save() o p.save_with_transaction()
-        #p.metadata.img.put(files['img'][0], content_type=files['img'][1])
-        #p.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
-        #p.save
-        jids = []
         latest = Project.objects(oid=body['oid'], metadata__version='latest').first() # BUG: Seeded latest have reference to base
-        latest_otu = OTU.objects(oid=latest.oid,  version='latest').first()
-        # if not latest:
-        #     base = Project.objects(oid=body['oid'], metadata__version='base').first()
-        #     if not base:
-        #         raise DACoTBackendException(status_code=422, details='Project not found: {}'.format(body['oid']))
-        #     for j in base.otu.junctions:
-        #         jids.append(j.id)
-        #     oid = base.otu.id
-        #     pid = base.id
-        #     dereferenced_p = dereference_project(base)
-        #     dereferenced_p['metadata']['version'] = 'latest'
-        # else:
         pid = latest.id
-        oid = latest_otu.id
-        for j in latest_otu.junctions:
-            jids.append(j.id)
-        latest.otu = latest_otu
         dereferenced_p = dereference_project(latest)
         if dereferenced_p['metadata']['commune'] != body['metadata']['commune'] and not user.is_admin:
-            # register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Comuna: {}".format(project.metadata.region), background=bgtask)
+            register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Comuna: {}".format(dereferenced_p['metadata']['commune']), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
         if dereferenced_p['metadata']['commune'] != body['metadata']['region'] and not user.is_admin:
-            # register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(project.metadata.region), background=bgtask)
+            register_action(user, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(dereferenced_p['metadata']['commune']), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
         patch = jsonpatch.make_patch(dereferenced_p, body)
         patch.apply(dereferenced_p, in_place=True)
@@ -236,34 +208,13 @@ def __update_by_admin(user, body, bgtask):
         updated_project, files = __build_new_project(dereferenced_p, project_user, bgtask)
         if user.is_admin:
             updated_project.metadata.status = 'SYSTEM'
-        #updated_project = updated_project.save_with_transaction()
         # TODO: Optimization = Search for md5 instead of re-inserting file
-        index = 0
-        for j in updated_project.otu.junctions:
-            j.id = jids[index]
-            j.save() #asignar id
-            index+=1
-        updated_project.otu.id = oid
-        updated_project.otu.version = 'latest'
-        updated_project.otu.save() # BUG: THIS DONT WORKS
         updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
         updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
-        updated_project.metadata.version = 'latest'
         updated_project.id = pid
         updated_project.save()
-        change = ChangeSet(apply_to_id=updated_project.oid, apply_to=updated_project.otu, changes=patch, message='MANUAL_UPDATE LUL')
+        change = ChangeSet(apply_to_id=updated_project.oid, apply_to=updated_project.otu, changes=patch, message='MANUAL_UPDATE LUL') #FIXME: Message
         change.save()
-        #update_project, files = __edit_project(body, user, bgtask)
-        #if update_project.metadata.region != project.metadata.region and not user.is_admin:
-        #    register_action(user_email, 'Requests', "Actualizacion rechazada porque se ha intentado cambiar el campo Region: {}".format(update_project.metadata.region), background=bgtask)
-        #    return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
-        #updated_project = Project(**update_project)
-        #updated_project.save_with_transaction()
-        #updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
-        #updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
-        #if user.is_admin:
-        #    updated_project.metadata.status= 'SYSTEM'
-        #updated_project.save()
     except DACoTBackendException as err:
         register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, err), background=bgtask)
         return JSONResponse(status_code=err.get_status(), content={'detail': err.get_details()})
@@ -285,7 +236,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
             if body['metadata']['status'] == 'NEW':
                 try:
                     new_project, files = __build_new_project(body, user, bgtask)
-                    new_project = new_project.save_with_transaction()
+                    # new_project = new_project.save_with_transaction()
                     # TODO: Optimization = Search for md5 instead of re-inserting file
                     new_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
                     new_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
@@ -358,51 +309,7 @@ async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, oid
                 request = Project.objects(metadata__version='latest', oid=oid).exclude('id', 'metadata.pdf_data').first()
             if not request:
                 return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
-            """
-            request.select_related()
-            defer = request.to_mongo()
-            defer['metadata']['status_user'] = request.metadata.status_user.to_mongo()
-            del defer['metadata']['status_user']['_id']
-            if 'company' in defer['metadata']['status_user']:
-                defer['metadata']['status_user']['company'] = request.metadata.status_user.company.to_mongo()
-                del defer['metadata']['status_user']['company']['_id']
-            defer['metadata']['maintainer'] = request.metadata.maintainer.to_mongo()
-            del defer['metadata']['maintainer']['_id']
-            defer['otu'] = request.otu.to_mongo()
-            del defer['otu']['_id']
-            defer['controller']['model'] = request.controller.model.to_mongo()
-            del defer['controller']['model']['_id']
-            if 'company' in defer['controller']['model']:
-                defer['controller']['model']['company'] = request.controller.model.company.to_mongo()
-                del defer['controller']['model']['company']['_id']
-            for idx, obs in enumerate(defer['observations']):
-                obs['author'] = request.observations[idx].author.to_mongo()
-                if 'company' in obs['author']:
-                    obs['author']['company'] = request.observations[idx].author.company.to_mongo()
-                    del obs['author']['company']['_id']
-                del obs['author']['_id']
-            for idx, _ in enumerate(defer['otu']['junctions']):
-                defer['otu']['junctions'][idx] = request.otu.junctions[idx].to_mongo()
-                del defer['otu']['junctions'][idx]['_id']
-            # Why? Who knows
-            defer['metadata']['status_date'] = {
-                '$date': int(defer['metadata']['status_date'].timestamp() * 1000)
-            }
-            if 'installation_date' in defer['metadata']:
-                defer['metadata']['installation_date'] = {
-                    '$date': int(defer['metadata']['installation_date'].timestamp() * 1000)
-                }
-            if 'observations' in defer and len(defer['observations']) > 0:
-                defer['observations'] = defer['observations'][-1]['message']
-            if 'img' in defer['metadata']:
-                defer['metadata']['img'] = 'data:{};base64,{}'.format(request.metadata.img.content_type, base64.b64encode(request.metadata.img.read()).decode('utf-8'))
-            if 'installation_company' in defer['metadata']:
-                defer['metadata']['installation_company'] = request.metadata.installation_company.to_mongo()
-                del defer['metadata']['installation_company']['_id']
-            return defer.to_dict()
-            """
-            project = dereference_project(request)
-            return project
+            return dereference_project(request)
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
@@ -484,8 +391,7 @@ async def get_version_base(user_email: EmailStr, oid: str = Path(..., min_length
                 request = Project.objects(metadata__version='base', oid=oid).exclude('id', 'metadata.pdf_data').first()
             if not request:
                 return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
-            project = dereference_project(request)
-            return project
+            return dereference_project(request)
         else:
             register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})

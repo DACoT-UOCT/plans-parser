@@ -131,6 +131,3 @@ async def delete_user(background_tasks: BackgroundTasks,edited_user: EmailStr,us
             user_email), background=background_tasks)
         raise HTTPException(status_code=404, detail="User {} not found".format(user_email),headers={"X-Error": "Usuario no encontrado"},)
     return {}
-        
-    
-    
