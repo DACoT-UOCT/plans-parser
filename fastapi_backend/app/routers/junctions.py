@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Body, Path, HTTPException, BackgroundTasks
 from pydantic import BaseModel
-from ..models import Junction
+from ..models import Project
 from .actions_log import register_action
 import json
 from mongoengine.errors import ValidationError
@@ -8,10 +8,12 @@ router = APIRouter()
 
 @router.get('/junctions/{jid}', status_code=200)
 async def read_junction(background_tasks: BackgroundTasks, jid: str = Path(..., min_length=7, max_length=7, regex=r'J\d{6}')):
-    junction = Junction.objects(jid=jid).exclude('id').first()
-    if junction:
+    proj = Project.objects(otu__junctions__jid=jid).exclude('id').first()
+    if proj:
         register_action('Desconocido', 'Junctions', 'Un usuario ha obtenido la junction {} correctamente'.format(jid), background=background_tasks)
-        return junction.to_mongo().to_dict()
+        for junc in proj.otu.junctions:
+            if junc.jid == jid:
+                return junc.to_mongo().to_dict()
     else:
         register_action('Desconocido', 'Junctions', 'Un usuario ha intenado obtener la junction {}, pero no existe'.format(jid), background=background_tasks)
         raise HTTPException(status_code=404, detail='Junction {} not found'.format(jid))

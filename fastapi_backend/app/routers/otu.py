@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, Path, HTTPException, BackgroundTasks
 from pydantic import BaseModel, EmailStr
 from mongoengine import EmailField
-from ..models import OTU
+from ..models import Project
 from .actions_log import register_action
 import json
 from mongoengine.errors import ValidationError,NotUniqueError
@@ -44,17 +44,10 @@ router = APIRouter()
 
 @router.get('/otu/{oid}')
 async def read_otu(background_tasks: BackgroundTasks, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
-    otu = OTU.objects(oid = oid).exclude('id').first()
-    if otu:
-        otu.select_related()
-        dereference_otu = otu.to_mongo()
-        dereference_otu['junctions'] = []
-        for junc in otu.junctions:
-            mongo_junc = junc.to_mongo()
-            del mongo_junc['_id']
-            dereference_otu['junctions'].append(mongo_junc)
+    proj = Project.objects(oid=oid).exclude('id').first()
+    if proj:
         register_action('Desconocido', 'OTU', 'Un usuario ha obtenido la OTU {} correctamente'.format(oid), background=background_tasks)
-        return dereference_otu.to_dict()
+        return proj.otu.to_mongo().to_dict()
     else:
-        register_action('Desconocido', 'Junctions', 'Un usuario ha intenado obtener la OTU {}, pero no existe'.format(oid), background=background_tasks)
+        register_action('Desconocido', 'OTU', 'Un usuario ha intenado obtener la OTU {}, pero no existe'.format(oid), background=background_tasks)
         raise HTTPException(status_code=404, detail='Junction {} not found'.format(oid))
