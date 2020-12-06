@@ -59,9 +59,7 @@ class JunctionMeta(EmbeddedDocument):
     sales_id = IntField(min_value=0, required=True) # This field cannot be unique, the hash function collides in f(J001121) and f(J001122)!!
     address_reference = StringField()
 
-class Junction(Document):
-    meta = {'collection': 'Junction'}
-    version = StringField(choices=['base', 'latest'], required=True, default='base')
+class Junction(EmbeddedDocument):
     jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True, unique_with='version')
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan)
@@ -144,7 +142,6 @@ class ControllerModel(Document):
     date = DateTimeField(default=datetime.utcnow)
 
 class Controller(EmbeddedDocument):
-    meta = {'collection': 'Controller'}
     address_reference = StringField() # PDF
     gps = BooleanField() # PDF
     model = ReferenceField(ControllerModel)
@@ -177,32 +174,13 @@ class OTUMeta(EmbeddedDocument):
     link_type = StringField(choices=['Digital', 'Analogo']) # PDF
     link_owner = StringField(choices=['Propio', 'Compartido']) # PDF
 
-class OTU(Document):
-    meta = {'collection': 'OTU'}
+class OTU(EmbeddedDocument):
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='version')
-    version = StringField(choices=['base', 'latest'], required=True, default='base')
     metadata = EmbeddedDocumentField(OTUMeta)
     program = EmbeddedDocumentListField(OTUProgramItem) # PDF
     sequences = EmbeddedDocumentListField(OTUSequenceItem) # PDF
     intergreens = ListField(IntField(min_value=0)) # PDF # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
-    junctions = ListField(ReferenceField(Junction))#, required=True)   
-
-# JsonPatch changes Model ====
-
-class ChangeSet(Document):
-    meta = {'collection': 'ChangeSets'}
-    apply_to = GenericReferenceField(choices=[OTU, Junction], required=True)
-    apply_to_id = StringField(regex=r'(X\d{5}0|J\d{6})', min_length=7, max_length=7, required=True)
-    date = DateTimeField(default=datetime.utcnow, required=True)
-    changes = ListField(DictField(), required=True)
-    message = StringField()
-
-    def __clean_special_chars_patch(self):
-        self.changes = json.loads(json.dumps(self.changes).replace('$', '%$'))
-
-    def save(self):
-        self.__clean_special_chars_patch()
-        return super(ChangeSet, self).save()
+    junctions = EmbeddedDocumentListField(Junction)#, required=True)
 
 class ActionsLog(Document):
     meta = {'collection': 'ActionsLog'}
@@ -216,7 +194,7 @@ class Project(Document):
     meta = {'collection': 'Project'}
     metadata = EmbeddedDocumentField(ProjectMeta, required=True)
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
-    otu = ReferenceField(OTU, required=True)
+    otu = EmbeddedDocumentField(OTU, required=True)
     controller = EmbeddedDocumentField(Controller)
     headers = EmbeddedDocumentListField(HeaderItem) # PDF
     ups = EmbeddedDocumentField(UPS) # PDF
@@ -239,6 +217,23 @@ class Project(Document):
         except (NotUniqueError, DuplicateKeyError, ValidationError) as err:
             raise DACoTBackendException(status_code=422, details='Error at Project.save_with_transaction: {}'.format(err))
         return self
+
+# JsonPatch changes Model ====
+
+class ChangeSet(Document):
+    meta = {'collection': 'ChangeSets'}
+    apply_to = ReferenceField(Project, required=True)
+    apply_to_id = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True)
+    date = DateTimeField(default=datetime.utcnow, required=True)
+    changes = ListField(DictField(), required=True)
+    message = StringField()
+
+#    def __clean_special_chars_patch(self):
+#        self.changes = json.loads(json.dumps(self.changes).replace('$', '%$'))
+#
+#    def save(self):
+#        self.__clean_special_chars_patch()
+#        return super(ChangeSet, self).save()
 
 class PlanParseFailedMessage(Document):
     meta = {'collection': 'PlanParseFailedMessage'}
