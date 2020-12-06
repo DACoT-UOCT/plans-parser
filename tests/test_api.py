@@ -37,6 +37,10 @@ class TestFastAPI(unittest.TestCase):
         assert response.status_code == 404
         assert response.json()['detail'] == 'User user@dominio.cl not found'
 
+    def test_get_users_missing_param(self):
+        response = self.client.get('/users')
+        assert response.status_code == 422
+
     def test_get_users(self):
         response = self.client.get('/users?user_email=admin@dacot.uoct.cl')
         assert response.status_code == 200
@@ -48,7 +52,6 @@ class TestFastAPI(unittest.TestCase):
         response = self.client.get('/users?user_email=employee@acmecorp.com')
         assert response.status_code == 403
         assert response.json()['detail'] == 'Forbidden'
-        # print(response, response.json())
 
     def test_get_users_user_not_found(self):
         response = self.client.get('/users?user_email=user@dominio.cl')
@@ -56,3 +59,56 @@ class TestFastAPI(unittest.TestCase):
         assert response.json()['detail'] == 'User user@dominio.cl not found'
 
     # FIXME: Test /edit-user/ and /delet-user/
+
+    def test_get_actions_log(self):
+        self.client.get('/actions_log?user_email=admin@dacot.uoct.cl')
+        response = self.client.get('/actions_log?user_email=admin@dacot.uoct.cl')
+        assert response.status_code == 200
+        assert len(response.json()) > 0
+
+    def test_get_actions_log_not_admin(self):
+        response = self.client.get('/actions_log?user_email=employee@acmecorp.com')
+        assert response.status_code == 403
+        assert response.json()['detail'] == 'Forbidden'
+
+    def test_get_communes(self):
+        response = self.client.get('/communes')
+        assert response.status_code == 200
+        assert len(response.json()) > 0
+
+    # FIXME: Test /edit-commune
+
+    def test_get_controller_models(self):
+        response = self.client.get('/controller_models')
+        assert response.status_code == 200
+        assert len(response.json()) > 0
+
+    def test_get_companies_missing_params(self):
+        response = self.client.get('/companies')
+        assert response.status_code == 422
+
+    def test_get_companies_not_admin(self):
+        response = self.client.get('/companies?user_email=employee@acmecorp.com')
+        assert response.status_code == 403
+        assert response.json()['detail'] == 'Forbidden'
+
+    def test_get_companies_user_not_found(self):
+        response = self.client.get('/companies?user_email=user@dominio.cl')
+        assert response.status_code == 404
+        assert response.json()['detail'] == 'User user@dominio.cl not found'
+
+    def test_get_companies(self):
+        response = self.client.get('/companies?user_email=admin@dacot.uoct.cl')
+        assert response.status_code == 200
+        assert len(response.json()) > 0
+
+    # FIXME: Test failed_plans
+
+    def test_get_junction(self):
+        response = self.client.get('/junctions/J001111')
+        assert response.status_code == 200
+        assert response.json()['jid'] == 'J001111'
+
+    def test_get_junction_not_found(self):
+        response = self.client.get('/junctions/J999999')
+        assert response.status_code == 404
