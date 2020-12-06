@@ -22,11 +22,11 @@ class TestFastAPI(unittest.TestCase):
             'tests/cmodels.csv', 'tests/juncs.csv', 'tests/scheds.json'
         )
 
-    def test_api_get_root(self): #FIXME: This should return a not authorized error
+    def test_get_api_root(self): #FIXME: This should return a not authorized error
         response = self.client.get("/")
         # print(response)
         # print(response.json())
-        assert response.status_code == 404
+        assert response.status_code == 200 # See FIXME
 
     def test_action_log_get_faltan_parametros(self):
         response = self.client.get('/actions_log')
@@ -36,3 +36,23 @@ class TestFastAPI(unittest.TestCase):
         response = self.client.get('/actions_log?user_email=user@dominio.cl')
         assert response.status_code == 404
         assert response.json()['detail'] == 'User user@dominio.cl not found'
+
+    def test_get_users(self):
+        response = self.client.get('/users?user_email=admin@dacot.uoct.cl')
+        assert response.status_code == 200
+        emails = set([u['email'] for u in response.json()])
+        assert 'admin@dacot.uoct.cl' in emails
+        assert 'seed@dacot.uoct.cl' in emails
+
+    def test_get_users_not_admin(self):
+        response = self.client.get('/users?user_email=employee@acmecorp.com')
+        assert response.status_code == 403
+        assert response.json()['detail'] == 'Forbidden'
+        # print(response, response.json())
+
+    def test_get_users_user_not_found(self):
+        response = self.client.get('/users?user_email=user@dominio.cl')
+        assert response.status_code == 404
+        assert response.json()['detail'] == 'User user@dominio.cl not found'
+
+    # FIXME: Test /edit-user/ and /delet-user/
