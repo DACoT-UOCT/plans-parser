@@ -60,7 +60,7 @@ class JunctionMeta(EmbeddedDocument):
     address_reference = StringField()
 
 class Junction(EmbeddedDocument):
-    jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True, unique_with='version')
+    jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True, unique=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan)
 
@@ -175,7 +175,7 @@ class OTUMeta(EmbeddedDocument):
     link_owner = StringField(choices=['Propio', 'Compartido']) # PDF
 
 class OTU(EmbeddedDocument):
-    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='version')
+    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True)
     metadata = EmbeddedDocumentField(OTUMeta)
     program = EmbeddedDocumentListField(OTUProgramItem) # PDF
     sequences = EmbeddedDocumentListField(OTUSequenceItem) # PDF
