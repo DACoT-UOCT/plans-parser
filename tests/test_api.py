@@ -112,3 +112,20 @@ class TestFastAPI(unittest.TestCase):
     def test_get_junction_not_found(self):
         response = self.client.get('/junctions/J999999')
         assert response.status_code == 404
+
+    def test_get_junction_invalid_regex(self):
+        response = self.client.get('/junctions/invalid')
+        assert response.status_code == 422
+
+    def test_get_otu(self):
+        response = self.client.get('/otu/X001110')
+        assert response.status_code == 200
+        assert response.json()['oid'] == 'X001110'
+
+    def test_get_otu_not_found(self):
+        response = self.client.get('/otu/X999990')
+        assert response.status_code == 404
+
+    def test_get_otu_invalid_regex(self):
+        response = self.client.get('/otu/invalid')
+        assert response.status_code == 422
