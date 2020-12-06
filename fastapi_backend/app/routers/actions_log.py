@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 @router.get('/actions_log', tags=["history"])
-async def read_actions(background_tasks: BackgroundTasks,token: str = Depends(oauth2_scheme), user_email: EmailStr, gte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" + str(datetime.today().day), lte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" + str(datetime.today().day + 1)):
+async def read_actions(background_tasks: BackgroundTasks,user_email: EmailStr,token: str = Depends(oauth2_scheme),gte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" + str(datetime.today().day), lte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" + str(datetime.today().day + 1)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:
