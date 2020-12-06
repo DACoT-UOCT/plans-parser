@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Body, Query, Request,HTTPException,BackgroundTasks,Form
+from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from pydantic import EmailStr
 from ..models import User,ExternalCompany
 import json
@@ -8,7 +9,7 @@ from mongoengine.errors import ValidationError, NotUniqueError
 router = APIRouter()
 
 @router.post('/users', tags=["users"],status_code=201)
-async def create_user(request: Request ,user_email: EmailStr,background_tasks: BackgroundTasks):
+async def create_user(request: Request ,user_email: EmailStr,background_tasks: BackgroundTasks,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:  
@@ -50,7 +51,7 @@ async def create_user(request: Request ,user_email: EmailStr,background_tasks: B
 
 
 @router.get('/users', tags=["users"],status_code=200)
-async def read_users(user_email: EmailStr, background_tasks: BackgroundTasks):
+async def read_users(user_email: EmailStr, background_tasks: BackgroundTasks,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:
@@ -74,7 +75,7 @@ async def read_users(user_email: EmailStr, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=404, detail='User {} not found'.format(user_email))
 
 @router.put('/edit-user/{edited_user}', tags=["users"],status_code=200)
-async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_email: EmailStr ,request: Request):
+async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_email: EmailStr ,request: Request,token: str = Depends(oauth2_scheme)):
     user = User.objects(email= user_email).first()
     if user:
         if user.is_admin:  
@@ -108,7 +109,7 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_emai
     
 
 @router.delete('/delete-user/{edited_user}',tags=["users"],status_code=200)
-async def delete_user(background_tasks: BackgroundTasks,edited_user: EmailStr,user_email: EmailStr):
+async def delete_user(background_tasks: BackgroundTasks,edited_user: EmailStr,user_email: EmailStr,token: str = Depends(oauth2_scheme)):
     user = User.objects(email= user_email).first()
     if user:
         if user.is_admin:

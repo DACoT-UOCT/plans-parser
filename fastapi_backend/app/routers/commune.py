@@ -1,4 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Form, Request
+from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from ..models import Commune, User,ExternalCompany
 from pydantic import EmailStr
 from .actions_log import register_action
@@ -8,7 +9,7 @@ router = APIRouter()
 
 
 @router.get('/communes',status_code=200)
-async def get_communes(background_tasks: BackgroundTasks):
+async def get_communes(background_tasks: BackgroundTasks,token: str = Depends(oauth2_scheme)):
     r = []
     communes = Commune.objects().exclude('id').all()
     for c in communes:
@@ -22,7 +23,7 @@ async def get_communes(background_tasks: BackgroundTasks):
     return r
     
 @router.put('/edit-commune', tags=["commune"], status_code=200)
-async def edit_commune(background_tasks: BackgroundTasks, user_email: EmailStr, request: Request):
+async def edit_commune(background_tasks: BackgroundTasks, user_email: EmailStr, request: Request,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:  

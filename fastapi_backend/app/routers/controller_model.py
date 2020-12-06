@@ -1,11 +1,12 @@
 from fastapi import APIRouter, BackgroundTasks
+from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from ..models import ControllerModel
 from .actions_log import register_action
 
 router = APIRouter()
 
 @router.get('/controller_models')
-async def get_communes(background_tasks: BackgroundTasks):
+async def get_controllers(background_tasks: BackgroundTasks,token: str = Depends(oauth2_scheme)):
     d = {}
     models = ControllerModel.objects.all()
     for m in models:

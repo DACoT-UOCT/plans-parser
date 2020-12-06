@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, FastAPI, UploadFile, File, Body, Query, HTTPException, BackgroundTasks, Form, Path
 from typing import Any, Dict
+from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import EmailStr, BaseModel
@@ -273,7 +274,7 @@ def __update_by_admin(user, body, bgtask):
         return JSONResponse(status_code=201, content={'detail': 'Created'})
 
 @router.post("/requests", status_code=201)
-async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request):
+async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Empresa':
@@ -318,7 +319,7 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.get('/requests')
-async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr):
+async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
@@ -347,7 +348,7 @@ async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr):
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.get('/requests/{oid}')
-async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
@@ -442,23 +443,23 @@ async def __process_accept_or_reject(oid, new_status, user_email, request, bgtas
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.put('/requests/{oid}/accept')
-async def accept_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+async def accept_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     return await __process_accept_or_reject(oid, 'APPROVED', user_email, request, bgtask)
 
 @router.put('/requests/{oid}/reject')
-async def reject_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+async def reject_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     return await __process_accept_or_reject(oid, 'REJECTED', user_email, request, bgtask)
 
 @router.put('/requests/{oid}/pdf')
-async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     return JSONResponse(status_code=200, content={})
 
 @router.put('/requests/{oid}/delete')
-async def delete_request(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+async def delete_request(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     return JSONResponse(status_code=200, content={})
 
 @router.get('/versions/{oid}')
-async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     changes = ChangeSet.objects(apply_to_id=oid).order_by('-date').exclude('apply_to', 'changes').all()
     res = []
     for change in changes:
@@ -473,7 +474,7 @@ async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, 
     return res
 
 @router.get('/versions/{oid}/base')
-async def get_version_base(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
+async def get_version_base(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':

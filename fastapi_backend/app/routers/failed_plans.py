@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
+from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from fastapi.responses import JSONResponse
 from pydantic import EmailStr
 from ..models import PlanParseFailedMessage, User
@@ -6,7 +7,7 @@ from .actions_log import register_action
 
 router = APIRouter()
 @router.get('/failed-plans')
-def get_failed_plans(background_tasks: BackgroundTasks, user_email: EmailStr):
+def get_failed_plans(background_tasks: BackgroundTasks, user_email: EmailStr,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:
@@ -31,7 +32,7 @@ def get_failed_plans(background_tasks: BackgroundTasks, user_email: EmailStr):
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.get('/failed-plans/{id}')
-def get_failed_plan_details(background_tasks: BackgroundTasks, user_email: EmailStr, id: str):
+def get_failed_plan_details(background_tasks: BackgroundTasks, user_email: EmailStr, id: str,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:
@@ -57,7 +58,7 @@ def get_failed_plan_details(background_tasks: BackgroundTasks, user_email: Email
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.delete('/failed-plans/{id}')
-def delete_failed_plan(background_tasks: BackgroundTasks, user_email: EmailStr, id: str):
+def delete_failed_plan(background_tasks: BackgroundTasks, user_email: EmailStr, id: str,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:

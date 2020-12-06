@@ -1,4 +1,5 @@
 from fastapi import APIRouter, File, Form,BackgroundTasks,UploadFile,HTTPException
+from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from ..models import ExternalCompany,User
 from typing import List
 from pydantic import EmailStr
@@ -41,7 +42,7 @@ router = APIRouter()
     #return [{"username": "Foo"}, {"username": "Bar"}]
 
 @router.get('/companies', tags=["external_company"],status_code=200)
-async def get_companies(background_tasks: BackgroundTasks,user_email: EmailStr ):
+async def get_companies(background_tasks: BackgroundTasks,user_email: EmailStr,token: str = Depends(oauth2_scheme) ):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:

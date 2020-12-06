@@ -1,13 +1,16 @@
 import json
 from fastapi import APIRouter, HTTPException, BackgroundTasks
+from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from fastapi.logger import logger
 from ..models import User, ActionsLog
 from pydantic import EmailStr
 from datetime import datetime, timedelta
 router = APIRouter()
 
+
+
 @router.get('/actions_log', tags=["history"])
-async def read_actions(background_tasks: BackgroundTasks, user_email: EmailStr, gte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" + str(datetime.today().day), lte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" + str(datetime.today().day + 1)):
+async def read_actions(background_tasks: BackgroundTasks,token: str = Depends(oauth2_scheme), user_email: EmailStr, gte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" + str(datetime.today().day), lte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" + str(datetime.today().day + 1)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:
