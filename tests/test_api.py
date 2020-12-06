@@ -1,4 +1,7 @@
 import os
+import json
+import mongomock
+import mongomock.gridfs
 
 os.environ['mongo_db'] = 'testing-db'
 os.environ['mongo_uri'] = 'mongomock://127.0.0.1'
@@ -14,6 +17,7 @@ class TestFastAPI(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestFastAPI, self).__init__(*args, **kwargs)
         self.client = TestClient(production_main.app)
+        mongomock.gridfs.enable_gridfs_integration()
 
     @classmethod
     def setUpClass(cls):
@@ -123,7 +127,7 @@ class TestFastAPI(unittest.TestCase):
         assert response.json()['oid'] == 'X001110'
 
     def test_get_otu_not_found(self):
-        response = self.client.get('/otu/X999990')
+        response = self.client.get('/otu/X876540')
         assert response.status_code == 404
 
     def test_get_otu_invalid_regex(self):
@@ -136,3 +140,46 @@ class TestFastAPI(unittest.TestCase):
         proj = response.json()
         assert proj['oid'] == 'X001110'
         assert proj['metadata']['version'] == 'base'
+
+    def test_create_new_project1_create_admin(self):
+        with open('tests/create_proj.json', 'r') as jsf:
+            data = json.load(jsf)
+        response = self.client.post('/requests?user_email=admin@dacot.uoct.cl', data=json.dumps(data))
+        assert response.status_code == 201
+
+    def test_create_new_project1_create_user(self):
+        with open('tests/create_proj.json', 'r') as jsf:
+            data = json.load(jsf)
+        data['otu']['oid'] = 'X999980'
+        response = self.client.post('/requests?user_email=employee@acmecorp.com', data=json.dumps(data))
+        assert response.status_code == 201
+        data['otu']['oid'] = 'X999970'
+        response = self.client.post('/requests?user_email=employee@acmecorp.com', data=json.dumps(data))
+        assert response.status_code == 201
+
+    def test_create_new_project2_get_single_project_admin(self):
+        response = self.client.get('/requests/X999990?user_email=admin@dacot.uoct.cl')
+        assert response.status_code == 200
+        assert len(response.json()) > 0
+
+    def test_create_new_project3_accept_project_admin(self):
+        data = {
+            'comentario': '', 'file': None, 'mails': ['example@example.com']
+        }
+        response = self.client.put('/requests/X999980/accept?user_email=admin@dacot.uoct.cl', data=json.dumps(data))
+        assert response.status_code == 200
+
+    def test_create_new_project3_reject_project_admin(self):
+        data = {
+            'comentario': '', 'file': None, 'mails': ['example@example.com']
+        }
+        response = self.client.put('/requests/X999970/reject?user_email=admin@dacot.uoct.cl', data=json.dumps(data))
+        assert response.status_code == 200
+
+    def test_get_projects_admin(self):
+        response = self.client.get('/requests?user_email=admin@dacot.uoct.cl')
+        assert response.status_code == 200
+        assert len(response.json()) > 0
+
+
+    # FIXME: Test update, get versions and patches

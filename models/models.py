@@ -201,23 +201,6 @@ class Project(Document):
     poles = EmbeddedDocumentField(Poles) # PDF
     observations = EmbeddedDocumentListField(Comment) # PDF
 
-    # BUG: mongoengine still don't support ACID-Transactions. See https://github.com/MongoEngine/mongoengine/issues/1839
-    def save_with_transaction(self):
-        try:
-            with get_connection().start_session() as sess:
-                with sess.start_transaction():
-                    saved_juncs = Junction._get_collection().insert_many([x.to_mongo() for x in self.otu.junctions], session=sess)
-                    self.otu.junctions = saved_juncs.inserted_ids
-                    saved_otu = OTU._get_collection().insert_one(self.otu.to_mongo(), session=sess)
-                    self.oid = self.otu.oid
-                    self.otu = saved_otu.inserted_id
-                    saved_proj = Project._get_collection().insert_one(self.to_mongo(), session=sess)
-                    self['id'] = saved_proj.inserted_id
-                    self.validate()
-        except (NotUniqueError, DuplicateKeyError, ValidationError) as err:
-            raise DACoTBackendException(status_code=422, details='Error at Project.save_with_transaction: {}'.format(err))
-        return self
-
 # JsonPatch changes Model ====
 
 class ChangeSet(Document):
