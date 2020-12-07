@@ -1,5 +1,5 @@
 import json
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import Depends,APIRouter, HTTPException, BackgroundTasks
 from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from fastapi.logger import logger
 from ..models import User, ActionsLog

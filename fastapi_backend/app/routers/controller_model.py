@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, Depends,BackgroundTasks
 from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from ..models import ControllerModel
 from .actions_log import register_action

@@ -9,7 +9,7 @@ import os
 from typing import List
 from fastapi.responses import HTMLResponse
 
-app = FastAPI(ocs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI()
 
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 

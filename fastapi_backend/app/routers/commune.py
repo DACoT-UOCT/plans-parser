@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Form, Request
+from fastapi import APIRouter, Depends,BackgroundTasks, HTTPException, Form, Request
 from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from ..models import Commune, User,ExternalCompany
 from pydantic import EmailStr

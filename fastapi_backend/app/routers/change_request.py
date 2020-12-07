@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, FastAPI, UploadFile, File, Body, Query, HTTPException, BackgroundTasks, Form, Path
+from fastapi import APIRouter, Depends,Request, FastAPI, UploadFile, File, Body, Query, HTTPException, BackgroundTasks, Form, Path
 from typing import Any, Dict
 from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, Form,BackgroundTasks,UploadFile,HTTPException
+from fastapi import APIRouter, Depends,File, Form,BackgroundTasks,UploadFile,HTTPException
 from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from ..models import ExternalCompany,User
 from typing import List
