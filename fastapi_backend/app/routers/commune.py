@@ -8,18 +8,20 @@ import json
 
 router = APIRouter()
 
-et_sample = bjson.dumps(Commune.objects().exclude('id').first(), sort_keys=True, indent=4)
+sample = Commune.objects().exclude('id').first().to_mongo()
+sample['maintainer'] = Commune.objects().exclude('id').first().maintainer.to_mongo()
+del sample['maintainer']['_id']
 
-@router.get('/communes',status_code=200,tags=["Commune"],
-responses={
-    200:{
-        "description": "Historial de acciones pedido",
+get_sample = bjson.dumps([sample], sort_keys=True, indent=4)
+
+@router.get('/communes', status_code=200, tags=["Commune"], responses={
+    200: {
+        "description": "OK. Se ha obtenido la lista de comunas de forma correcta.",
         "content": {
-            "application/json":{
-                "example": get_sample
-            }
+            "application/json": { "example": get_sample }
         }
-    }})
+    }
+})
 async def get_communes(background_tasks: BackgroundTasks):
     r = []
     communes = Commune.objects().exclude('id').all()

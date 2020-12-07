@@ -24,8 +24,7 @@ get_sample = bjson.dumps(Project.objects().exclude('id').first().otu.junctions[0
     }
 })
 async def read_junction(background_tasks: BackgroundTasks, jid: str = Path(..., min_length=7, max_length=7, regex=r'J\d{6}',
-    description='Identificador único de la intersección que buscamos consultar. Debe cumplir con la expresión regular de validación.')
-):
+    description='Identificador único de la intersección que buscamos consultar. Debe cumplir con la expresión regular de validación.')):
     proj = Project.objects(otu__junctions__jid=jid).exclude('id').first()
     if proj:
         register_action('Desconocido', 'Junctions', 'Un usuario ha obtenido la junction {} correctamente'.format(jid), background=background_tasks)

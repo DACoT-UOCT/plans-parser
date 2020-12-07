@@ -22,7 +22,7 @@ import jsonpatch
 
 router = APIRouter()
 
-request_sample = bjson.dumps(Request.objects().exclude('id').first(), sort_keys=True, indent=4)
+request_sample = bjson.dumps(Project.objects().exclude('id').first(), sort_keys=True, indent=4)
 version_sample = bjson.dumps(ChangeSet.objects().exclude('id').first(), sort_keys=True, indent=4)
 get_sample = bjson.dumps(Project.objects().exclude('id').first().otu.junctions[0].to_mongo(), sort_keys=True, indent=4)
 
