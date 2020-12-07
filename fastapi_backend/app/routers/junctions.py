@@ -4,10 +4,28 @@ from ..models import Project
 from .actions_log import register_action
 import json
 from mongoengine.errors import ValidationError
+import bson.json_util as bjson
 router = APIRouter()
 
-@router.get('/junctions/{jid}', status_code=200)
-async def read_junction(background_tasks: BackgroundTasks, jid: str = Path(..., min_length=7, max_length=7, regex=r'J\d{6}')):
+get_sample = bjson.dumps(Project.objects().exclude('id').first().otu.junctions[0].to_mongo(), sort_keys=True, indent=4)
+
+@router.get('/junctions/{jid}', tags=["Junctions"], status_code=200, responses={
+    404: {
+        'description': 'No encontrada. La intersección con el identificador especificado no existe en la base de datos.',
+        'content': {
+            'application/json': {'example': {"detail": "Junction J999999 not found"}}
+        }
+    },
+    200: {
+        'description': 'OK. Se ha obtenido la intersección correctamente.',
+        'content': {
+            'application/json': {'example': get_sample}
+        }
+    }
+})
+async def read_junction(background_tasks: BackgroundTasks, jid: str = Path(..., min_length=7, max_length=7, regex=r'J\d{6}',
+    description='Identificador único de la intersección que buscamos consultar. Debe cumplir con la expresión regular de validación.')
+):
     proj = Project.objects(otu__junctions__jid=jid).exclude('id').first()
     if proj:
         register_action('Desconocido', 'Junctions', 'Un usuario ha obtenido la junction {} correctamente'.format(jid), background=background_tasks)

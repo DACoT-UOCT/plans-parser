@@ -1,9 +1,12 @@
+from .config import get_settings
+from mongoengine import connect
+
+connect(host=get_settings().mongo_uri)
+
 from fastapi import Depends, FastAPI, Header, HTTPException, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from mongoengine import connect
 from .routers import otu, junctions, users, actions_log, controller_model, commune
 from .routers import change_request, external_company, google_auth, failed_plans
-from .config import get_settings
 from functools import lru_cache
 import os
 from typing import List
@@ -12,8 +15,6 @@ from fastapi.responses import HTMLResponse
 app = FastAPI()
 
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
-
-connect(host=get_settings().mongo_uri)
 
 app.include_router(google_auth.router)
 app.include_router(users.router)
