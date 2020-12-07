@@ -1,4 +1,5 @@
 import json
+import bson.json_util as bjson
 from fastapi import Depends,APIRouter, HTTPException, BackgroundTasks
 from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from fastapi.logger import logger
@@ -7,10 +8,23 @@ from pydantic import EmailStr
 from datetime import datetime, timedelta
 router = APIRouter()
 
+get_sample = bjson.dumps(ActionsLog.objects().exclude('id').first(), sort_keys=True, indent=4)
 
-
-@router.get('/actions_log', tags=["history"])
-async def read_actions(background_tasks: BackgroundTasks,user_email: EmailStr,token: str = Depends(oauth2_scheme),gte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" + str(datetime.today().day), lte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" + str(datetime.today().day + 1)):
+@router.get('/actions_log', tags=["history"],
+responses={
+    200:{
+        "description": "Historial de acciones pedido",
+        "content": {
+            "application/json":{
+                "example": get_sample
+            }
+        }
+    }})
+async def read_actions(background_tasks: BackgroundTasks,user_email: EmailStr,
+token: str = Depends(oauth2_scheme),gte: str = str(datetime.today().year)+
+"-"+str(datetime.today().month)+"-" + str(datetime.today().day), 
+lte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" 
++ str(datetime.today().day + 1)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:

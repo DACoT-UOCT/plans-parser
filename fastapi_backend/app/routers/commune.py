@@ -3,12 +3,23 @@ from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from ..models import Commune, User,ExternalCompany
 from pydantic import EmailStr
 from .actions_log import register_action
+import bson.json_util as bjson
 import json
 
 router = APIRouter()
 
+et_sample = bjson.dumps(Commune.objects().exclude('id').first(), sort_keys=True, indent=4)
 
-@router.get('/communes',status_code=200)
+@router.get('/communes',status_code=200,tags=["Commune"],
+responses={
+    200:{
+        "description": "Historial de acciones pedido",
+        "content": {
+            "application/json":{
+                "example": get_sample
+            }
+        }
+    }})
 async def get_communes(background_tasks: BackgroundTasks):
     r = []
     communes = Commune.objects().exclude('id').all()
@@ -22,7 +33,7 @@ async def get_communes(background_tasks: BackgroundTasks):
                     'Un usuario ha consultado la lista de comunas', background=background_tasks)
     return r
     
-@router.put('/edit-commune', tags=["commune"], status_code=200)
+@router.put('/edit-commune', tags=["Commune"], status_code=200)
 async def edit_commune(background_tasks: BackgroundTasks, user_email: EmailStr, request: Request,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:

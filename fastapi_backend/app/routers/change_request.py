@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends,Request, FastAPI, UploadFile, File, Body, Query, HTTPException, BackgroundTasks, Form, Path
 from typing import Any, Dict
+import bson.json_util as bjson
 from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -20,6 +21,10 @@ import datetime
 import jsonpatch
 
 router = APIRouter()
+
+request_sample = bjson.dumps(Request.objects().exclude('id').first(), sort_keys=True, indent=4)
+version_sample = bjson.dumps(ChangeSet.objects().exclude('id').first(), sort_keys=True, indent=4)
+get_sample = bjson.dumps(Project.objects().exclude('id').first().otu.junctions[0].to_mongo(), sort_keys=True, indent=4)
 
 header = '<html><body><p>Solicitud de nueva instalacion<br></p></body></html>'
 footer = '<html><body><p>Thanks for using fastapi-mail</p></body></html>'
@@ -269,7 +274,16 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.get('/requests')
+@router.get('/requests', tags=["Requests"],
+responses={
+    200:{
+        "description": "Historial de acciones pedido",
+        "content": {
+            "application/json":{
+                "example": request_sample
+            }
+        }
+    }})
 async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
@@ -298,7 +312,16 @@ async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr,token: str 
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.get('/requests/{oid}')
+@router.get('/requests/{oid}',tags=["Requests"],
+responses={
+    200:{
+        "description": "Historial de acciones pedido",
+        "content": {
+            "application/json":{
+                "example": request_sample
+            }
+        }
+    }})
 async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
@@ -365,7 +388,16 @@ async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, oid: str =
 async def delete_request(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     return JSONResponse(status_code=200, content={})
 
-@router.get('/versions/{oid}')
+@router.get('/versions/{oid}',tags=["Requests"],
+responses={
+    200:{
+        "description": "Historial de acciones pedido",
+        "content": {
+            "application/json":{
+                "example": version_sample
+            }
+        }
+    }})
 async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     changes = ChangeSet.objects(apply_to_id=oid).order_by('-date').exclude('apply_to', 'changes').all()
     res = []
@@ -380,7 +412,16 @@ async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, 
         res.append(item)
     return res
 
-@router.get('/versions/{oid}/base')
+@router.get('/versions/{oid}/base',tags=["Requests"],
+responses={
+    200:{
+        "description": "Historial de acciones pedido",
+        "content": {
+            "application/json":{
+                "example": version_sample
+            }
+        }
+    }})
 async def get_version_base(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
