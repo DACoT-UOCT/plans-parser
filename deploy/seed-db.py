@@ -387,7 +387,7 @@ def rebuild(args):
     build_commune_collection(index_csv)
     controllers_model_csv = read_controller_models_csv(args)
     build_controller_model_collection(controllers_model_csv)
-    otus = build_projects(index_csv)
+    otus, projects = build_projects(index_csv)
     junctions, otus = build_junctions(index_csv, otus)
     json_data = read_json_data(args)
     junctions = build_junction_plans(junctions, json_data)
