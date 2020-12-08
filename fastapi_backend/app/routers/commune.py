@@ -35,7 +35,7 @@ async def get_communes(background_tasks: BackgroundTasks):
     return r
 
 @router.put('/edit-commune', tags=["MissingDocs"], status_code=200)
-async def edit_commune(background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), request: Request,token: str = Depends(oauth2_scheme)):
+async def edit_commune(background_tasks: BackgroundTasks, request: Request, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
     user = User.objects(email=user_email).first()
     if user:

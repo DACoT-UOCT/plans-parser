@@ -12,7 +12,7 @@ router = APIRouter()
 user_sample = bjson.dumps([User.objects(email='admin@dacot.uoct.cl').exclude('id').first().to_mongo()], sort_keys=True, indent=4)
 
 @router.post('/users', tags=["Users"], status_code=201)
-async def create_user(request: Request ,current_user: User = Depends(get_current_user),background_tasks: BackgroundTasks,token: str = Depends(oauth2_scheme)):
+async def create_user(request: Request ,background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
     user = User.objects(email=user_email).first()
     if user:
@@ -64,7 +64,7 @@ async def create_user(request: Request ,current_user: User = Depends(get_current
         }
     }
 })
-async def read_users(current_user: User = Depends(get_current_user), background_tasks: BackgroundTasks,token: str = Depends(oauth2_scheme)):
+async def read_users(background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
     user = User.objects(email=user_email).first()
     if user:
@@ -89,7 +89,7 @@ async def read_users(current_user: User = Depends(get_current_user), background_
         raise HTTPException(status_code=404, detail='User {} not found'.format(user_email))
 
 @router.put('/edit-user/{edited_user}', tags=["Users"],status_code=200)
-async def edit_user(background_tasks: BackgroundTasks,edited_user: EmailStr,current_user: User = Depends(get_current_user) ,request: Request,token: str = Depends(oauth2_scheme)):
+async def edit_user(background_tasks: BackgroundTasks,edited_user: EmailStr, request: Request,current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
     user = User.objects(email= user_email).first()
     if user:

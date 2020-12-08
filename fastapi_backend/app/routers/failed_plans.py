@@ -33,7 +33,7 @@ def get_failed_plans(background_tasks: BackgroundTasks, current_user: User = Dep
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.get('/failed-plans/{id}', tags=["ProcessingFailed"])
-def get_failed_plan_details(background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), id: str,token: str = Depends(oauth2_scheme)):
+def get_failed_plan_details(background_tasks: BackgroundTasks, id: str, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
     user = User.objects(email=user_email).first()
     if user:
@@ -60,7 +60,7 @@ def get_failed_plan_details(background_tasks: BackgroundTasks, current_user: Use
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.delete('/failed-plans/{id}', tags=["MissingDocs"])
-def delete_failed_plan(background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), id: str,token: str = Depends(oauth2_scheme)):
+def delete_failed_plan(background_tasks: BackgroundTasks, id: str, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
     user = User.objects(email=user_email).first()
     if user:

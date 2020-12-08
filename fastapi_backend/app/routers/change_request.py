@@ -237,7 +237,7 @@ def __update_by_admin(user, body, bgtask):
         return JSONResponse(status_code=201, content={'detail': 'Created'})
 
 @router.post("/requests", status_code=201, tags=["MissingDocs"])
-async def create_request(bgtask: BackgroundTasks, current_user: User = Depends(get_current_user), request: Request,token: str = Depends(oauth2_scheme)):
+async def create_request(bgtask: BackgroundTasks, request: Request, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
     user = User.objects(email=user_email).first()
     if user:
@@ -407,12 +407,12 @@ async def __process_accept_or_reject(oid, new_status, user_email, request, bgtas
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.put('/requests/{oid}/accept', tags=["MissingDocs"])
-async def accept_request(bgtask: BackgroundTasks, current_user: User = Depends(get_current_user), request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
+async def accept_request(bgtask: BackgroundTasks, request: Request, current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
     return await __process_accept_or_reject(oid, 'APPROVED', user_email, request, bgtask)
 
 @router.put('/requests/{oid}/reject', tags=["MissingDocs"])
-async def reject_request(bgtask: BackgroundTasks, current_user: User = Depends(get_current_user), request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
+async def reject_request(bgtask: BackgroundTasks, request: Request, current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
     return await __process_accept_or_reject(oid, 'REJECTED', user_email, request, bgtask)
 
