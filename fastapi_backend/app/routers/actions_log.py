@@ -8,7 +8,7 @@ from pydantic import EmailStr
 from datetime import datetime, timedelta
 router = APIRouter()
 
-get_sample = bjson.dumps(ActionsLog.objects().exclude('id').first().to_mongo(), sort_keys=True, indent=4)
+get_sample = bjson.dumps([ActionsLog.objects().exclude('id').first().to_mongo()], sort_keys=True, indent=4)
 
 @router.get('/actions_log', tags=["ActionsLog"], responses={
     200: {

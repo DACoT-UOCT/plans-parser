@@ -22,7 +22,6 @@ import jsonpatch
 
 router = APIRouter()
 
-request_sample = bjson.dumps(Project.objects().exclude('id').first(), sort_keys=True, indent=4)
 version_sample = bjson.dumps(ChangeSet.objects().exclude('id').first(), sort_keys=True, indent=4)
 get_sample = bjson.dumps(Project.objects().exclude('id').first().otu.junctions[0].to_mongo(), sort_keys=True, indent=4)
 
@@ -80,6 +79,13 @@ def dereference_project(request):
         res['metadata']['installation_company'] = request.metadata.installation_company.to_mongo()
         del res['metadata']['installation_company']['_id']
     return res.to_dict()
+
+single_proj_sample = dereference_project(Project.objects().exclude('id').first())
+request_sample = bjson.dumps([single_proj_sample], sort_keys=True, indent=4)
+single_request_sample = bjson.dumps(single_proj_sample, sort_keys=True, indent=4)
+single_request_base_sample = single_proj_sample
+single_request_base_sample['metadata']['version'] = 'base'
+single_request_base_sample = bjson.dumps(single_request_base_sample, sort_keys=True, indent=4)
 
 async def __process_accept_or_reject(oid, new_status, user_email, request, bgtask):
     user = User.objects(email=user_email).first()
@@ -274,16 +280,28 @@ async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request:
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.get('/requests', tags=["Requests"],
-responses={
-    200:{
-        "description": "Historial de acciones pedido",
+@router.get('/requests', tags=["Requests"], responses={
+    200: {
+        "description": "OK. Se han obtenido las peticiones para actualizar o incorporar datos a la plataforma.",
         "content": {
             "application/json":{
                 "example": request_sample
             }
         }
-    }})
+    },
+    403: {
+        "description": "Prohibido. El usuario que realiza esta acción no tiene los permisos suficientes.",
+        "content": {
+            "application/json": { "example": {"detail": "Forbbiden"} }
+        }
+    },
+    404: {
+        "description": "No encontrado. El usuario que esta intentando obtener los registros no existen en la plataforma.",
+        "content": {
+            "application/json": { "example": {"detail": "User example@google.com not found"} }
+        }
+    }
+})
 async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
@@ -312,16 +330,28 @@ async def get_requests(bgtask: BackgroundTasks, user_email: EmailStr,token: str 
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.get('/requests/{oid}',tags=["Requests"],
-responses={
-    200:{
-        "description": "Historial de acciones pedido",
+@router.get('/requests/{oid}',tags=["Requests"], responses={
+    200: {
+        "description": "OK. Se ha obtenido la petición especificada.",
         "content": {
             "application/json":{
-                "example": request_sample
+                "example": single_request_sample
             }
         }
-    }})
+    },
+    403: {
+        "description": "Prohibido. El usuario que realiza esta acción no tiene los permisos suficientes.",
+        "content": {
+            "application/json": { "example": {"detail": "Forbbiden"} }
+        }
+    },
+    404: {
+        "description": "No encontrada. La petición con el identificador especificado no existe en la base de datos.",
+        "content": {
+            "application/json": { "example": {"detail": "Request X999990 not found"} }
+        }
+    }
+})
 async def get_single_requests(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
@@ -388,17 +418,17 @@ async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, oid: str =
 async def delete_request(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     return JSONResponse(status_code=200, content={})
 
-@router.get('/versions/{oid}',tags=["Requests"],
-responses={
+@router.get('/versions/{oid}',tags=["Requests"], responses={
     200:{
-        "description": "Historial de acciones pedido",
+        "description": "OK. Se han obtenido las versiones disponibles para la petición especificada",
         "content": {
             "application/json":{
                 "example": version_sample
             }
         }
-    }})
-async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
+    }
+})
+async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'), token: str = Depends(oauth2_scheme)):
     changes = ChangeSet.objects(apply_to_id=oid).order_by('-date').exclude('apply_to', 'changes').all()
     res = []
     for change in changes:
@@ -412,17 +442,29 @@ async def get_versions(user_email: EmailStr, oid: str = Path(..., min_length=7, 
         res.append(item)
     return res
 
-@router.get('/versions/{oid}/base',tags=["Requests"],
-responses={
-    200:{
-        "description": "Historial de acciones pedido",
+@router.get('/versions/{oid}/base',tags=["Requests"],responses={
+    200: {
+        "description": "OK. Se ha obtenido la versión base de la petición especificada.",
         "content": {
             "application/json":{
-                "example": version_sample
+                "example": single_request_base_sample
             }
         }
-    }})
-async def get_version_base(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
+    },
+    403: {
+        "description": "Prohibido. El usuario que realiza esta acción no tiene los permisos suficientes.",
+        "content": {
+            "application/json": { "example": {"detail": "Forbbiden"} }
+        }
+    },
+    404: {
+        "description": "No encontrada. La petición con el identificador especificado no existe en la base de datos.",
+        "content": {
+            "application/json": { "example": {"detail": "Request X999990 not found"} }
+        }
+    }
+})
+async def get_version_base(user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'), token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
