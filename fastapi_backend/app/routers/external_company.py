@@ -44,7 +44,7 @@ router = APIRouter()
 
 @router.get('/companies', tags=["Companies"], status_code=200)
 async def get_companies(background_tasks: BackgroundTasks,current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme) ):
-    user_email = current_user['email']
+    user_email = current_user.email
     user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin:

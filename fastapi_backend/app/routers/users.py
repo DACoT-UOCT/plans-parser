@@ -14,7 +14,7 @@ user_sample = bjson.dumps([UserModel.objects(email='admin@dacot.uoct.cl').exclud
 
 @router.post('/users', tags=["Users"], status_code=201)
 async def create_user(request: Request ,background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin:  
@@ -66,7 +66,7 @@ async def create_user(request: Request ,background_tasks: BackgroundTasks, curre
     }
 })
 async def read_users(background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin:
@@ -91,7 +91,7 @@ async def read_users(background_tasks: BackgroundTasks, current_user: User = Dep
 
 @router.put('/edit-user/{edited_user}', tags=["Users"],status_code=200)
 async def edit_user(background_tasks: BackgroundTasks,edited_user: EmailStr, request: Request,current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     user = UserModel.objects(email= user_email).first()
     if user:
         if user.is_admin:  
@@ -126,7 +126,7 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: EmailStr, req
 
 @router.delete('/delete-user/{edited_user}',tags=["Users"],status_code=200)
 async def delete_user(background_tasks: BackgroundTasks,edited_user: EmailStr,current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     user = UserModel.objects(email= user_email).first()
     if user:
         if user.is_admin:

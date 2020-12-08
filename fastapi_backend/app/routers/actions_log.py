@@ -36,7 +36,7 @@ token: str = Depends(oauth2_scheme),gte: str = str(datetime.today().year)+
 "-"+str(datetime.today().month)+"-" + str(datetime.today().day), 
 lte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" 
 + str(datetime.today().day + 1)):
-    user_email = current_user['email']
+    user_email = current_user.email
     user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin:
