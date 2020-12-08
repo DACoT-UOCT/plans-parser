@@ -118,7 +118,7 @@ oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="/token")
 #app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
 def get_user_by_email(email: str):
-    users = modelUser.objects()
+    users = modelUser.objects() # FIXME: Get only requiered user with filter
     for user in users:
         if user.email == email:
             user_dict = user.to_mongo()

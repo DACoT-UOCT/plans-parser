@@ -306,6 +306,7 @@ async def create_request(bgtask: BackgroundTasks, request: Request, current_user
     }
 })
 async def get_requests(bgtask: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
+    print(type(current_user), current_user, dir(current_user))
     user_email = current_user['email']
     user = UserModel.objects(email=user_email).first()
     if user:
