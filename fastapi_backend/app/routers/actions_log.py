@@ -3,7 +3,8 @@ import bson.json_util as bjson
 from fastapi import Depends,APIRouter, HTTPException, BackgroundTasks
 from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme, get_current_user, User
 from fastapi.logger import logger
-from ..models import User, ActionsLog
+from ..models import ActionsLog
+from ..models import User as UserModel
 from pydantic import EmailStr
 from datetime import datetime, timedelta
 router = APIRouter()
@@ -36,7 +37,7 @@ token: str = Depends(oauth2_scheme),gte: str = str(datetime.today().year)+
 lte: str = str(datetime.today().year)+"-"+str(datetime.today().month)+"-" 
 + str(datetime.today().day + 1)):
     user_email = current_user['email']
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin:
             register_action(user_email, 'ActionLogs', 'El usuario {} ha obtenido los registros entre {} y {} de forma correcta'.format(user_email, gte, lte), background=background_tasks)

@@ -1,7 +1,8 @@
 from fastapi import APIRouter,Depends, Body, Query, Request,HTTPException,BackgroundTasks,Form
 from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme, get_current_user, User
 from pydantic import EmailStr
-from ..models import User,ExternalCompany
+from ..models import ExternalCompany
+from ..models import User as UserModel
 import json
 from .actions_log import register_action
 from mongoengine.errors import ValidationError, NotUniqueError
@@ -9,12 +10,12 @@ import bson.json_util as bjson
 
 router = APIRouter()
 
-user_sample = bjson.dumps([User.objects(email='admin@dacot.uoct.cl').exclude('id').first().to_mongo()], sort_keys=True, indent=4)
+user_sample = bjson.dumps([UserModel.objects(email='admin@dacot.uoct.cl').exclude('id').first().to_mongo()], sort_keys=True, indent=4)
 
 @router.post('/users', tags=["Users"], status_code=201)
 async def create_user(request: Request ,background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin:  
             body = await request.json()
@@ -66,11 +67,11 @@ async def create_user(request: Request ,background_tasks: BackgroundTasks, curre
 })
 async def read_users(background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin:
             result = []
-            for x in User.objects.exclude('id').all():
+            for x in UserModel.objects.exclude('id').all():
                 if x.rol == 'Empresa':
                     x.select_related()
                     dereference_user = x.to_mongo()
@@ -91,10 +92,10 @@ async def read_users(background_tasks: BackgroundTasks, current_user: User = Dep
 @router.put('/edit-user/{edited_user}', tags=["Users"],status_code=200)
 async def edit_user(background_tasks: BackgroundTasks,edited_user: EmailStr, request: Request,current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email= user_email).first()
+    user = UserModel.objects(email= user_email).first()
     if user:
         if user.is_admin:  
-            edit_user = User.objects(email=edited_user).first()
+            edit_user = UserModel.objects(email=edited_user).first()
             body = await request.json()
             if edit_user:
                 if "company" in body.keys():
@@ -126,10 +127,10 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: EmailStr, req
 @router.delete('/delete-user/{edited_user}',tags=["Users"],status_code=200)
 async def delete_user(background_tasks: BackgroundTasks,edited_user: EmailStr,current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email= user_email).first()
+    user = UserModel.objects(email= user_email).first()
     if user:
         if user.is_admin:
-            edit_user = User.objects(email=edited_user).first()
+            edit_user = UserModel.objects(email=edited_user).first()
             if edit_user:
                 edit_user.delete()
                 register_action(user_email, 'Users', 'El usuario {} ha eliminado al usuario {} de forma correcta'.format(user_email,edited_user), background=background_tasks)

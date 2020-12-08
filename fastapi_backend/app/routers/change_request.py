@@ -8,7 +8,8 @@ from pydantic import EmailStr, BaseModel
 from typing import List
 from mongoengine.errors import ValidationError
 import json
-from ..models import User, Project, Comment, OTU, FileField, Commune, Junction, DACoTBackendException
+from ..models import Project, Comment, OTU, FileField, Commune, Junction, DACoTBackendException
+from ..models import User as UserModel
 from ..models import ControllerModel, ExternalCompany, ChangeSet
 from .actions_log import register_action
 from ..config import get_settings
@@ -89,7 +90,7 @@ single_request_base_sample['metadata']['version'] = 'base'
 single_request_base_sample = bjson.dumps(single_request_base_sample, sort_keys=True, indent=4)
 
 async def __process_accept_or_reject(oid, new_status, user_email, request, bgtask):
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT':
             try:
@@ -216,7 +217,7 @@ def __update_by_admin(user, body, bgtask):
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
         patch = jsonpatch.make_patch(dereferenced_p, body)
         patch.apply(dereferenced_p, in_place=True)
-        project_user = User.objects(email=dereferenced_p['metadata']['status_user']['email']).first()
+        project_user = UserModel.objects(email=dereferenced_p['metadata']['status_user']['email']).first()
         updated_project, files = __build_new_project(dereferenced_p, project_user, bgtask)
         if user.is_admin:
             updated_project.metadata.status = 'SYSTEM'
@@ -239,7 +240,7 @@ def __update_by_admin(user, body, bgtask):
 @router.post("/requests", status_code=201, tags=["MissingDocs"])
 async def create_request(bgtask: BackgroundTasks, request: Request, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Empresa':
             try:
@@ -306,7 +307,7 @@ async def create_request(bgtask: BackgroundTasks, request: Request, current_user
 })
 async def get_requests(bgtask: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
             if user.rol == 'Empresa':
@@ -357,7 +358,7 @@ async def get_requests(bgtask: BackgroundTasks, current_user: User = Depends(get
 })
 async def get_single_requests(bgtask: BackgroundTasks, current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
             if user.rol == 'Empresa':
@@ -375,7 +376,7 @@ async def get_single_requests(bgtask: BackgroundTasks, current_user: User = Depe
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 async def __process_accept_or_reject(oid, new_status, user_email, request, bgtask):
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT':
             try:
@@ -475,7 +476,7 @@ async def get_versions(current_user: User = Depends(get_current_user), oid: str 
 })
 async def get_version_base(current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'), token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
             if user.rol == 'Empresa':

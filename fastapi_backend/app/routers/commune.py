@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends,BackgroundTasks, HTTPException, Form, Request
 from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme, get_current_user, User
-from ..models import Commune, User,ExternalCompany
+from ..models import Commune,ExternalCompany
+from ..models import User as UserModel
 from pydantic import EmailStr
 from .actions_log import register_action
 import bson.json_util as bjson
@@ -37,7 +38,7 @@ async def get_communes(background_tasks: BackgroundTasks):
 @router.put('/edit-commune', tags=["MissingDocs"], status_code=200)
 async def edit_commune(background_tasks: BackgroundTasks, request: Request, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin:  
             body = await request.json()

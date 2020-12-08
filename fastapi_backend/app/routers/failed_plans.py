@@ -2,14 +2,15 @@ from fastapi import APIRouter, Depends,HTTPException, BackgroundTasks
 from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme, get_current_user, User
 from fastapi.responses import JSONResponse
 from pydantic import EmailStr
-from ..models import PlanParseFailedMessage, User
+from ..models import PlanParseFailedMessage
+from ..models import User as UserModel
 from .actions_log import register_action
 
 router = APIRouter()
 @router.get('/failed-plans', tags=["ProcessingFailed"])
 def get_failed_plans(background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin:
             failed = [x.to_mongo().to_dict() for x in PlanParseFailedMessage.objects.only('id', 'date', 'message').all()]
@@ -35,7 +36,7 @@ def get_failed_plans(background_tasks: BackgroundTasks, current_user: User = Dep
 @router.get('/failed-plans/{id}', tags=["ProcessingFailed"])
 def get_failed_plan_details(background_tasks: BackgroundTasks, id: str, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin:
             failed = PlanParseFailedMessage.objects(id=id).first()
@@ -62,7 +63,7 @@ def get_failed_plan_details(background_tasks: BackgroundTasks, id: str, current_
 @router.delete('/failed-plans/{id}', tags=["MissingDocs"])
 def delete_failed_plan(background_tasks: BackgroundTasks, id: str, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     user_email = current_user['email']
-    user = User.objects(email=user_email).first()
+    user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin:
             failed = PlanParseFailedMessage.objects(id=id).first()
