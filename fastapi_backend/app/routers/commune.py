@@ -31,11 +31,10 @@ async def get_communes(background_tasks: BackgroundTasks):
             defer['maintainer'] = c.maintainer.to_mongo()
             del defer['maintainer']['_id']
         r.append(defer.to_dict())
-    register_action('Desconocido', 'Commune',
-                    'Un usuario ha consultado la lista de comunas', background=background_tasks)
+    register_action('Desconocido', 'Commune', 'Un usuario ha consultado la lista de comunas', background=background_tasks)
     return r
-    
-@router.put('/edit-commune', tags=["Commune"], status_code=200)
+
+@router.put('/edit-commune', tags=["MissingDocs"], status_code=200)
 async def edit_commune(background_tasks: BackgroundTasks, user_email: EmailStr, request: Request,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:

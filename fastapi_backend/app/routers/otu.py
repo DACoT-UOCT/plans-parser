@@ -5,8 +5,11 @@ from ..models import Project
 from .actions_log import register_action
 import json
 from mongoengine.errors import ValidationError,NotUniqueError
+import bson.json_util as bjson
 
 router = APIRouter()
+
+get_sample = bjson.dumps(Project.objects().exclude('id').first().otu.to_mongo(), sort_keys=True, indent=4)
 
 # @router.post('/otu',tags=["otu"],status_code=201)
 # async def create_otu(otu:  dict, user: EmailStr ,background_tasks: BackgroundTasks):
@@ -42,7 +45,20 @@ router = APIRouter()
 #     background_tasks.add_task(register_action,user,context= "Request user OTUs",component= "Sistema", origin="web")
 #     return otu_list
 
-@router.get('/otu/{oid}')
+@router.get('/otu/{oid}', tags=["OTU"], responses={
+    404: {
+        'description': 'No encontrada. La instalación con el identificador especificado no existe en la base de datos.',
+        'content': {
+            'application/json': {'example': {"detail": "OTU X999990 not found"}}
+        }
+    },
+    200: {
+        'description': 'OK. Se ha obtenido la instalación correctamente.',
+        'content': {
+            'application/json': {'example': get_sample}
+        }
+    }
+})
 async def read_otu(background_tasks: BackgroundTasks, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0')):
     proj = Project.objects(oid=oid).exclude('id').first()
     if proj:
@@ -50,4 +66,4 @@ async def read_otu(background_tasks: BackgroundTasks, oid: str = Path(..., min_l
         return proj.otu.to_mongo().to_dict()
     else:
         register_action('Desconocido', 'OTU', 'Un usuario ha intenado obtener la OTU {}, pero no existe'.format(oid), background=background_tasks)
-        raise HTTPException(status_code=404, detail='Junction {} not found'.format(oid))
+        raise HTTPException(status_code=404, detail='OTU {} not found'.format(oid))

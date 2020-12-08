@@ -5,20 +5,19 @@ from ..models import User,ExternalCompany
 import json
 from .actions_log import register_action
 from mongoengine.errors import ValidationError, NotUniqueError
+import bson.json_util as bjson
 
 router = APIRouter()
 
-@router.post('/users', tags=["users"],status_code=201)
+user_sample = bjson.dumps([User.objects(email='admin@dacot.uoct.cl').exclude('id').first().to_mongo()], sort_keys=True, indent=4)
+
+@router.post('/users', tags=["MissingDocs"], status_code=201)
 async def create_user(request: Request ,user_email: EmailStr,background_tasks: BackgroundTasks,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:  
             body = await request.json()
             new_user = User.from_json(json.dumps(body))
-            #if new_user.is_admin == "False":
-            #    new_user.is_admin = False
-            #else:
-            #    new_user.is_admin = True
             if "company" in body.keys():
                 company = body["company"]["name"]
                 company = ExternalCompany.objects(name=company).first()
@@ -44,13 +43,26 @@ async def create_user(request: Request ,user_email: EmailStr,background_tasks: B
             status_code=404, detail='User {} not found'.format(user_email))
     return {"Respuesta": "Usuario Creado"}
 
-
-#@router.get("/users/me", tags=["users"])
-#async def read_user_me():
- #   return {"username": "fakecurrentuser"}
-
-
-@router.get('/users', tags=["users"],status_code=200)
+@router.get('/users', tags=["Users"], status_code=200, responses={
+    404: {
+        'description': 'No encontrado. El usuario que esta intentando obtener los registros no existen en la plataforma.',
+        'content': {
+            'application/json': {'example': {"detail": "User example@google.com not found"}}
+        }
+    },
+    403: {
+        "description": "Prohibido. El usuario que realiza esta acción no tiene los permisos suficientes.",
+        "content": {
+            "application/json": { "example": {"detail": "Forbbiden"} }
+        }
+    },
+    200: {
+        'description': 'OK. Se han obtenido los usuarios correctamente.',
+        'content': {
+            'application/json': {'example': user_sample}
+        }
+    }
+})
 async def read_users(user_email: EmailStr, background_tasks: BackgroundTasks,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
@@ -74,7 +86,7 @@ async def read_users(user_email: EmailStr, background_tasks: BackgroundTasks,tok
         register_action(user_email, 'Users', 'El usuario {} ha intenado acceder a la lista de usuarios registrados, pero no existe'.format(user_email), background=background_tasks)
         raise HTTPException(status_code=404, detail='User {} not found'.format(user_email))
 
-@router.put('/edit-user/{edited_user}', tags=["users"],status_code=200)
+@router.put('/edit-user/{edited_user}', tags=["MissingDocs"],status_code=200)
 async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_email: EmailStr ,request: Request,token: str = Depends(oauth2_scheme)):
     user = User.objects(email= user_email).first()
     if user:
@@ -108,7 +120,7 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: str,user_emai
             status_code=404, detail='User {} not found'.format(user_email))
     
 
-@router.delete('/delete-user/{edited_user}',tags=["users"],status_code=200)
+@router.delete('/delete-user/{edited_user}',tags=["MissingDocs"],status_code=200)
 async def delete_user(background_tasks: BackgroundTasks,edited_user: EmailStr,user_email: EmailStr,token: str = Depends(oauth2_scheme)):
     user = User.objects(email= user_email).first()
     if user:

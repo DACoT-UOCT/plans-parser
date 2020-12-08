@@ -8,18 +8,28 @@ from pydantic import EmailStr
 from datetime import datetime, timedelta
 router = APIRouter()
 
-get_sample = bjson.dumps(ActionsLog.objects().exclude('id').first(), sort_keys=True, indent=4)
+get_sample = bjson.dumps(ActionsLog.objects().exclude('id').first().to_mongo(), sort_keys=True, indent=4)
 
-@router.get('/actions_log', tags=["history"],
-responses={
-    200:{
-        "description": "Historial de acciones pedido",
+@router.get('/actions_log', tags=["ActionsLog"], responses={
+    200: {
+        "description": "OK. Se ha obtendio el historial de actividades realizadas en la plataforma.",
         "content": {
-            "application/json":{
-                "example": get_sample
-            }
+            "application/json": { "example": get_sample }
         }
-    }})
+    },
+    403: {
+        "description": "Prohibido. El usuario que realiza esta acción no tiene los permisos suficientes.",
+        "content": {
+            "application/json": { "example": {"detail": "Forbbiden"} }
+        }
+    },
+    404: {
+        "description": "No encontrado. El usuario que esta intentando obtener los registros no existen en la plataforma.",
+        "content": {
+            "application/json": { "example": {"detail": "User example@google.com not found"} }
+        }
+    }
+})
 async def read_actions(background_tasks: BackgroundTasks,user_email: EmailStr,
 token: str = Depends(oauth2_scheme),gte: str = str(datetime.today().year)+
 "-"+str(datetime.today().month)+"-" + str(datetime.today().day), 

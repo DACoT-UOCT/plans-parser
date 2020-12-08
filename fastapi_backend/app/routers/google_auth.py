@@ -24,6 +24,7 @@ import httplib2
 from oauth2client import client
 from google.oauth2 import id_token
 from google.auth.transport import requests
+import bson.json_util as bjson
 
 router = APIRouter()
 
@@ -46,15 +47,7 @@ SECRET_KEY = "83e9f322bd277d011206b05d8ae7bfb69c8e9a06a4e7b9425166cc084e482391"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-fake_users_db = {
-    "johndoe": {
-        "is_admin": False,
-        "full_name": "John Doe",
-        "email": "myemail@gmail.com",
-        "rol": "Empresa",
-        "area": "Mantenedora"
-    }
-}
+user_sample = bjson.dumps(modelUser.objects(email='admin@dacot.uoct.cl').exclude('id').first().to_mongo(), sort_keys=True, indent=4)
 
 class Token(BaseModel):
     access_token: str
@@ -133,7 +126,7 @@ def get_user_by_email(email: str):
             return User(**user_dict)
 
 
-def authenticate_user_email(fake_db, email: str):
+def authenticate_user_email(email: str):
     user = get_user_by_email(email)
     if not user:
         return False
@@ -174,7 +167,20 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 
 
 
-@router.post(f"{SWAP_TOKEN_ENDPOINT}", response_model=Token, tags=["security"])
+@router.post(f"{SWAP_TOKEN_ENDPOINT}", response_model=Token, tags=["Security"], responses={
+    400: {
+        'description': 'Error del cliente. El servicio no puede procesar esta solicitud.',
+        'content': {
+            'application/json': {'example': {"detail": "Incorrect headers"}}
+        }
+    },
+    200: {
+        'description': 'OK. Se ha generado el nuevo token JWT correctamente.',
+        'content': {
+            'application/json': {'example': {"access_token": 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...', "token_type": "bearer"}}
+        }
+    }
+})
 async def swap_token(request: Request = None):
     if not request.headers.get("X-Requested-With"):
         raise HTTPException(status_code=400, detail="Incorrect headers")
@@ -201,8 +207,6 @@ async def swap_token(request: Request = None):
     if google_client_type == 'client':
         body_bytes = await request.body()
         auth_code = jsonable_encoder(body_bytes)
-        print(auth_code)
-
         try:
             idinfo = id_token.verify_oauth2_token(auth_code, requests.Request(), CLIENT_ID)
 
@@ -227,7 +231,7 @@ async def swap_token(request: Request = None):
         except:
             raise HTTPException(status_code=400, detail="Unable to validate social login")
 
-    authenticated_user = authenticate_user_email(fake_users_db, email)
+    authenticated_user = authenticate_user_email(email)
 
     if not authenticated_user:
         raise HTTPException(status_code=400, detail="Incorrect email address")
@@ -251,37 +255,30 @@ async def swap_token(request: Request = None):
     )
     return response
 
-
-
-
-@router.get("/")
-async def homepage():
-    return "Welcome to the security test!"
-
-
-@router.get(f"{ERROR_ROUTE}", tags=["security"])
+@router.get(f"{ERROR_ROUTE}", tags=["MissingDocs"])
 async def login_error():
     return "Something went wrong logging in!"
 
 
-@router.get("/logout", tags=["security"])
+@router.get("/logout", tags=["MissingDocs"])
 async def route_logout_and_remove_cookie():
     response = RedirectResponse(url="/")
     response.delete_cookie(COOKIE_AUTHORIZATION_NAME, domain=COOKIE_DOMAIN)
     return response
 
-
-@router.get("/secure_endpoint", tags=["security"])
-async def get_open_api_endpoint(current_user: User = Depends(get_current_active_user)):
-    response = "How cool is this?"
-    return response
-
-
-@router.get("/users/me/", response_model=User, tags=["users"])
-async def read_users_me(current_user: User = Depends(get_current_active_user)):
+@router.get("/users/me/", response_model=User, tags=["Users"], responses={
+    403: {
+        'description': 'Prohibido. El usuario que realiza la consulta no se ha autenticado en la plataforma.',
+        'content': {
+            'application/json': {'example': {"detail": "Not authenticated"}}
+        }
+    },
+    200: {
+        'description': 'OK. Se han obtenido los datos del usuario correctamente.',
+        'content': {
+            'application/json': {'example': user_sample}
+        }
+    }
+})
+async def get_current_user(current_user: User = Depends(get_current_active_user)):
     return current_user
-
-
-@router.get("/users/me/items/", tags=["users"])
-async def read_own_items(current_user: User = Depends(get_current_active_user)):
-    return [{"item_id": "Foo", "owner": current_user.full_name}]
