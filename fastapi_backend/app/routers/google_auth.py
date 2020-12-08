@@ -45,7 +45,7 @@ ERROR_ROUTE = "/login_error"
 
 SECRET_KEY = "83e9f322bd277d011206b05d8ae7bfb69c8e9a06a4e7b9425166cc084e482391"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 user_sample = bjson.dumps(modelUser.objects(email='admin@dacot.uoct.cl').exclude('id').first().to_mongo(), sort_keys=True, indent=4)
 
