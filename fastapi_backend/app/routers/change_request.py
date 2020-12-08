@@ -239,7 +239,7 @@ def __update_by_admin(user, body, bgtask):
 
 @router.post("/requests", status_code=201, tags=["MissingDocs"])
 async def create_request(bgtask: BackgroundTasks, request: Request, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Empresa':
@@ -307,7 +307,7 @@ async def create_request(bgtask: BackgroundTasks, request: Request, current_user
 })
 async def get_requests(bgtask: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
     print(type(current_user), current_user, dir(current_user))
-    user_email = current_user['email']
+    user_email = current_user.email
     user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
@@ -358,7 +358,7 @@ async def get_requests(bgtask: BackgroundTasks, current_user: User = Depends(get
     }
 })
 async def get_single_requests(bgtask: BackgroundTasks, current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
@@ -410,22 +410,22 @@ async def __process_accept_or_reject(oid, new_status, user_email, request, bgtas
 
 @router.put('/requests/{oid}/accept', tags=["MissingDocs"])
 async def accept_request(bgtask: BackgroundTasks, request: Request, current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     return await __process_accept_or_reject(oid, 'APPROVED', user_email, request, bgtask)
 
 @router.put('/requests/{oid}/reject', tags=["MissingDocs"])
 async def reject_request(bgtask: BackgroundTasks, request: Request, current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     return await __process_accept_or_reject(oid, 'REJECTED', user_email, request, bgtask)
 
 @router.put('/requests/{oid}/pdf', tags=["MissingDocs"])
 async def get_pdf_data(bgtask: BackgroundTasks, current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     return JSONResponse(status_code=200, content={})
 
 @router.put('/requests/{oid}/delete', tags=["MissingDocs"])
 async def delete_request(bgtask: BackgroundTasks, current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     return JSONResponse(status_code=200, content={})
 
 @router.get('/versions/{oid}',tags=["Requests"], responses={
@@ -439,7 +439,7 @@ async def delete_request(bgtask: BackgroundTasks, current_user: User = Depends(g
     }
 })
 async def get_versions(current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'), token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     changes = ChangeSet.objects(apply_to_id=oid).order_by('-date').exclude('apply_to', 'changes').all()
     res = []
     for change in changes:
@@ -476,7 +476,7 @@ async def get_versions(current_user: User = Depends(get_current_user), oid: str 
     }
 })
 async def get_version_base(current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'), token: str = Depends(oauth2_scheme)):
-    user_email = current_user['email']
+    user_email = current_user.email
     user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT' or user.rol == 'Empresa':
