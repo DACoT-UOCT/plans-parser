@@ -184,52 +184,32 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 async def swap_token(request: Request = None):
     if not request.headers.get("X-Requested-With"):
         raise HTTPException(status_code=400, detail="Incorrect headers")
+    
+    body_bytes = await request.body()
+    auth_code = jsonable_encoder(body_bytes)
+    try:
+        idinfo = id_token.verify_oauth2_token(auth_code, requests.Request(), CLIENT_ID)
 
-    google_client_type = request.headers.get("X-Google-OAuth2-Type")
+        # Or, if multiple clients access the backend server:
+        # idinfo = id_token.verify_oauth2_token(token, requests.Request())
+        # if idinfo['aud'] not in [CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]:
+        #     raise ValueError('Could not verify audience.')
 
-    if google_client_type == 'server':
-        try:
-            body_bytes = await request.body()
-            auth_code = jsonable_encoder(body_bytes)
+        if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+            raise ValueError('Wrong issuer.')
 
-            credentials = client.credentials_from_clientsecrets_and_code(
-                CLIENT_SECRETS_JSON, ["profile", "email"], auth_code
-            )
+        # If auth request is from a G Suite domain:
+        # if idinfo['hd'] != GSUITE_DOMAIN_NAME:
+        #     raise ValueError('Wrong hosted domain.')
 
-            http_auth = credentials.authorize(httplib2.Http())
+        if idinfo['email'] and idinfo['email_verified']:
+            email = idinfo.get('email')
 
-            email = credentials.id_token["email"]
-
-        except:
+        else:
             raise HTTPException(status_code=400, detail="Unable to validate social login")
 
-
-    if google_client_type == 'client':
-        body_bytes = await request.body()
-        auth_code = jsonable_encoder(body_bytes)
-        try:
-            idinfo = id_token.verify_oauth2_token(auth_code, requests.Request(), CLIENT_ID)
-
-            # Or, if multiple clients access the backend server:
-            # idinfo = id_token.verify_oauth2_token(token, requests.Request())
-            # if idinfo['aud'] not in [CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]:
-            #     raise ValueError('Could not verify audience.')
-
-            if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
-                raise ValueError('Wrong issuer.')
-
-            # If auth request is from a G Suite domain:
-            # if idinfo['hd'] != GSUITE_DOMAIN_NAME:
-            #     raise ValueError('Wrong hosted domain.')
-
-            if idinfo['email'] and idinfo['email_verified']:
-                email = idinfo.get('email')
-
-            else:
-                raise HTTPException(status_code=400, detail="Unable to validate social login")
-
-        except:
-            raise HTTPException(status_code=400, detail="Unable to validate social login")
+    except:
+        raise HTTPException(status_code=400, detail="Unable to validate social login")
 
     authenticated_user = authenticate_user_email(email)
 
