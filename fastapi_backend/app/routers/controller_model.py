@@ -5,7 +5,7 @@ from .actions_log import register_action
 
 router = APIRouter()
 
-@router.get('/controller_models')
+@router.get('/controller_models', tags=["Controllers"])
 async def get_controllers(background_tasks: BackgroundTasks,token: str = Depends(oauth2_scheme)):
     d = {}
     models = ControllerModel.objects.all()

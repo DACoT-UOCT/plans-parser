@@ -229,7 +229,7 @@ def __update_by_admin(user, body, bgtask):
             bgtask.add_task(send_notification_mail, bgtask, creation_recipients, creation_motive)
         return JSONResponse(status_code=201, content={'detail': 'Created'})
 
-@router.post("/requests", status_code=201)
+@router.post("/requests", status_code=201, tags=["MissingDocs"])
 async def create_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
@@ -372,19 +372,19 @@ async def __process_accept_or_reject(oid, new_status, user_email, request, bgtas
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.put('/requests/{oid}/accept')
+@router.put('/requests/{oid}/accept', tags=["MissingDocs"])
 async def accept_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     return await __process_accept_or_reject(oid, 'APPROVED', user_email, request, bgtask)
 
-@router.put('/requests/{oid}/reject')
+@router.put('/requests/{oid}/reject', tags=["MissingDocs"])
 async def reject_request(bgtask: BackgroundTasks, user_email: EmailStr, request: Request, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     return await __process_accept_or_reject(oid, 'REJECTED', user_email, request, bgtask)
 
-@router.put('/requests/{oid}/pdf')
+@router.put('/requests/{oid}/pdf', tags=["MissingDocs"])
 async def get_pdf_data(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     return JSONResponse(status_code=200, content={})
 
-@router.put('/requests/{oid}/delete')
+@router.put('/requests/{oid}/delete', tags=["MissingDocs"])
 async def delete_request(bgtask: BackgroundTasks, user_email: EmailStr, oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'),token: str = Depends(oauth2_scheme)):
     return JSONResponse(status_code=200, content={})
 

@@ -41,7 +41,7 @@ router = APIRouter()
     #background_tasks.add_task(register_action,user,context= "Reject Request",component= "Sistema", origin="Web")
     #return [{"username": "Foo"}, {"username": "Bar"}]
 
-@router.get('/companies', tags=["external_company"],status_code=200)
+@router.get('/companies', tags=["Companies"], status_code=200)
 async def get_companies(background_tasks: BackgroundTasks,user_email: EmailStr,token: str = Depends(oauth2_scheme) ):
     user = User.objects(email=user_email).first()
     if user:

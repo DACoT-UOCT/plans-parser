@@ -42,12 +42,35 @@ openapi_tags_info = [
         'description': 'Endpoints relacionados al proceso de autenticación en la plataforma.'
     },
     {
+        'name': 'Requests',
+        'description': 'Petitciones de actualización a datos o existentes o de incorporación para nuevas instalaciones.'
+    },
+    {
+        'name': 'Controllers',
+        'description': 'Datos sobre modelos de controladores para las distintas instalaciones disponibles.'
+    },
+    {
+        'name': 'ProcessingFailed',
+        'description': 'Información sobre posibles errores ocurridos al obtener datos desde el sistema de control de la UOCT.'
+    },
+    {
+        'name': 'Companies',
+        'description': 'Información sobre compañias mantenedoras registradas en la plataforma.'
+    },
+    {
         'name': 'MissingDocs',
         'description': 'Endpoints without documentation.'
     }
 ]
 
-app = FastAPI(openapi_tags=openapi_tags_info)
+app = FastAPI(
+    openapi_tags=openapi_tags_info,
+    title='DACoT API',
+    version='v0.1',
+    description='API del proyecto Datos Abiertos para el Control de Tránsito (DACoT) desarrollado por SpeeDevs en colaboración con  \
+        la Unidad Operativa de Control de Tránsito (UOCT) de la región Metropolitana en el contexto de la XXVIII Feria de Software del \
+        Departamento de Informática en la Universidad Técnica Federico Santa María.'
+)
 
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 

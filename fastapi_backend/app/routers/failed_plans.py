@@ -6,7 +6,7 @@ from ..models import PlanParseFailedMessage, User
 from .actions_log import register_action
 
 router = APIRouter()
-@router.get('/failed-plans')
+@router.get('/failed-plans', tags=["ProcessingFailed"])
 def get_failed_plans(background_tasks: BackgroundTasks, user_email: EmailStr,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
@@ -31,7 +31,7 @@ def get_failed_plans(background_tasks: BackgroundTasks, user_email: EmailStr,tok
         register_action(user_email, 'FailedPlans', 'El usuario {} ha intenado acceder a los errores en planes, pero no existe'.format(user_email), background=background_tasks)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.get('/failed-plans/{id}')
+@router.get('/failed-plans/{id}', tags=["ProcessingFailed"])
 def get_failed_plan_details(background_tasks: BackgroundTasks, user_email: EmailStr, id: str,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
@@ -57,7 +57,7 @@ def get_failed_plan_details(background_tasks: BackgroundTasks, user_email: Email
         register_action(user_email, 'FailedPlans', 'El usuario {} ha intenado acceder a los errores en planes, pero no existe'.format(user_email), background=background_tasks)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
-@router.delete('/failed-plans/{id}')
+@router.delete('/failed-plans/{id}', tags=["MissingDocs"])
 def delete_failed_plan(background_tasks: BackgroundTasks, user_email: EmailStr, id: str,token: str = Depends(oauth2_scheme)):
     user = User.objects(email=user_email).first()
     if user:
