@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends,HTTPException, BackgroundTasks
-from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme
+from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme, get_current_user, User
 from fastapi.responses import JSONResponse
 from pydantic import EmailStr
 from ..models import PlanParseFailedMessage, User
@@ -7,7 +7,8 @@ from .actions_log import register_action
 
 router = APIRouter()
 @router.get('/failed-plans', tags=["ProcessingFailed"])
-def get_failed_plans(background_tasks: BackgroundTasks, user_email: EmailStr,token: str = Depends(oauth2_scheme)):
+def get_failed_plans(background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
+    user_email = current_user['email']
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:
@@ -32,7 +33,8 @@ def get_failed_plans(background_tasks: BackgroundTasks, user_email: EmailStr,tok
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.get('/failed-plans/{id}', tags=["ProcessingFailed"])
-def get_failed_plan_details(background_tasks: BackgroundTasks, user_email: EmailStr, id: str,token: str = Depends(oauth2_scheme)):
+def get_failed_plan_details(background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), id: str,token: str = Depends(oauth2_scheme)):
+    user_email = current_user['email']
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:
@@ -58,7 +60,8 @@ def get_failed_plan_details(background_tasks: BackgroundTasks, user_email: Email
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.delete('/failed-plans/{id}', tags=["MissingDocs"])
-def delete_failed_plan(background_tasks: BackgroundTasks, user_email: EmailStr, id: str,token: str = Depends(oauth2_scheme)):
+def delete_failed_plan(background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), id: str,token: str = Depends(oauth2_scheme)):
+    user_email = current_user['email']
     user = User.objects(email=user_email).first()
     if user:
         if user.is_admin:
