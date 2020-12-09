@@ -510,7 +510,8 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
             version_history = ChangeSet.objects(apply_to_id=oid).order_by('-date').exclude('apply_to').all()
             for patch in version_history:
                 change = patch.get_changes()
-                print('APPLY: op={} path={}'.format(change['op'], change['path']))
+                for opitem in change:
+                    print('APPLY: op={} path={}'.format(opitem['op'], opitem['path']))
                 jsonpatch.apply_patch(base_version, change, in_place=True)
             return dereference_project(base_version)
         else:
