@@ -211,12 +211,13 @@ class ChangeSet(Document):
     changes = ListField(DictField(), required=True)
     message = StringField()
 
-#    def __clean_special_chars_patch(self):
-#        self.changes = json.loads(json.dumps(self.changes).replace('$', '%$'))
-#
-#    def save(self):
-#        self.__clean_special_chars_patch()
-#        return super(ChangeSet, self).save()
+    # INFO: This fixes ''Invalid dictionary key name - keys may not startswith "$" characters: ['changes'])'' (date field)
+    def __clean_special_chars_patch(self):
+        self.changes = json.loads(json.dumps(self.changes).replace('$', ''))
+
+    def save(self):
+        self.__clean_special_chars_patch()
+        return super(ChangeSet, self).save()
 
 class PlanParseFailedMessage(Document):
     meta = {'collection': 'PlanParseFailedMessage'}
