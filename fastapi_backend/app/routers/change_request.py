@@ -516,13 +516,13 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
                 return JSONResponse(status_code=404, content={'detail': 'Version {} not found'.format(vid)})
             version_history = ChangeSet.objects(apply_to_id=oid).order_by('-date').exclude('apply_to').all()
             for patch in version_history:
+                base_version['_id'] = None # FIXME: Get rid of this
                 change = patch.get_changes()
                 debug_info = []
                 for opitem in change:
                     debug_info.append({'op': opitem['op'], 'path': opitem['path']})
                 logger.info('PATCH log: id={} operations={}'.format(patch.id, debug_info))
                 jsonpatch.apply_patch(base_version, change, in_place=True)
-                base_version['_id'] = None # FIXME: Get rid of this
             return base_version
         else:
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
