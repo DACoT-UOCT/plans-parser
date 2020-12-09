@@ -514,14 +514,16 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
             last_patch = ChangeSet.objects(id=vid).first()
             if not last_patch:
                 return JSONResponse(status_code=404, content={'detail': 'Version {} not found'.format(vid)})
-            version_history = ChangeSet.objects(apply_to_id=oid).order_by('-date').exclude('apply_to').all()
+            version_history = ChangeSet.objects(apply_to_id=oid).order_by('+date').exclude('apply_to').all()
             for patch in version_history:
+                if patch.id == last_patch.id:
+                    break
                 base_version['_id'] = None # FIXME: Get rid of this
                 change = patch.get_changes()
                 debug_info = []
                 for opitem in change:
                     debug_info.append({'op': opitem['op'], 'path': opitem['path']})
-                logger.info('PATCH log: id={} operations={}'.format(patch.id, debug_info))
+                logger.info('APPLY_PATCH log: id={} date={} operations={}'.format(patch.id, patch.date, debug_info))
                 jsonpatch.apply_patch(base_version, change, in_place=True)
             return base_version
         else:
