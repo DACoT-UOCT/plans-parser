@@ -52,3 +52,31 @@ async def read_junction(background_tasks: BackgroundTasks, jid: str = Path(..., 
 #     mongoJunction = mongoJunction.reload()
 #     return [{"username": "Foo"}, {"username": "Bar"}]
 #
+
+@router.get('/junctions/coords', tags=["Junctions"], status_code=200, responses={
+    404: {
+        'description': 'No encontrada. Las coordenadas no existen en la base de datos.',
+        'content': {
+            'application/json': {'example': {"detail": "Coordinates not found"}}
+        }
+    },
+    200: {
+        'description': 'OK. Se han obtenido las coordenadas correctamente.',
+        'content': {
+            'application/json': {'example': {
+        "coordinates": [
+            -33.429978,
+            -70.622176
+        ],
+        "jid": "J001111"
+    }}
+        }
+    }
+})
+async def get_coords():
+    all_locations = Project.objects().only('otu.junctions.jid', 'otu.junctions.metadata.location').all()
+    result = []
+    for proj in all_locations:
+        for junc in proj.otu.junctions:
+            result.append({'jid': junc.jid, 'coordinates': junc.metadata.location['coordinates']})
+    return result
