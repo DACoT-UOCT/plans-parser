@@ -181,6 +181,10 @@ def __build_new_project(req_dict, user, bgtask):
     p.observations = [obs_comment]
     p.metadata.img = None
     p.metadata.pdf_data = None
+    file_bytes_img = None
+    type_or_err_img = None
+    file_bytes_pdf = None
+    type_or_err_pdf = None
     if 'img' in req_dict['metadata']:
         file_bytes_img, type_or_err_img = __base64file_to_bytes(req_dict['metadata']['img'])
         if not file_bytes_img:
@@ -500,7 +504,7 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
     user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT':
-            base_version = Project.objects(metadata__version='base', oid=oid).exclude('id', 'metadata.pdf_data').first()
+            base_version = Project.objects(metadata__version='base', oid=oid).exclude('id').first()
             if not base_version:
                 return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
             base_version = dereference_project(base_version)
