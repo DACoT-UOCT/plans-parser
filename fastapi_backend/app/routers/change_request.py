@@ -227,8 +227,10 @@ def __update_by_admin(user, body, bgtask):
         if user.is_admin:
             updated_project.metadata.status = 'SYSTEM'
         # TODO: Optimization = Search for md5 instead of re-inserting file
-        updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
-        updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
+        if files['img'][0]:
+            updated_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
+        if files['pdf'][0]:
+            updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
         updated_project.id = pid
         updated_project.save()
         change = ChangeSet(apply_to_id=updated_project.oid, apply_to=updated_project, changes=patch, message='Actualización manual') #FIXME: Message
