@@ -509,6 +509,7 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
                 return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
             base_version = dereference_project(base_version)
             base_version['_id'] = None
+            base_version['metadata']['pdf_data'] = None
             last_patch = ChangeSet.objects(id=vid).first()
             if not last_patch:
                 return JSONResponse(status_code=404, content={'detail': 'Version {} not found'.format(vid)})
