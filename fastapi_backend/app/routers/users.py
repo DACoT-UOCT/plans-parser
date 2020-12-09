@@ -3,6 +3,7 @@ from .google_auth import OAuth2PasswordBearerCookie, oauth2_scheme, get_current_
 from pydantic import EmailStr
 from ..models import ExternalCompany
 from ..models import User as UserModel
+from .change_request import send_notification_mail
 import json
 from .actions_log import register_action
 from mongoengine.errors import ValidationError, NotUniqueError
@@ -11,6 +12,10 @@ import bson.json_util as bjson
 router = APIRouter()
 
 user_sample = bjson.dumps([UserModel.objects(email='admin@dacot.uoct.cl').exclude('id').first().to_mongo()], sort_keys=True, indent=4)
+
+header = '<html><body><p>Creación de usuario<br></p></body></html>'
+footer = '<html><body><p>Thanks for using fastapi-mail</p></body></html>'
+
 
 @router.post('/users', tags=["Users"], status_code=201)
 async def create_user(request: Request ,background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
@@ -32,6 +37,8 @@ async def create_user(request: Request ,background_tasks: BackgroundTasks, curre
                 new_user = new_user.save()
             except NotUniqueError as err:
                 raise HTTPException(status_code=422, detail=str(err))
+            motive = '<html><body><p>Ya puede ingresar con su usuario '+ new_user.email+' a la plataforma DACoT<br></p></body></html>'
+            background_tasks.add_task(send_notification_mail,background_tasks, [new_user.email], motive,header,footer)
             register_action(user_email, 'Users', 'El usuario {} ha creado un usuario forma correcta'.format(
                 user_email), background=background_tasks)
         else:
