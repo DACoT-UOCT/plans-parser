@@ -509,8 +509,8 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
             if not base_version:
                 return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
             base_version = dereference_project(base_version)
-            base_version['_id'] = None
-            base_version['metadata']['pdf_data'] = None
+            if not base_version['metadata'].get('pdf_data'):
+                base_version['metadata']['pdf_data'] = None
             last_patch = ChangeSet.objects(id=vid).first()
             if not last_patch:
                 return JSONResponse(status_code=404, content={'detail': 'Version {} not found'.format(vid)})
@@ -522,6 +522,7 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
                     debug_info.append({'op': opitem['op'], 'path': opitem['path']})
                 logger.info('PATCH log: id={} operations={}'.format(patch.id, debug_info))
                 jsonpatch.apply_patch(base_version, change, in_place=True)
+                base_version['_id'] = None # FIXME: Get rid of this
             return base_version
         else:
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
