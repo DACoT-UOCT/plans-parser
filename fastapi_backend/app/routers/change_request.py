@@ -492,3 +492,20 @@ async def get_version_base(current_user: User = Depends(get_current_user), oid: 
     else:
         register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
+
+# FIXME: Add logging
+@router.get('/versions/{oid}/{vid}', tags=["Requests"])
+async def get_specific_version(current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'), vid: str =Path(...)):
+    user_email = current_user.email
+    user = UserModel.objects(email=user_email).first()
+    if user:
+        if user.is_admin or user.rol == 'Personal UOCT':
+            patch = ChangeSet.objects(id=vid).first()
+            if not patch:
+                return JSONResponse(status_code=404, content={'detail': 'Version {} not found'.format(vid)})
+            print(patch.to_json())
+        else:
+            return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
+    else:
+        # register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
+        return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
