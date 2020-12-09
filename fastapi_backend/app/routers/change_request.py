@@ -500,7 +500,7 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
     user = UserModel.objects(email=user_email).first()
     if user:
         if user.is_admin or user.rol == 'Personal UOCT':
-            base_version = Project.objects(metadata__version='base', oid=oid).exclude('metadata.pdf_data').first()
+            base_version = Project.objects(metadata__version='base', oid=oid).exclude('id', 'metadata.pdf_data').first()
             if not base_version:
                 return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
             base_version = base_version.to_mongo().to_dict()
@@ -510,6 +510,7 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
             version_history = ChangeSet.objects(apply_to_id=oid).order_by('-date').exclude('apply_to').all()
             for patch in version_history:
                 change = patch.get_changes()
+                print('APPLY: op={} path={}'.format(change['op'], change['path']))
                 jsonpatch.apply_patch(base_version, change, in_place=True)
             return dereference_project(base_version)
         else:
