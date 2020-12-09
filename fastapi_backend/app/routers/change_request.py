@@ -503,7 +503,8 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
             base_version = Project.objects(metadata__version='base', oid=oid).exclude('id', 'metadata.pdf_data').first()
             if not base_version:
                 return JSONResponse(status_code=404, content={'detail': 'Request {} not found'.format(oid)})
-            base_version = base_version.to_mongo().to_dict()
+            base_version = dereference_project(base_version)
+            base_version['_id'] = None
             last_patch = ChangeSet.objects(id=vid).first()
             if not last_patch:
                 return JSONResponse(status_code=404, content={'detail': 'Version {} not found'.format(vid)})
@@ -513,7 +514,7 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
                 for opitem in change:
                     print('APPLY: op={} path={}'.format(opitem['op'], opitem['path']))
                 jsonpatch.apply_patch(base_version, change, in_place=True)
-            return dereference_project(base_version)
+            return base_version
         else:
             return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
     else:
