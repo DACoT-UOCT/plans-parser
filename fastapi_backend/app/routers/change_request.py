@@ -226,7 +226,7 @@ def __update_by_admin(user, body, bgtask):
         updated_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
         updated_project.id = pid
         updated_project.save()
-        change = ChangeSet(apply_to_id=updated_project.oid, apply_to=updated_project.otu, changes=patch, message='MANUAL_UPDATE LUL') #FIXME: Message
+        change = ChangeSet(apply_to_id=updated_project.oid, apply_to=updated_project, changes=patch, message='Actualización manual') #FIXME: Message
         change.save()
     except DACoTBackendException as err:
         register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, err), background=bgtask)
