@@ -21,6 +21,7 @@ import base64
 import magic
 import datetime
 import jsonpatch
+from fastapi.logger import logger
 
 router = APIRouter()
 
@@ -516,8 +517,10 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
             version_history = ChangeSet.objects(apply_to_id=oid).order_by('-date').exclude('apply_to').all()
             for patch in version_history:
                 change = patch.get_changes()
+                debug_info = []
                 for opitem in change:
-                    print('APPLY: op={} path={}'.format(opitem['op'], opitem['path']))
+                    debug_info.append({'op': opitem['op'], 'path': opitem['path']})
+                logger.debug('PATCH log: id={} operations={}'.format(patch.id, debug_info))
                 jsonpatch.apply_patch(base_version, change, in_place=True)
             return base_version
         else:
