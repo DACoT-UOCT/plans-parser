@@ -520,7 +520,7 @@ async def get_specific_version(current_user: User = Depends(get_current_user), o
                 debug_info = []
                 for opitem in change:
                     debug_info.append({'op': opitem['op'], 'path': opitem['path']})
-                logger.debug('PATCH log: id={} operations={}'.format(patch.id, debug_info))
+                logger.info('PATCH log: id={} operations={}'.format(patch.id, debug_info))
                 jsonpatch.apply_patch(base_version, change, in_place=True)
             return base_version
         else:
