@@ -444,7 +444,7 @@ async def delete_request(bgtask: BackgroundTasks, current_user: User = Depends(g
 })
 async def get_versions(current_user: User = Depends(get_current_user), oid: str = Path(..., min_length=7, max_length=7, regex=r'X\d{5}0'), token: str = Depends(oauth2_scheme)):
     user_email = current_user.email
-    changes = ChangeSet.objects(apply_to_id=oid).order_by('-date').exclude('apply_to', 'changes').all()
+    changes = ChangeSet.objects(apply_to_id=oid).order_by('+date').exclude('apply_to', 'changes').all()
     res = []
     for change in changes:
         item = change.to_mongo().to_dict()
