@@ -213,11 +213,15 @@ class ChangeSet(Document):
 
     # INFO: This fixes ''Invalid dictionary key name - keys may not startswith "$" characters: ['changes'])'' (date field)
     def __clean_special_chars_patch(self):
-        self.changes = json.loads(json.dumps(self.changes).replace('$', ''))
+        self.changes = json.loads(json.dumps(self.changes).replace('$', '|#%$'))
 
     def save(self):
         self.__clean_special_chars_patch()
         return super(ChangeSet, self).save()
+
+    def get_changes(self):
+        chgs = self.changes
+        return json.loads(json.dumps(chgs).replace('|#%$', '$'))
 
 class PlanParseFailedMessage(Document):
     meta = {'collection': 'PlanParseFailedMessage'}
