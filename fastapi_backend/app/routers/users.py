@@ -19,7 +19,7 @@ async def create_user(request: Request ,background_tasks: BackgroundTasks, curre
     if user:
         if user.is_admin:  
             body = await request.json()
-            new_user = User.from_json(json.dumps(body))
+            new_user = UserModel.from_json(json.dumps(body))
             if "company" in body.keys():
                 company = body["company"]["name"]
                 company = ExternalCompany.objects(name=company).first()
@@ -122,7 +122,6 @@ async def edit_user(background_tasks: BackgroundTasks,edited_user: EmailStr, req
             user_email), background=background_tasks)
         raise HTTPException(
             status_code=404, detail='User {} not found'.format(user_email))
-    
 
 @router.delete('/delete-user/{edited_user}',tags=["Users"],status_code=200)
 async def delete_user(background_tasks: BackgroundTasks,edited_user: EmailStr,current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
