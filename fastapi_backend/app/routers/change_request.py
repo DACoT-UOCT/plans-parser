@@ -108,7 +108,7 @@ async def __process_accept_or_reject(oid, new_status, user_email, request, bgtas
                 file_data, file_type = __base64file_to_bytes(body['file'])
                 if file_data:
                     attachment_file = UploadFile('attachment.{}'.format(file_type.split('/')[1]), file=io.BytesIO(file_data))
-                    bgtask.add_task(send_notification_mail, bgtask, body['mails'], UPDATE_MOTIVE_MESSAGES[new_status], attachment=attachment_file)
+                    bgtask.add_task(send_notification_mail, bgtask, body['mails'], UPDATE_MOTIVE_MESSAGES[new_status],header,footer, attachment=attachment_file)
                 else:
                     # TODO: Log? Exception?
                     pass
@@ -400,7 +400,7 @@ async def __process_accept_or_reject(oid, new_status, user_email, request, bgtas
                 file_data, file_type = __base64file_to_bytes(body['file'])
                 if file_data:
                     attachment_file = UploadFile('attachment.{}'.format(file_type.split('/')[1]), file=io.BytesIO(file_data))
-                    bgtask.add_task(send_notification_mail, bgtask, body['mails'], UPDATE_MOTIVE_MESSAGES[new_status], attachment=attachment_file)
+                    bgtask.add_task(send_notification_mail, bgtask, body['mails'], UPDATE_MOTIVE_MESSAGES[new_status], header, footer,attachment=attachment_file)
                 else:
                     # TODO: Log? Exception?
                     pass
