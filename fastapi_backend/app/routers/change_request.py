@@ -127,7 +127,7 @@ def send_notification_mail(bg, recipients, motive, attachment=None,mail_header=h
     message = MessageSchema(
         subject="fastapi-mail module test",
         recipients=recipients,  # List of receipients, as many as you can pass
-        body=mail_header + "Motivo: " + motive + fmail_ooter,
+        body=mail_header + "Motivo: " + motive + mail_footer,
         subtype="html"
     )
     if attachment:
