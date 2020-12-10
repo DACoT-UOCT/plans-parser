@@ -53,7 +53,7 @@ async def read_junction(background_tasks: BackgroundTasks, jid: str = Path(..., 
 #     return [{"username": "Foo"}, {"username": "Bar"}]
 #
 
-@router.get('/junctions/coords', tags=["Junctions"], status_code=200, responses={
+@router.get('/coordinates', tags=["Junctions"], status_code=200, responses={
     404: {
         'description': 'No encontrada. Las coordenadas no existen en la base de datos.',
         'content': {
