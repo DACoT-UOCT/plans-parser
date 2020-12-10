@@ -123,7 +123,7 @@ async def __process_accept_or_reject(oid, new_status, user_email, request, bgtas
         return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 
-def send_notification_mail(bg, recipients, motive, attachment=None,mail_header=header,mail_footer=footer):
+def send_notification_mail(bg, recipients, motive,mail_header=header,mail_footer=footer,attachment=None):
     message = MessageSchema(
         subject="fastapi-mail module test",
         recipients=recipients,  # List of receipients, as many as you can pass
