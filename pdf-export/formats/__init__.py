@@ -1,2 +1,0 @@
-from formats.format_interface import FormatInterface
-from formats.auter_a5 import AuterA5
