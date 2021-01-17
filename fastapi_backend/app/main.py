@@ -1,12 +1,14 @@
-from .config import get_settings
+from .config import get_settings, build_samples_for_docs
 from mongoengine import connect
 
 connect(host=get_settings().mongo_uri)
 
+get_settings().docs_samples = build_samples_for_docs_from_db()
+
 from fastapi import Depends, FastAPI, Header, HTTPException, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import otu, junctions, users, actions_log, controller_model, commune
-from .routers import change_request, external_company, google_auth, failed_plans
+#from .routers import otu, junctions, users, actions_log, controller_model, commune
+#from .routers import change_request, external_company, google_auth, failed_plans
 from functools import lru_cache
 import os
 from typing import List
@@ -74,16 +76,16 @@ app = FastAPI(
 
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
-app.include_router(google_auth.router)
-app.include_router(users.router)
-app.include_router(otu.router)
-app.include_router(junctions.router)
-app.include_router(change_request.router)
-app.include_router(actions_log.router)
-app.include_router(commune.router)
-app.include_router(controller_model.router)
-app.include_router(external_company.router)
-app.include_router(failed_plans.router)
+# app.include_router(google_auth.router)
+# app.include_router(users.router)
+# app.include_router(otu.router)
+# app.include_router(junctions.router)
+# app.include_router(change_request.router)
+# app.include_router(actions_log.router)
+# app.include_router(commune.router)
+# app.include_router(controller_model.router)
+# app.include_router(external_company.router)
+# app.include_router(failed_plans.router)
 
 
 # @app.post("/files/")

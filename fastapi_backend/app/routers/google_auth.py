@@ -4,7 +4,9 @@ from ..models import User as modelUser
 import jwt
 from jwt import PyJWTError
 
-from fastapi import Depends, FastAPI, HTTPException,APIRouter
+from ..config import get_settings
+
+from fastapi import Depends, FastAPI, HTTPException, APIRouter
 from fastapi.encoders import jsonable_encoder
 from fastapi.security.oauth2 import (
     OAuth2,
@@ -47,8 +49,6 @@ SECRET_KEY = "83e9f322bd277d011206b05d8ae7bfb69c8e9a06a4e7b9425166cc084e482391"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-user_sample = bjson.dumps(modelUser.objects(email='admin@dacot.uoct.cl').exclude('id').first().to_mongo(), sort_keys=True, indent=4)
-
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -77,7 +77,8 @@ class OAuth2PasswordBearerCookie(OAuth2):
     ):
         if not scopes:
             scopes = {}
-        flows = OAuthFlowsModel(password={"tokenUrl": tokenUrl, "scopes": scopes})
+        flows = OAuthFlowsModel(
+            password={"tokenUrl": tokenUrl, "scopes": scopes})
         super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
     async def __call__(self, request: Request) -> Optional[str]:
@@ -117,12 +118,13 @@ class OAuth2PasswordBearerCookie(OAuth2):
 oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="/token")
 #app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
+
 def get_user_by_email(email: str):
-    users = modelUser.objects() # FIXME: Get only requiered user with filter
+    users = modelUser.objects()  # FIXME: Get only requiered user with filter
     for user in users:
         if user.email == email:
             user_dict = user.to_mongo()
-            #print(user_dict)
+            # print(user_dict)
             return User(**user_dict)
 
 
@@ -166,7 +168,6 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     return current_user
 
 
-
 @router.post(f"{SWAP_TOKEN_ENDPOINT}", response_model=Token, tags=["Security"], responses={
     400: {
         'description': 'Error del cliente. El servicio no puede procesar esta solicitud.',
@@ -184,11 +185,12 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 async def swap_token(request: Request = None):
     if not request.headers.get("X-Requested-With"):
         raise HTTPException(status_code=400, detail="Incorrect headers")
-    
+
     body_bytes = await request.body()
     auth_code = jsonable_encoder(body_bytes)
     try:
-        idinfo = id_token.verify_oauth2_token(auth_code, requests.Request(), CLIENT_ID)
+        idinfo = id_token.verify_oauth2_token(
+            auth_code, requests.Request(), CLIENT_ID)
 
         # Or, if multiple clients access the backend server:
         # idinfo = id_token.verify_oauth2_token(token, requests.Request())
@@ -206,10 +208,12 @@ async def swap_token(request: Request = None):
             email = idinfo.get('email')
 
         else:
-            raise HTTPException(status_code=400, detail="Unable to validate social login")
+            raise HTTPException(
+                status_code=400, detail="Unable to validate social login")
 
     except:
-        raise HTTPException(status_code=400, detail="Unable to validate social login")
+        raise HTTPException(
+            status_code=400, detail="Unable to validate social login")
 
     authenticated_user = authenticate_user_email(email)
 
@@ -235,6 +239,7 @@ async def swap_token(request: Request = None):
     )
     return response
 
+
 @router.get(f"{ERROR_ROUTE}", tags=["MissingDocs"])
 async def login_error():
     return "Something went wrong logging in!"
@@ -246,6 +251,7 @@ async def route_logout_and_remove_cookie():
     response.delete_cookie(COOKIE_AUTHORIZATION_NAME, domain=COOKIE_DOMAIN)
     return response
 
+
 @router.get("/users/me/", response_model=User, tags=["Users"], responses={
     403: {
         'description': 'Prohibido. El usuario que realiza la consulta no se ha autenticado en la plataforma.',
@@ -256,7 +262,7 @@ async def route_logout_and_remove_cookie():
     200: {
         'description': 'OK. Se han obtenido los datos del usuario correctamente.',
         'content': {
-            'application/json': {'example': user_sample}
+            'application/json': {'example': get_settings().docs_samples['user_model']}
         }
     }
 })
