@@ -35,6 +35,42 @@ class TestFastAPI(unittest.TestCase):
         assert 'admin@dacot.uoct.cl' in emails
         assert 'seed@dacot.uoct.cl' in emails
 
+    def test_gql_get_users_single_user(self):
+        assert True == False
+
+    def test_gql_get_users_single_user_not_exists(self):
+        assert True == False
+
+    def test_gql_get_users_empty_list(self):
+        assert True == False
+
+    def test_gql_get_users_attribute_not_exists(self):
+        assert True == False
+
+    def test_gql_get_users_invalid_query(self):
+        assert True == False
+
+    def test_gql_create_user(self):
+        assert True == False
+
+    def test_gql_create_user_missing_attribute(self):
+        assert True == False
+
+    def test_gql_create_user_admin(self):
+        assert True == False
+
+    def test_gql_create_user_duplicated(self):
+        assert True == False
+
+    def test_gql_create_user_company(self):
+        assert True == False
+
+    def test_gql_create_user_no_company(self):
+        assert True == False
+
+    def test_gql_create_user_uoct_role(self):
+        assert True == False
+
 #    def test_get_api_root(self): #FIXME: This should return a not authorized error
 #        response = self.client.get("/")
 #        print(response)
