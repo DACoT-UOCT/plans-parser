@@ -62,7 +62,6 @@ class TestFastAPI(unittest.TestCase):
 
     def test_gql_get_users_invalid_query(self):
         result = self.gql.execute('query { {{{ users { email fullName } }')
-        print(result)
         assert 'errors' in result
         assert len(result['errors']) > 0
         err_messages = [ err['message'] for err in result['errors'] ]
