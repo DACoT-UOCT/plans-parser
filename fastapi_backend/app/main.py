@@ -1,4 +1,4 @@
-from .config import get_settings, build_samples_for_docs
+from .config import get_settings, build_samples_for_docs_from_db
 from mongoengine import connect
 
 connect(host=get_settings().mongo_uri)
