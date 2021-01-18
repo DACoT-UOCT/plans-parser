@@ -233,12 +233,12 @@ def build_controller_model_collection(models_csv):
 def create_users():
     l = []
     acme_corp = ExternalCompany(name='ACME Corporation').save().reload()
-    l.append(User(full_name='DACoT Database Seed', email='seed@dacot.uoct.cl', rol='Personal UOCT', area='TIC'))
-    l.append(User(full_name='Admin', email='admin@dacot.uoct.cl', rol='Personal UOCT', area='TIC', is_admin=True))
-    l.append(User(full_name='Carlos Ponce', email='carlos.ponce@sansano.usm.cl', rol='Personal UOCT', area='TIC', is_admin=True))
-    l.append(User(full_name='Sebastian Muñoz', email='sebastian.munozd@sansano.usm.cl', rol='Personal UOCT', area='TIC', is_admin=True))
-    l.append(User(full_name='Nicolas Grandon', email='ngrandon@uoct.cl', rol='Personal UOCT', area='TIC', is_admin=True))
-    l.append(User(full_name='ACME Employee', email='employee@acmecorp.com', rol='Empresa', area='Mantenedora', company=acme_corp))
+    l.append(User(full_name='DACoT Database Seed', email='seed@dacot.uoct.cl', role='Personal UOCT', area='TIC'))
+    l.append(User(full_name='Admin', email='admin@dacot.uoct.cl', role='Personal UOCT', area='TIC', is_admin=True))
+    l.append(User(full_name='Carlos Ponce', email='carlos.ponce@sansano.usm.cl', role='Personal UOCT', area='TIC', is_admin=True))
+    l.append(User(full_name='Sebastian Muñoz', email='sebastian.munozd@sansano.usm.cl', role='Personal UOCT', area='TIC', is_admin=True))
+    l.append(User(full_name='Nicolas Grandon', email='ngrandon@uoct.cl', role='Personal UOCT', area='TIC', is_admin=True))
+    l.append(User(full_name='ACME Employee', email='employee@acmecorp.com', role='Empresa', area='Mantenedora', company=acme_corp))
     fast_validate_and_insert(l, User)
 
 def get_companies_dict():

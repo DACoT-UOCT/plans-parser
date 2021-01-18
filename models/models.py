@@ -103,7 +103,7 @@ class User(Document):
     is_admin = BooleanField(default=False)
     full_name = StringField(min_length=5, required=True)
     email = EmailField(required=True, unique=True)
-    rol = StringField(choices=['Empresa', 'Personal UOCT'], required=True)
+    role = StringField(choices=['Empresa', 'Personal UOCT'], required=True)
     area = StringField(choices=['Sala de Control', 'Ingeniería', 'TIC', 'Mantenedora', 'Contratista', 'Administración'], required=True)
     company = ReferenceField(ExternalCompany)
 
