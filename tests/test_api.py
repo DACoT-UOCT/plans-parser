@@ -42,6 +42,9 @@ class TestFastAPI(unittest.TestCase):
         result = self.gql.execute('query { user(email: "admin@dacot.uoct.cl") { email fullName } }')
         assert result['data']['user']['fullName'] == 'Admin'
 
+    def test_gql_get_users_single_user_and_company(self):
+        assert True == False
+
     def test_gql_get_users_single_user_not_exists(self):
         result = self.gql.execute('query { user(email: "notfound@example.com") { email fullName } }')
         assert result['data']['user'] == None
@@ -68,6 +71,38 @@ class TestFastAPI(unittest.TestCase):
         assert 'Syntax Error' in str(err_messages)
 
     def test_gql_create_user(self):
+        result = self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: false,
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Empresa",
+                area: "Mantenedora"
+            })
+            {
+                id email fullName
+            }
+        }
+        """)
+        assert result['data']['createUser']['email'] == 'user@example.org'
+        assert result['data']['createUser']['fullName'] == 'Test User Full Name'
+        assert result['data']['createUser']['id'] != None
+        reset_db_state()
+
+    def test_gql_create_user_invalid_is_admin(self):
+        assert True == False
+
+    def test_gql_create_user_invalid_full_name(self):
+        assert True == False
+
+    def test_gql_create_user_invalid_email(self):
+        assert True == False
+
+    def test_gql_create_user_invalid_role(self):
+        assert True == False
+
+    def test_gql_create_user_invalid_area(self):
         assert True == False
 
     def test_gql_create_user_missing_attribute(self):
