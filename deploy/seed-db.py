@@ -21,7 +21,7 @@ if os.environ.get('RUNNING_TEST'):
     class log:
         @staticmethod
         def info(msg):
-            print(msg)
+            return
     is_diff = False
 else:
     from dacot_models import Commune, ExternalCompany, ControllerModel
@@ -408,7 +408,7 @@ if __name__ == "__main__":
     log.info('Done Seeding the remote database')
 
 def seed_from_interpreter(uri, db, ctrl, juncs, scheds):
-    print('[seed_from_interpreter] Called!')
+    # print('[seed_from_interpreter] Called!')
     args = argparse.Namespace(
         database=db, diffdb=False, extra=False, ctrlls_data=ctrl,
         index=juncs, input=scheds, mongo=uri, rebuild=True

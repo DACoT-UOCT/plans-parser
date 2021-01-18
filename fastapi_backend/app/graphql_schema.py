@@ -9,7 +9,12 @@ class User(MongoengineObjectType):
 
 class Query(graphene.ObjectType):
     users = graphene.List(User)
+    user = graphene.Field(User, email=graphene.NonNull(graphene.String))
+
     def resolve_users(self, info):
         return list(UserModel.objects.all())
+
+    def resolve_user(self, info, email):
+        return UserModel.objects(email=email).first()
 
 dacot_schema = graphene.Schema(query=Query, types=[User])

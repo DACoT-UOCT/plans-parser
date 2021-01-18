@@ -12,7 +12,13 @@ import unittest
 from fastapi_backend.app import main as production_main
 from fastapi_backend.app.graphql_schema import dacot_schema
 from fastapi.testclient import TestClient
-from deploy.seed_db_module import seed_from_interpreter
+from deploy.seed_db_module import seed_from_interpreter, drop_old_data
+
+def reset_db_state():
+    seed_from_interpreter(
+        os.environ.get('mongo_uri'), os.environ.get('mongo_db'),
+        'tests/cmodels.csv', 'tests/juncs.csv', 'tests/scheds.json'
+    )
 
 class TestFastAPI(unittest.TestCase):
 
@@ -24,31 +30,43 @@ class TestFastAPI(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        seed_from_interpreter(
-            os.environ.get('mongo_uri'), os.environ.get('mongo_db'),
-            'tests/cmodels.csv', 'tests/juncs.csv', 'tests/scheds.json'
-        )
+        reset_db_state()
 
     def test_gql_get_users(self):
         result = self.gql.execute('query { users { email fullName } }')
-        emails = [ u['email'] for u in result['data']['users']]
+        emails = [ u['email'] for u in result['data']['users'] ]
         assert 'admin@dacot.uoct.cl' in emails
         assert 'seed@dacot.uoct.cl' in emails
 
     def test_gql_get_users_single_user(self):
-        assert True == False
+        result = self.gql.execute('query { user(email: "admin@dacot.uoct.cl") { email fullName } }')
+        assert result['data']['user']['fullName'] == 'Admin'
 
     def test_gql_get_users_single_user_not_exists(self):
-        assert True == False
+        result = self.gql.execute('query { user(email: "notfound@example.com") { email fullName } }')
+        assert result['data']['user'] == None
 
     def test_gql_get_users_empty_list(self):
-        assert True == False
+        drop_old_data()
+        result = self.gql.execute('query { users { email fullName } }')
+        assert type(result['data']['users']) == type([])
+        assert len(result['data']['users']) == 0
+        reset_db_state()
 
     def test_gql_get_users_attribute_not_exists(self):
-        assert True == False
+        result = self.gql.execute('query { users { email fullName attribute_not_exists } }')
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = [ err['message'] for err in result['errors'] ]
+        assert 'Cannot query field "attribute_not_exists"' in str(err_messages)
 
     def test_gql_get_users_invalid_query(self):
-        assert True == False
+        result = self.gql.execute('query { {{{ users { email fullName } }')
+        print(result)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = [ err['message'] for err in result['errors'] ]
+        assert 'Syntax Error' in str(err_messages)
 
     def test_gql_create_user(self):
         assert True == False
