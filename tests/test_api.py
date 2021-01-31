@@ -4,7 +4,7 @@ import mongomock
 import mongomock.gridfs
 from graphene.test import Client as GQLClient
 
-os.environ['mongo_db'] = 'testing-db'
+os.environ['mongo_db'] = 'db'
 os.environ['mongo_uri'] = 'mongomock://127.0.0.1'
 os.environ['RUNNING_TEST'] = 'OK'
 
@@ -13,6 +13,8 @@ from fastapi_backend.app import main as production_main
 from fastapi_backend.app.graphql_schema import dacot_schema
 from fastapi.testclient import TestClient
 from deploy.seed_db_module import seed_from_interpreter, drop_old_data
+
+TEST_USER_FULLNAME = 'Test User Full Name'
 
 def reset_db_state():
     seed_from_interpreter(
@@ -43,7 +45,9 @@ class TestFastAPI(unittest.TestCase):
         assert result['data']['user']['fullName'] == 'Admin'
 
     def test_gql_get_users_single_user_and_company(self):
-        assert True == False
+        result = self.gql.execute('query { user(email: "employee@acmecorp.com") { email fullName company { name } } }')
+        assert result['data']['user']['email'] == 'employee@acmecorp.com'
+        assert result['data']['user']['company']['name'] == 'ACME Corporation'
 
     def test_gql_get_users_single_user_not_exists(self):
         result = self.gql.execute('query { user(email: "notfound@example.com") { email fullName } }')
@@ -52,7 +56,7 @@ class TestFastAPI(unittest.TestCase):
     def test_gql_get_users_empty_list(self):
         drop_old_data()
         result = self.gql.execute('query { users { email fullName } }')
-        assert type(result['data']['users']) == type([])
+        assert type(result['data']['users']) == list
         assert len(result['data']['users']) == 0
         reset_db_state()
 
@@ -60,15 +64,15 @@ class TestFastAPI(unittest.TestCase):
         result = self.gql.execute('query { users { email fullName attribute_not_exists } }')
         assert 'errors' in result
         assert len(result['errors']) > 0
-        err_messages = [ err['message'] for err in result['errors'] ]
-        assert 'Cannot query field "attribute_not_exists"' in str(err_messages)
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'Cannot query field "attribute_not_exists"' in err_messages
 
     def test_gql_get_users_invalid_query(self):
         result = self.gql.execute('query { {{{ users { email fullName } }')
         assert 'errors' in result
         assert len(result['errors']) > 0
-        err_messages = [ err['message'] for err in result['errors'] ]
-        assert 'Syntax Error' in str(err_messages)
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'Syntax Error' in err_messages
 
     def test_gql_create_user(self):
         result = self.gql.execute("""
@@ -86,41 +90,277 @@ class TestFastAPI(unittest.TestCase):
         }
         """)
         assert result['data']['createUser']['email'] == 'user@example.org'
-        assert result['data']['createUser']['fullName'] == 'Test User Full Name'
+        assert result['data']['createUser']['fullName'] == TEST_USER_FULLNAME
         assert result['data']['createUser']['id'] != None
+        result = self.gql.execute('query { user(email: "user@example.org") { fullName } }')
+        assert result['data']['user']['fullName'] == TEST_USER_FULLNAME
         reset_db_state()
 
-    def test_gql_create_user_invalid_is_admin(self):
-        assert True == False
+    def test_gql_create_user_is_admin(self):
+        result = self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: true,
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Empresa",
+                area: "Mantenedora"
+            })
+            {
+                id email fullName isAdmin
+            }
+        }
+        """)
+        assert result['data']['createUser']['email'] == 'user@example.org'
+        assert result['data']['createUser']['fullName'] == TEST_USER_FULLNAME
+        assert result['data']['createUser']['id'] != None
+        assert result['data']['createUser']['isAdmin'] == True
+        result = self.gql.execute('query { user(email: "user@example.org") { isAdmin fullName } }')
+        assert result['data']['user']['fullName'] == TEST_USER_FULLNAME
+        assert result['data']['user']['isAdmin'] == True
+        reset_db_state()
 
     def test_gql_create_user_invalid_full_name(self):
-        assert True == False
+        result = self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: true,
+                fullName: "A",
+                email: "user@example.org",
+                role: "Empresa",
+                area: "Mantenedora"
+            })
+            {
+                id email fullName
+            }
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'ValidationError' in err_messages
+        assert "String value is too short: ['full_name']" in err_messages
 
     def test_gql_create_user_invalid_email(self):
-        assert True == False
+        result = self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: false,
+                fullName: "Test User Full Name",
+                email: "user@example@google@cl.org",
+                role: "Empresa",
+                area: "Mantenedora"
+            })
+            {
+                id email fullName
+            }
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'ValidationError' in err_messages
+        assert 'Invalid email address: user@example@google@cl.org' in err_messages
 
     def test_gql_create_user_invalid_role(self):
-        assert True == False
+        result = self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: false,
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Invalid_ROLE",
+                area: "Mantenedora"
+            })
+            {
+                id email fullName
+            }
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'ValidationError' in err_messages
+        assert 'Value must be one of' in err_messages
+        assert '[\'role\']' in err_messages
 
     def test_gql_create_user_invalid_area(self):
-        assert True == False
+        result = self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: false,
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Empresa",
+                area: "Invalid_AREA"
+            })
+            {
+                id email fullName
+            }
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'ValidationError' in err_messages
+        assert 'Value must be one of' in err_messages
+        assert '[\'area\']' in err_messages
 
     def test_gql_create_user_missing_attribute(self):
-        assert True == False
-
-    def test_gql_create_user_admin(self):
-        assert True == False
+        result  = self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Empresa",
+                area: "Mantenedora"
+            })
+            {
+                id email fullName isAdmin
+            }
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'field "isAdmin": Expected "Boolean!"' in err_messages
 
     def test_gql_create_user_duplicated(self):
-        assert True == False
+        self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: false,
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Empresa",
+                area: "Mantenedora"
+            })
+            {
+                id email fullName
+            }
+        }
+        """)
+        result = self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: false,
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Empresa",
+                area: "Mantenedora"
+            })
+            {
+                id email fullName
+            }
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'E11000 Duplicate Key Error' in err_messages
+        reset_db_state()
 
     def test_gql_create_user_company(self):
-        assert True == False
+        result = self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: false,
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Empresa",
+                area: "Mantenedora",
+                company: "ACME Corporation"
+            })
+            {
+                id email fullName company { id name }
+            }
+        }
+        """)
+        assert not 'errors' in result
+        assert result['data']['createUser']['id'] != None
+        assert result['data']['createUser']['company']['name'] == 'ACME Corporation'
+        assert result['data']['createUser']['company']['id'] != None
+        reset_db_state()
 
-    def test_gql_create_user_no_company(self):
-        assert True == False
+    def test_gql_create_user_company_not_found(self):
+        result = self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: false,
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Empresa",
+                area: "Mantenedora",
+                company: "Fake Company"
+            })
+            {
+                id email fullName
+            }
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'ExternalCompany "Fake Company" not found' in err_messages
+        reset_db_state()
 
     def test_gql_create_user_uoct_role(self):
+        result = self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: false,
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Personal UOCT",
+                area: "TIC"
+            })
+            {
+                id email fullName isAdmin
+            }
+        }
+        """)
+        assert not 'errors' in result
+        assert result['data']['createUser']['email'] == 'user@example.org'
+        assert result['data']['createUser']['fullName'] == TEST_USER_FULLNAME
+        assert result['data']['createUser']['id'] != None
+        assert result['data']['createUser']['isAdmin'] == False
+        reset_db_state()
+
+    def test_gql_delete_user(self):
+        result = self.gql.execute("""
+        mutation {
+            deleteUser(userDetails: {
+                email: "employee@acmecorp.com"
+            })
+        }
+        """)
+        assert not 'errors' in result
+        assert result['data']['deleteUser'] != None
+        reset_db_state()
+
+    def test_gql_delete_user_not_exists(self):
+        result = self.gql.execute("""
+        mutation {
+            deleteUser(userDetails: {
+                email: "user_not_found@example.org"
+            })
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'User "user_not_found@example.org" not found' in err_messages
+
+    def test_gql_update_user_admin(self):
+        assert True == False
+
+    def test_gql_update_full_name(self):
+        assert True == False
+
+    def test_gql_update_user_not_found(self):
+        assert True == False
+    
+    def test_gql_update_user_invalid_field(self):
         assert True == False
 
 #    def test_get_api_root(self): #FIXME: This should return a not authorized error
