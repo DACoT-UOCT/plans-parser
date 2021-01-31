@@ -1,7 +1,9 @@
+import logging
 import graphene
-from graphene.relay import Node
 from graphene_mongo import MongoengineObjectType
 from models import User as UserModel
+from mongoengine import ValidationError
+from graphql import GraphQLError
 
 class User(MongoengineObjectType):
     class Meta:
@@ -38,10 +40,22 @@ class CreateUser(graphene.Mutation):
         user.email = user_details.email
         user.role = user_details.role
         user.area = user_details.area
-        user.save()
+        try:
+            user.save()
+        except ValidationError as excep:
+            return GraphQLError(excep)
         return user
 
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
+
+class GraphQLLogFilter(logging.Filter):
+    def filter(self, record):
+        if 'graphql.error.located_error.GraphQLLocatedError:' in record.msg:
+            return False
+        return True
+
+# Disable graphene logging
+logging.getLogger('graphql.execution.utils').addFilter(GraphQLLogFilter())
