@@ -352,16 +352,74 @@ class TestFastAPI(unittest.TestCase):
         assert 'User "user_not_found@example.org" not found' in err_messages
 
     def test_gql_update_user_admin(self):
-        assert True == False
+        result = self.gql.execute("""
+        mutation {
+            updateUser(userDetails: {
+                email: "employee@acmecorp.com",
+                isAdmin: true
+            })
+            {
+                id isAdmin email
+            }
+        }
+        """)
+        assert not 'errors' in result
+        assert result['data']['updateUser']['email'] == 'employee@acmecorp.com'
+        assert result['data']['updateUser']['id'] != None
+        assert result['data']['updateUser']['isAdmin'] == True
+        reset_db_state()
 
-    def test_gql_update_full_name(self):
-        assert True == False
+    def test_gql_update_user_full_name(self):
+        result = self.gql.execute("""
+        mutation {
+            updateUser(userDetails: {
+                email: "employee@acmecorp.com",
+                fullName: "Updated Full Name Value"
+            })
+            {
+                id fullName email
+            }
+        }
+        """)
+        assert not 'errors' in result
+        assert result['data']['updateUser']['email'] == 'employee@acmecorp.com'
+        assert result['data']['updateUser']['id'] != None
+        assert result['data']['updateUser']['fullName'] == 'Updated Full Name Value'
+        reset_db_state()
 
     def test_gql_update_user_not_found(self):
-        assert True == False
+        result = self.gql.execute("""
+        mutation {
+            updateUser(userDetails: {
+                email: "user_not_found@example.org"
+            })
+            {
+                id
+            }
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'User "user_not_found@example.org" not found' in err_messages
     
     def test_gql_update_user_invalid_field(self):
-        assert True == False
+        result = self.gql.execute("""
+        mutation {
+            updateUser(userDetails: {
+                email: "user_not_found@example.org",
+                company: "Updated Company Value"
+            })
+            {
+                id
+            }
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'Argument "userDetails" has invalid value' in err_messages
+        assert 'field "company": Unknown field.' in err_messages
 
 #    def test_get_api_root(self): #FIXME: This should return a not authorized error
 #        response = self.client.get("/")

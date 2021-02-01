@@ -77,9 +77,33 @@ class DeleteUser(graphene.Mutation):
         user.delete()
         return uid
 
+class UpdateUserInput(graphene.InputObjectType):
+    email = graphene.NonNull(graphene.String)
+    is_admin = graphene.Boolean()
+    full_name = graphene.String()
+
+class UpdateUser(graphene.Mutation):
+    class Arguments:
+        user_details = UpdateUserInput()
+
+    Output = User
+
+    @staticmethod
+    def mutate(parent, info, user_details):
+        user = UserModel.objects(email=user_details.email).first()
+        if not user:
+            return GraphQLError('User "{}" not found'.format(user_details.email))
+        if user_details.is_admin != None:
+            user.is_admin = user_details.is_admin
+        if user_details.full_name != None:
+            user.full_name = user_details.full_name
+        user.save()
+        return user
+
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     delete_user = DeleteUser.Field()
+    update_user = UpdateUser.Field()
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
 
