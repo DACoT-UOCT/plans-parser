@@ -421,12 +421,33 @@ class TestFastAPI(unittest.TestCase):
         assert 'Argument "userDetails" has invalid value' in err_messages
         assert 'field "company": Unknown field.' in err_messages
 
-#    def test_get_api_root(self): #FIXME: This should return a not authorized error
-#        response = self.client.get("/")
-#        print(response)
-#        print(response.json())
-#        assert response.status_code == 200 # See FIXME
-#
+    def test_gql_actions_log_get_all_empty(self):
+        assert True == False
+
+    def test_gql_actions_log_get_all(self):
+        assert True == False
+
+    def test_gql_actions_log_get_all_create_user(self):
+        assert True == False
+
+    def test_gql_actions_log_get_all_create_user_failed(self):
+        assert True == False
+
+    def test_gql_actions_log_get_all_delete_user(self):
+        assert True == False
+
+    def test_gql_actions_log_get_all_delete_user_failed(self):
+        assert True == False
+
+    def test_gql_actions_log_get_all_update_user(self):
+        assert True == False
+
+    def test_gql_actions_log_get_all_update_user_failed(self):
+        assert True == False
+
+    def test_gql_actions_log_get_single(self):
+        assert True == False
+
 #    def test_action_log_get_faltan_parametros(self):
 #        response = self.client.get('/actions_log')
 #        assert response.status_code == 422
@@ -436,28 +457,6 @@ class TestFastAPI(unittest.TestCase):
 #        assert response.status_code == 404
 #        assert response.json()['detail'] == 'User user@dominio.cl not found'
 #
-#    def test_get_users_missing_param(self):
-#        response = self.client.get('/users')
-#        assert response.status_code == 422
-#
-#    def test_get_users(self):
-#        response = self.client.get('/users?user_email=admin@dacot.uoct.cl')
-#        assert response.status_code == 200
-#        emails = set([u['email'] for u in response.json()])
-#        assert 'admin@dacot.uoct.cl' in emails
-#        assert 'seed@dacot.uoct.cl' in emails
-#
-#    def test_get_users_not_admin(self):
-#        response = self.client.get('/users?user_email=employee@acmecorp.com')
-#        assert response.status_code == 403
-#        assert response.json()['detail'] == 'Forbidden'
-#
-#    def test_get_users_user_not_found(self):
-#        response = self.client.get('/users?user_email=user@dominio.cl')
-#        assert response.status_code == 404
-#        assert response.json()['detail'] == 'User user@dominio.cl not found'
-#
-#    # FIXME: Test /edit-user/ and /delet-user/
 #
 #    def test_get_actions_log(self):
 #        self.client.get('/actions_log?user_email=admin@dacot.uoct.cl')
