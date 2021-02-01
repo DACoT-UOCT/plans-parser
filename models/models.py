@@ -184,10 +184,10 @@ class OTU(EmbeddedDocument):
 
 class ActionsLog(Document):
     meta = {'collection': 'ActionsLog'}
-    user = StringField(max_length=120, required=True)
-    context = StringField(max_length=120, required=True)
+    user = StringField(required=True)
+    context = StringField(required=True)
     action = StringField(required=True)
-    origin = StringField(max_length=120, required=True)
+    origin = StringField(required=True)
     date = DateTimeField(default=datetime.now)
 
 class Project(Document):
