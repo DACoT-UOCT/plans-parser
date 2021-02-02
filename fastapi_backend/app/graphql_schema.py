@@ -39,9 +39,13 @@ class Query(graphene.ObjectType):
     users = graphene.List(User)
     user = graphene.Field(User, email=graphene.NonNull(graphene.String))
     actions_logs = graphene.List(ActionsLog)
+    actions_log = graphene.Field(ActionsLog, logid=graphene.NonNull(graphene.String))
 
     def resolve_actions_logs(self, info):
         return list(ActionsLogModel.objects.all())
+
+    def resolve_actions_log(self, info, logid):
+        return ActionsLogModel.objects(id=logid).first()
 
     def resolve_users(self, info):
         return list(UserModel.objects.all())
@@ -87,7 +91,7 @@ class CreateUser(CustomMutation):
 class DeleteUserInput(graphene.InputObjectType):
     email = graphene.NonNull(graphene.String)
 
-class DeleteUser(graphene.Mutation):
+class DeleteUser(CustomMutation):
     class Arguments:
         user_details = DeleteUserInput()
 
@@ -97,9 +101,11 @@ class DeleteUser(graphene.Mutation):
     def mutate(cls, root, info, user_details):
         user = UserModel.objects(email=user_details.email).first()
         if not user:
+            cls.log_action('Failed to delete user "{}". User not found'.format(user_details.email), info)
             return GraphQLError('User "{}" not found'.format(user_details.email))
         uid = user.id
         user.delete()
+        cls.log_action('User "{}" deleted'.format(user_details.email), info)
         return uid
 
 class UpdateUserInput(graphene.InputObjectType):
@@ -107,7 +113,7 @@ class UpdateUserInput(graphene.InputObjectType):
     is_admin = graphene.Boolean()
     full_name = graphene.String()
 
-class UpdateUser(graphene.Mutation):
+class UpdateUser(CustomMutation):
     class Arguments:
         user_details = UpdateUserInput()
 
@@ -117,12 +123,14 @@ class UpdateUser(graphene.Mutation):
     def mutate(cls, root, info, user_details):
         user = UserModel.objects(email=user_details.email).first()
         if not user:
+            cls.log_action('Failed to update user "{}". User not found'.format(user_details.email), info)
             return GraphQLError('User "{}" not found'.format(user_details.email))
         if user_details.is_admin != None:
             user.is_admin = user_details.is_admin
         if user_details.full_name != None:
             user.full_name = user_details.full_name
         user.save()
+        cls.log_action('User "{}" updated.'.format(user_details.email), info)
         return user
 
 class Mutation(graphene.ObjectType):

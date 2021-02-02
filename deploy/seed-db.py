@@ -17,7 +17,7 @@ if os.environ.get('RUNNING_TEST'):
     from .dacot_models import Commune, ExternalCompany, ControllerModel
     from .dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
     from .dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
-    from .dacot_models import JunctionPlanPhaseValue, OTUProgramItem
+    from .dacot_models import JunctionPlanPhaseValue, OTUProgramItem, ActionsLog
     class log:
         @staticmethod
         def info(msg):
@@ -27,7 +27,7 @@ else:
     from dacot_models import Commune, ExternalCompany, ControllerModel
     from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
     from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
-    from dacot_models import JunctionPlanPhaseValue, OTUProgramItem
+    from dacot_models import JunctionPlanPhaseValue, OTUProgramItem, ActionsLog
     log = None
     is_diff = None # FIXME: Should be a parameter, not a global variable
 
@@ -110,6 +110,7 @@ def drop_old_data():
     ControllerModel.drop_collection()
     User.drop_collection()
     Project.drop_collection()
+    ActionsLog.drop_collection()
     log.info('Done dropping data')
 
 def check_csv_line_valid(line, junc_pattern, otu_pattern):

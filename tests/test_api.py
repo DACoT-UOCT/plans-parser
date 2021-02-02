@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 import mongomock
 import mongomock.gridfs
 from graphene.test import Client as GQLClient
@@ -34,6 +35,9 @@ class TestFastAPI(unittest.TestCase):
     def setUpClass(cls):
         reset_db_state()
 
+    def setUp(self):
+        reset_db_state()
+
     def test_gql_get_users(self):
         result = self.gql.execute('query { users { email fullName } }')
         emails = [ u['email'] for u in result['data']['users'] ]
@@ -58,7 +62,6 @@ class TestFastAPI(unittest.TestCase):
         result = self.gql.execute('query { users { email fullName } }')
         assert type(result['data']['users']) == list
         assert len(result['data']['users']) == 0
-        reset_db_state()
 
     def test_gql_get_users_attribute_not_exists(self):
         result = self.gql.execute('query { users { email fullName attribute_not_exists } }')
@@ -94,7 +97,6 @@ class TestFastAPI(unittest.TestCase):
         assert result['data']['createUser']['id'] != None
         result = self.gql.execute('query { user(email: "user@example.org") { fullName } }')
         assert result['data']['user']['fullName'] == TEST_USER_FULLNAME
-        reset_db_state()
 
     def test_gql_create_user_is_admin(self):
         result = self.gql.execute("""
@@ -118,7 +120,6 @@ class TestFastAPI(unittest.TestCase):
         result = self.gql.execute('query { user(email: "user@example.org") { isAdmin fullName } }')
         assert result['data']['user']['fullName'] == TEST_USER_FULLNAME
         assert result['data']['user']['isAdmin'] == True
-        reset_db_state()
 
     def test_gql_create_user_invalid_full_name(self):
         result = self.gql.execute("""
@@ -258,7 +259,6 @@ class TestFastAPI(unittest.TestCase):
         assert len(result['errors']) > 0
         err_messages = str([ err['message'] for err in result['errors'] ])
         assert 'E11000 Duplicate Key Error' in err_messages
-        reset_db_state()
 
     def test_gql_create_user_company(self):
         result = self.gql.execute("""
@@ -280,7 +280,6 @@ class TestFastAPI(unittest.TestCase):
         assert result['data']['createUser']['id'] != None
         assert result['data']['createUser']['company']['name'] == 'ACME Corporation'
         assert result['data']['createUser']['company']['id'] != None
-        reset_db_state()
 
     def test_gql_create_user_company_not_found(self):
         result = self.gql.execute("""
@@ -302,7 +301,6 @@ class TestFastAPI(unittest.TestCase):
         assert len(result['errors']) > 0
         err_messages = str([ err['message'] for err in result['errors'] ])
         assert 'ExternalCompany "Fake Company" not found' in err_messages
-        reset_db_state()
 
     def test_gql_create_user_uoct_role(self):
         result = self.gql.execute("""
@@ -324,7 +322,6 @@ class TestFastAPI(unittest.TestCase):
         assert result['data']['createUser']['fullName'] == TEST_USER_FULLNAME
         assert result['data']['createUser']['id'] != None
         assert result['data']['createUser']['isAdmin'] == False
-        reset_db_state()
 
     def test_gql_delete_user(self):
         result = self.gql.execute("""
@@ -336,7 +333,6 @@ class TestFastAPI(unittest.TestCase):
         """)
         assert not 'errors' in result
         assert result['data']['deleteUser'] != None
-        reset_db_state()
 
     def test_gql_delete_user_not_exists(self):
         result = self.gql.execute("""
@@ -367,7 +363,6 @@ class TestFastAPI(unittest.TestCase):
         assert result['data']['updateUser']['email'] == 'employee@acmecorp.com'
         assert result['data']['updateUser']['id'] != None
         assert result['data']['updateUser']['isAdmin'] == True
-        reset_db_state()
 
     def test_gql_update_user_full_name(self):
         result = self.gql.execute("""
@@ -385,7 +380,6 @@ class TestFastAPI(unittest.TestCase):
         assert result['data']['updateUser']['email'] == 'employee@acmecorp.com'
         assert result['data']['updateUser']['id'] != None
         assert result['data']['updateUser']['fullName'] == 'Updated Full Name Value'
-        reset_db_state()
 
     def test_gql_update_user_not_found(self):
         result = self.gql.execute("""
@@ -422,31 +416,131 @@ class TestFastAPI(unittest.TestCase):
         assert 'field "company": Unknown field.' in err_messages
 
     def test_gql_actions_log_get_all_empty(self):
-        assert True == False
-
-    def test_gql_actions_log_get_all(self):
-        assert True == False
+        result = self.gql.execute('query { actionsLogs { action } }')
+        assert 'errors' not in result
+        assert len(result['data']['actionsLogs']) == 0
 
     def test_gql_actions_log_get_all_create_user(self):
-        assert True == False
+        self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: false,
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Empresa",
+                area: "Mantenedora"
+            })
+            {
+                id email fullName
+            }
+        }
+        """)
+        result = self.gql.execute('query { actionsLogs { action } }')
+        assert 'errors' not in result
+        assert len(result['data']['actionsLogs']) > 0
+        assert 'User "user@example.org" created' in result['data']['actionsLogs'][0]['action']
 
     def test_gql_actions_log_get_all_create_user_failed(self):
-        assert True == False
+        self.gql.execute("""
+        mutation {
+            createUser(userDetails: {
+                isAdmin: false,
+                fullName: "Test User Full Name",
+                email: "user@example.org",
+                role: "Empresa",
+                area: "INVALID"
+            })
+            {
+                id email fullName
+            }
+        }
+        """)
+        result = self.gql.execute('query { actionsLogs { action } }')
+        assert 'errors' not in result
+        assert len(result['data']['actionsLogs']) > 0
+        assert 'Failed to create user "user@example.org"' in result['data']['actionsLogs'][0]['action']
 
     def test_gql_actions_log_get_all_delete_user(self):
-        assert True == False
+        self.gql.execute("""
+        mutation {
+            deleteUser(userDetails: {
+                email: "employee@acmecorp.com"
+            })
+        }
+        """)
+        result = self.gql.execute('query { actionsLogs { action } }')
+        assert 'errors' not in result
+        assert len(result['data']['actionsLogs']) > 0
+        assert 'User "employee@acmecorp.com" deleted' in result['data']['actionsLogs'][0]['action']
 
     def test_gql_actions_log_get_all_delete_user_failed(self):
-        assert True == False
+        self.gql.execute("""
+        mutation {
+            deleteUser(userDetails: {
+                email: "user_not_found@example.org"
+            })
+        }
+        """)
+        result = self.gql.execute('query { actionsLogs { action } }')
+        assert 'errors' not in result
+        assert len(result['data']['actionsLogs']) > 0
+        assert 'Failed to delete user "user_not_found@example.org"' in result['data']['actionsLogs'][0]['action']
 
     def test_gql_actions_log_get_all_update_user(self):
-        assert True == False
+        self.gql.execute("""
+        mutation {
+            updateUser(userDetails: {
+                email: "employee@acmecorp.com",
+                isAdmin: true
+            })
+            {
+                id
+            }
+        }
+        """)
+        result = self.gql.execute('query { actionsLogs { id action } }')
+        assert 'errors' not in result
+        assert len(result['data']['actionsLogs']) > 0
+        assert 'User "employee@acmecorp.com" updated' in result['data']['actionsLogs'][0]['action']
 
-    def test_gql_actions_log_get_all_update_user_failed(self):
-        assert True == False
+    def test_gql_actions_log_get_all_update_user_not_found(self):
+        self.gql.execute("""
+        mutation {
+            updateUser(userDetails: {
+                email: "user_not_found@example.org",
+                isAdmin: false
+            })
+            {
+                id
+            }
+        }
+        """)
+        result = self.gql.execute('query { actionsLogs { action } }')
+        assert 'errors' not in result
+        assert len(result['data']['actionsLogs']) > 0
+        assert 'Failed to update user "user_not_found@example.org"' in result['data']['actionsLogs'][0]['action']
 
     def test_gql_actions_log_get_single(self):
-        assert True == False
+        self.gql.execute("""
+        mutation {
+            updateUser(userDetails: {
+                email: "employee@acmecorp.com",
+                isAdmin: true
+            })
+            {
+                id
+            }
+        }
+        """)
+        result = self.gql.execute('query { actionsLogs { id action } }')
+        assert 'errors' not in result
+        assert len(result['data']['actionsLogs']) > 0
+        assert result['data']['actionsLogs'][0]['id'] != None
+        mock_logid = result['data']['actionsLogs'][0]['id']
+        logid = str(base64.b64decode(mock_logid)).replace('\'', '').split(':')[1] # mongomock
+        qry = 'query {{ actionsLog(logid: "{}") {{ id user context action date }} }}'.format(logid)
+        result = self.gql.execute(qry)
+        assert 'User "employee@acmecorp.com" updated.' in result['data']['actionsLog']['action']
 
 #    def test_action_log_get_faltan_parametros(self):
 #        response = self.client.get('/actions_log')
