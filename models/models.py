@@ -70,11 +70,6 @@ class ExternalCompany(Document):
     meta = {'collection': 'ExternalCompany'}
     name = StringField(min_length=2, required=True, unique=True)
 
-class Commune(Document):
-    meta = {'collection': 'Commune'}
-    maintainer = ReferenceField(ExternalCompany)
-    name = StringField(unique=True)
-
 class HeaderItem(EmbeddedDocument):
     hal = IntField(min_value=0)
     led = IntField(min_value=0)
@@ -106,6 +101,13 @@ class User(Document):
     role = StringField(choices=['Empresa', 'Personal UOCT'], required=True)
     area = StringField(choices=['Sala de Control', 'Ingeniería', 'TIC', 'Mantenedora', 'Contratista', 'Administración'], required=True)
     company = ReferenceField(ExternalCompany)
+
+class Commune(Document):
+    meta = {'collection': 'Commune'}
+    code = IntField(min_value=0, required=True, unique=True)
+    maintainer = ReferenceField(ExternalCompany)
+    user_in_charge = ReferenceField(User)
+    name = StringField(unique=True, required=True)
 
 # Comment Model ====
 

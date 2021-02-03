@@ -20,7 +20,8 @@ TEST_USER_FULLNAME = 'Test User Full Name'
 def reset_db_state():
     seed_from_interpreter(
         os.environ.get('mongo_uri'), os.environ.get('mongo_db'),
-        'tests/cmodels.csv', 'tests/juncs.csv', 'tests/scheds.json'
+        'tests/cmodels.csv', 'tests/juncs.csv', 'tests/scheds.json',
+        'tests/communes_reg_metrop.json'
     )
 
 class TestFastAPI(unittest.TestCase):
@@ -541,6 +542,21 @@ class TestFastAPI(unittest.TestCase):
         qry = 'query {{ actionsLog(logid: "{}") {{ id user context action date }} }}'.format(logid)
         result = self.gql.execute(qry)
         assert 'User "employee@acmecorp.com" updated.' in result['data']['actionsLog']['action']
+
+    def test_gql_get_communes(self):
+        assert True == False
+
+    def test_gql_get_communes_empty(self):
+        assert True == False
+
+    def test_gql_update_commune_maintainer(self):
+        assert True == False
+
+    def test_gql_update_commune_user(self):
+        assert True == False
+
+    def test_gql_update_commune_invalid_field(self):
+        assert True == False
 
 #    def test_action_log_get_faltan_parametros(self):
 #        response = self.client.get('/actions_log')

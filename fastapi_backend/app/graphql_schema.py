@@ -5,6 +5,7 @@ from graphene_mongo import MongoengineObjectType
 from models import User as UserModel
 from models import ExternalCompany as ExternalCompanyModel
 from models import ActionsLog as ActionsLogModel
+from models import Commune as CommuneModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
 
@@ -35,11 +36,20 @@ class ActionsLog(MongoengineObjectType):
         model = ActionsLogModel
         interfaces = (Node,)
 
+class Comune(MongoengineObjectType):
+    class Meta:
+        model = CommuneModel
+        interfaces = (Node,)
+
 class Query(graphene.ObjectType):
     users = graphene.List(User)
     user = graphene.Field(User, email=graphene.NonNull(graphene.String))
     actions_logs = graphene.List(ActionsLog)
     actions_log = graphene.Field(ActionsLog, logid=graphene.NonNull(graphene.String))
+    communes = graphene.List(Commune)
+
+    def resolve_communes(self, info)
+        return list(CommuneModel.objects.all())
 
     def resolve_actions_logs(self, info):
         return list(ActionsLogModel.objects.all())

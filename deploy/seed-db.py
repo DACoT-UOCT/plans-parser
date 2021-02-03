@@ -188,12 +188,12 @@ def build_external_company_collection(commune_company_dict):
         d[i.name] = i
     return d
 
-def build_commune_collection(index_csv):
-    commune_company = extract_company_for_commune(index_csv)
-    companies = build_external_company_collection(commune_company)
+def build_commune_collection(communes_json):
     l = []
-    for k, v in commune_company.items():
-        l.append(Commune(name=k, maintainer=companies[v]))
+    with open(communes_json) as fp:
+        communes_list = json.load(fp)
+        for commune in communes_list:
+            l.append(Commune(name=commune.get('nombre'), code=commune.get('codigo')))
     fast_validate_and_insert(l, Commune)
 
 def build_controller_model_csv_item(line):
@@ -408,8 +408,7 @@ if __name__ == "__main__":
         rebuild(args)
     log.info('Done Seeding the remote database')
 
-def seed_from_interpreter(uri, db, ctrl, juncs, scheds):
-    # print('[seed_from_interpreter] Called!')
+def seed_from_interpreter(uri, db, ctrl, juncs, scheds, communes):
     args = argparse.Namespace(
         database=db, diffdb=False, extra=False, ctrlls_data=ctrl,
         index=juncs, input=scheds, mongo=uri, rebuild=True
@@ -417,7 +416,7 @@ def seed_from_interpreter(uri, db, ctrl, juncs, scheds):
     drop_old_data()
     index_csv = read_csv_data(args)
     create_users()
-    build_commune_collection(index_csv)
+    build_commune_collection(communes)
     controllers_model_csv = read_controller_models_csv(args)
     build_controller_model_collection(controllers_model_csv)
     otus, projects = build_projects(index_csv)
