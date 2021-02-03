@@ -36,7 +36,7 @@ class ActionsLog(MongoengineObjectType):
         model = ActionsLogModel
         interfaces = (Node,)
 
-class Comune(MongoengineObjectType):
+class Commune(MongoengineObjectType):
     class Meta:
         model = CommuneModel
         interfaces = (Node,)
@@ -48,7 +48,7 @@ class Query(graphene.ObjectType):
     actions_log = graphene.Field(ActionsLog, logid=graphene.NonNull(graphene.String))
     communes = graphene.List(Commune)
 
-    def resolve_communes(self, info)
+    def resolve_communes(self, info):
         return list(CommuneModel.objects.all())
 
     def resolve_actions_logs(self, info):
@@ -62,6 +62,43 @@ class Query(graphene.ObjectType):
 
     def resolve_user(self, info, email):
         return UserModel.objects(email=email).first()
+
+class UpdateCommuneInput(graphene.InputObjectType):
+    code = graphene.NonNull(graphene.Int)
+    maintainer = graphene.String()
+    user_in_charge = graphene.String()
+
+class UpdateCommune(CustomMutation):
+    class Arguments:
+        commune_details = UpdateCommuneInput()
+
+    Output = Commune
+
+    @classmethod
+    def mutate(cls, root, info, commune_details):
+        commune = CommuneModel.objects(code=commune_details.code).first()
+        if not commune:
+            cls.log_action('Failed to update commune "{}". Commune not found'.format(commune_details.code), info)
+            return GraphQLError('Commune "{}" not found'.format(commune_details.code))
+        if commune_details.maintainer != None:
+            maintainer = ExternalCompanyModel.objects(name=commune_details.maintainer).first()
+            if not maintainer:
+                cls.log_action('Failed to update commune "{}". Maintainer "{}" not found'.format(commune_details.code, commune_details.maintainer), info)
+                return GraphQLError('Maintainer "{}" not found'.format(commune_details.maintainer))
+            commune.maintainer = maintainer
+        if commune_details.user_in_charge != None:
+            user = UserModel.objects(email=commune_details.user_in_charge).first()
+            if not user:
+                cls.log_action('Failed to update commune "{}". User "{}" not found'.format(commune_details.code, commune_details.user_in_charge), info)
+                return GraphQLError('User "{}" not found'.format(commune_details.user_in_charge))
+            commune.user_in_charge = user
+        try:
+            commune.save()
+        except ValidationError as excep:
+            cls.log_action('Failed to update commune "{}". {}'.format(commune.name, excep), info)
+            return GraphQLError(excep)
+        cls.log_action('Commune "{}" updated.'.format(commune.name), info)
+        return commune
 
 class CreateUserInput(graphene.InputObjectType):
     is_admin = graphene.NonNull(graphene.Boolean)
@@ -151,6 +188,7 @@ class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     delete_user = DeleteUser.Field()
     update_user = UpdateUser.Field()
+    update_commune = UpdateCommune.Field()
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
 

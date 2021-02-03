@@ -541,22 +541,85 @@ class TestFastAPI(unittest.TestCase):
         logid = str(base64.b64decode(mock_logid)).replace('\'', '').split(':')[1] # mongomock
         qry = 'query {{ actionsLog(logid: "{}") {{ id user context action date }} }}'.format(logid)
         result = self.gql.execute(qry)
+        assert 'errors' not in result
         assert 'User "employee@acmecorp.com" updated.' in result['data']['actionsLog']['action']
 
     def test_gql_get_communes(self):
-        assert True == False
+        result = self.gql.execute('query { communes { code name maintainer { name } userInCharge { email } } }')
+        assert 'errors' not in result
+        assert len(result['data']['communes']) > 0
 
     def test_gql_get_communes_empty(self):
-        assert True == False
+        drop_old_data()
+        result = self.gql.execute('query { communes { code name maintainer { name } userInCharge { email } } }')
+        assert 'errors' not in result
+        assert len(result['data']['communes']) == 0
+
+    def test_gql_update_commune_not_found(self):
+        result = self.gql.execute("""
+        mutation {
+            updateCommune(communeDetails: {
+                code: 1,
+                userInCharge: "employee@acmecorp.com"
+            })
+            {
+                code userInCharge { email }
+            }
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'Commune "1" not found' in err_messages
 
     def test_gql_update_commune_maintainer(self):
-        assert True == False
+        result = self.gql.execute("""
+        mutation {
+            updateCommune(communeDetails: {
+                code: 13108,
+                maintainer: "ACME Corporation"
+            })
+            {
+                code maintainer { name }
+            }
+        }
+        """)
+        assert 'errors' not in result
+        assert result['data']['updateCommune']['code'] == 13108
+        assert result['data']['updateCommune']['maintainer']['name'] == 'ACME Corporation'
 
     def test_gql_update_commune_user(self):
-        assert True == False
+        result = self.gql.execute("""
+        mutation {
+            updateCommune(communeDetails: {
+                code: 13108,
+                userInCharge: "employee@acmecorp.com"
+            })
+            {
+                code userInCharge { email }
+            }
+        }
+        """)
+        assert 'errors' not in result
+        assert result['data']['updateCommune']['code'] == 13108
+        assert result['data']['updateCommune']['userInCharge']['email'] == 'employee@acmecorp.com'
 
     def test_gql_update_commune_invalid_field(self):
-        assert True == False
+        result = self.gql.execute("""
+        mutation {
+            updateCommune(communeDetails: {
+                code: 13108,
+                name: "Valparaíso"
+            })
+            {
+                code name
+            }
+        }
+        """)
+        assert 'errors' in result
+        assert len(result['errors']) > 0
+        err_messages = str([ err['message'] for err in result['errors'] ])
+        assert 'field "name": Unknown field' in err_messages
 
 #    def test_action_log_get_faltan_parametros(self):
 #        response = self.client.get('/actions_log')
