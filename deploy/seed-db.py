@@ -93,7 +93,7 @@ def setup_args():
 def check_should_continue():
     global log
     log.warning('')
-    log.warning('THIS ACTION IS IRREVERSIBLE, ALL EXISTING DATA WILL BE DEETED')
+    log.warning('THIS ACTION IS IRREVERSIBLE, ALL EXISTING DATA WILL BE DELETED')
     log.warning('')
     log.warning('Should we continue?')
     shlould_continue = input('[yes/no]: ')
