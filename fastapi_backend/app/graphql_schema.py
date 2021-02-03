@@ -129,7 +129,11 @@ class UpdateUser(CustomMutation):
             user.is_admin = user_details.is_admin
         if user_details.full_name != None:
             user.full_name = user_details.full_name
-        user.save()
+        try:
+            user.save()
+        except ValidationError as excep:
+            cls.log_action('Failed to update user "{}". {}'.format(user_details.email, excep), info)
+            return GraphQLError(excep)
         cls.log_action('User "{}" updated.'.format(user_details.email), info)
         return user
 
