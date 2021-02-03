@@ -189,6 +189,7 @@ def build_external_company_collection(commune_company_dict):
     return d
 
 def build_commune_collection(communes_json):
+    # https://apis.digital.gob.cl/dpa/regiones/13/comunas
     l = []
     with open(communes_json) as fp:
         communes_list = json.load(fp)
