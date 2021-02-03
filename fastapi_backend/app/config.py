@@ -1,10 +1,6 @@
 from pydantic import BaseSettings
 from typing import List
-from fastapi_mail import FastMail, MessageSchema
 from functools import lru_cache
-from fastapi.logger import logger
-import bson.json_util as bjson
-from models import User
 
 class ConnectionConfig(BaseSettings):
     MAIL_USERNAME: str
@@ -27,10 +23,8 @@ class Settings(BaseSettings):
     mail_ssl: bool = False
     mail_config: ConnectionConfig = None
     mail_creation_recipients: List[str] = set()
-    docs_samples = dict()
 
 settings = Settings()
-logger.info('Started with settings: {}'.format(settings))
 
 if settings.mail_enabled:
     settings.mail_config = ConnectionConfig(
@@ -45,14 +39,3 @@ if settings.mail_enabled:
 @lru_cache()
 def get_settings():
     return settings
-
-def build_samples_for_docs_from_db():
-    user = User.objects(email='admin@dacot.uoct.cl').exclude('id').first()
-    if user:
-        user_sample = bjson.dumps(user.to_mongo(), sort_keys=True, indent=4)
-    else:
-        user_sample = None
-    docs_samples = {
-        'user_model': user_sample
-    }
-    return docs_samples
