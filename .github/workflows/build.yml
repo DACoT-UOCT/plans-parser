@@ -67,6 +67,6 @@ jobs:
           registry: docker.pkg.github.com
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ steps.repo.outputs.repo_lower }}
+          repository: ${{ steps.repo.outputs.repo_lower }}/master
           tag_with_sha: true
           tag_with_ref: true
