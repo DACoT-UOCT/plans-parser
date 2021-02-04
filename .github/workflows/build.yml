@@ -54,6 +54,7 @@ jobs:
   build_docker:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - run: echo "::set-output name=repo_lower::$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')"
         id: repo
       - name: Set up QEMU
@@ -69,4 +70,3 @@ jobs:
           repository: ${{ steps.repo.outputs.repo_lower }}
           tag_with_sha: true
           tag_with_ref: true
-          push: true
