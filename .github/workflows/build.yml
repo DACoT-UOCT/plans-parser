@@ -56,7 +56,7 @@ jobs:
     steps:
       - run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
         id: rev
-      - run: echo "::set-output name=repo_lower::$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')"
+      - run: echo "::set-output name=repo_lower::$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')"
         id: repo
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
