@@ -6,6 +6,7 @@ from models import User as UserModel
 from models import ExternalCompany as ExternalCompanyModel
 from models import ActionsLog as ActionsLogModel
 from models import Commune as CommuneModel
+from models import Project as ProjectModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
 
@@ -42,6 +43,11 @@ class Commune(MongoengineObjectType):
         model = CommuneModel
         interfaces = (Node,)
 
+class JunctionCoordinates(graphene.ObjectType):
+    jid = graphene.NonNull(graphene.String)
+    latitude = graphene.NonNull(graphene.Float)
+    longitude = graphene.NonNull(graphene.Float)
+
 class Query(graphene.ObjectType):
     users = graphene.List(User)
     user = graphene.Field(User, email=graphene.NonNull(graphene.String))
@@ -49,6 +55,21 @@ class Query(graphene.ObjectType):
     actions_log = graphene.Field(ActionsLog, logid=graphene.NonNull(graphene.String))
     communes = graphene.List(Commune)
     companies = graphene.List(ExternalCompany)
+    junctions_coordinates = graphene.List(JunctionCoordinates)
+
+    def resolve_junctions_coordinates(self, info):
+        coords = []
+        filter1 = 'otu.junctions.id'
+        filter2 = 'otu.junctions.metadata.location'
+        locations = ProjectModel.objects.only(filter1, filter2).all()
+        for project in locations:
+            for junction in project.otu.junctions:
+            coords.append({
+                'jid': junction.jid,
+                'latitude': junction.metadata.location['coordinates'][0],
+                'longitude': junction.metadata.location['coordinates'][1]
+            })
+        return coords
 
     def resolve_companies(self, info).
         return list(ExternalCompany.objects.all())
