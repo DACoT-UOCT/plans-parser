@@ -64,14 +64,14 @@ class Query(graphene.ObjectType):
         locations = ProjectModel.objects.only(filter1, filter2).all()
         for project in locations:
             for junction in project.otu.junctions:
-            coords.append({
-                'jid': junction.jid,
-                'latitude': junction.metadata.location['coordinates'][0],
-                'longitude': junction.metadata.location['coordinates'][1]
-            })
+                coords.append({
+                    'jid': junction.jid,
+                    'latitude': junction.metadata.location['coordinates'][0],
+                    'longitude': junction.metadata.location['coordinates'][1]
+                })
         return coords
 
-    def resolve_companies(self, info).
+    def resolve_companies(self, info):
         return list(ExternalCompany.objects.all())
 
     def resolve_communes(self, info):
@@ -211,7 +211,7 @@ class UpdateUser(CustomMutation):
         return user
 
 class CreateCompanyInput(graphene.InputObjectType):
-    name = graphene.NonNull(graphene.String())
+    name = graphene.NonNull(graphene.String)
 
 class CreateCompany(CustomMutation):
     class Arguments:
@@ -232,7 +232,7 @@ class CreateCompany(CustomMutation):
         return company
 
 class DeleteCompanyInput(graphene.InputObjectType):
-    name = graphene.NonNull(graphene.String())
+    name = graphene.NonNull(graphene.String)
 
 class DeleteCompany(CustomMutation):
     class Arguments:
