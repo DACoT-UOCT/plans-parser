@@ -12,6 +12,7 @@ from graphql import GraphQLError
 class CustomMutation(graphene.Mutation):
     # TODO: FIXME: Send emails functions
     # TODO: FIXME: Add current user to log
+    # TODO: FIXME: Make log in background_task
     class Meta:
         abstract = True
 
@@ -47,6 +48,10 @@ class Query(graphene.ObjectType):
     actions_logs = graphene.List(ActionsLog)
     actions_log = graphene.Field(ActionsLog, logid=graphene.NonNull(graphene.String))
     communes = graphene.List(Commune)
+    companies = graphene.List(ExternalCompany)
+
+    def resolve_companies(self, info).
+        return list(ExternalCompany.objects.all())
 
     def resolve_communes(self, info):
         return list(CommuneModel.objects.all())
@@ -184,11 +189,54 @@ class UpdateUser(CustomMutation):
         cls.log_action('User "{}" updated.'.format(user_details.email), info)
         return user
 
+class CreateCompanyInput(graphene.InputObjectType):
+    name = graphene.NonNull(graphene.String())
+
+class CreateCompany(CustomMutation):
+    class Arguments:
+        company_details = CreateCompanyInput()
+
+    Output = ExternalCompany
+
+    @classmethod
+    def mutate(cls, root, info, company_details):
+        company = ExternalCompanyModel()
+        company.name = company_details.name
+        try:
+            company.save()
+        except (ValidationError, NotUniqueError) as excep:
+            cls.log_action('Failed to create company "{}". {}'.format(company_details.name, excep), info)
+            return GraphQLError(excep)
+        cls.log_action('Company "{}" created'.format(company.name), info)
+        return company
+
+class DeleteCompanyInput(graphene.InputObjectType):
+    name = graphene.NonNull(graphene.String())
+
+class DeleteCompany(CustomMutation):
+    class Arguments:
+        company_details = DeleteCompanyInput()
+
+    Output = graphene.String
+
+    @classmethod
+    def mutate(cls, root, info, company_details):
+        company = ExternalCompanyModel.objects(name=company_details.name).first()
+        if not company:
+            cls.log_action('Failed to delete company "{}". Company not found'.format(company_details.name), info)
+            return GraphQLError('Company "{}" not found'.format(company_details.name))
+        cid = company.id
+        company.delete()
+        cls.log_action('Company "{}" deleted'.format(company_details.name), info)
+        return cid
+
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     delete_user = DeleteUser.Field()
     update_user = UpdateUser.Field()
     update_commune = UpdateCommune.Field()
+    create_company = CreateCompany.Field()
+    delete_company = DeleteCompany.Field()
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
 
