@@ -68,6 +68,7 @@ class TestFastAPI(unittest.TestCase):
         assert result['data']['user'] == None
 
     def test_gql_get_users_empty_list(self):
+        drop_old_data()
         result = self.gql.execute('query { users { email fullName } }')
         assert type(result['data']['users']) == list
         assert len(result['data']['users']) == 0
@@ -533,6 +534,7 @@ class TestFastAPI(unittest.TestCase):
         assert len(result['data']['communes']) > 0
 
     def test_gql_get_communes_empty(self):
+        drop_old_data()
         result = self.gql.execute('query { communes { code name maintainer { name } userInCharge { email } } }')
         assert 'errors' not in result
         assert len(result['data']['communes']) == 0
@@ -607,6 +609,7 @@ class TestFastAPI(unittest.TestCase):
         assert 'ACME Corporation' in names
 
     def test_gql_get_companies_empty(self):
+        drop_old_data()
         result = self.gql.execute('query { companies { name } }')
         assert 'errors' not in result
         assert len(result['data']['companies']) == 0
@@ -709,6 +712,7 @@ class TestFastAPI(unittest.TestCase):
         assert len(result['data']['junctionsCoordinates']) > 0
 
     def test_gql_get_junctions_coordinates_empty(self):
+        drop_old_data()
         result = self.gql.execute('query { junctionsCoordinates { jid latitude longitude} }')
         assert 'errors' not in result
         assert len(result['data']['junctionsCoordinates']) == 0

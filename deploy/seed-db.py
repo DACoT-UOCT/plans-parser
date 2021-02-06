@@ -18,6 +18,7 @@ if os.environ.get('RUNNING_TEST'):
     from .dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
     from .dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
     from .dacot_models import JunctionPlanPhaseValue, OTUProgramItem, ActionsLog
+    from .dacot_models import PlanParseFailedMessage
     class log:
         @staticmethod
         def info(msg):
@@ -106,6 +107,7 @@ def drop_old_data():
     global log
     log.info('Dropping old data')
     Commune.drop_collection()
+    PlanParseFailedMessage.drop_collection()
     ExternalCompany.drop_collection()
     ControllerModel.drop_collection()
     User.drop_collection()
