@@ -682,3 +682,24 @@ class TestFastAPI(unittest.TestCase):
         """)
         err_messages = self.assert_errors_and_get_messages(result)
         assert 'E11000 Duplicate Key Error' in err_messages
+
+    def test_gql_delete_company(self):
+        result = self.gql.execute("""
+        mutation {
+            deleteCompany(companyDetails: {
+                name: "ACME Corporation"
+            })
+        }
+        """)
+        assert 'errors' not in result
+
+    def test_gql_delete_company_not_found(self):
+        result = self.gql.execute("""
+        mutation {
+            deleteCompany(companyDetails: {
+                name: "Fake Company"
+            })
+        }
+        """)
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'Company "Fake Company" not found' in err_messages
