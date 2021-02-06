@@ -714,3 +714,53 @@ class TestFastAPI(unittest.TestCase):
         result = self.gql.execute('query { junctionsCoordinates { jid latitude longitude} }')
         assert 'errors' not in result
         assert len(result['data']['junctionsCoordinates']) == 0
+
+    def test_gql_create_failed_plan(self):
+        result = self.gql.execute("""
+        mutation {
+            createFailedPlan(messageDetails: {
+                message: "Test Message",
+                plans: [
+                    "Plan   1 J001121 M.MONTT-PROVIDE CY104 C 30, A 46, B 97",
+                    "Plan   2 AAAAAAA M.MONTT-PROVIDE CY104 C 30, A 46, B 97",
+                    "Plan   3 J001123 CY104 C* 30, A* 46, B* 97"
+                ]
+            })
+            {
+                id date comment { author { fullName email } message } plans
+            }
+        }
+        """)
+        assert 'errors' not in result
+        assert result['data']['createFailedPlan']['comment']['message'] == 'Test Message'
+        assert len(result['data']['createFailedPlan']['plans'])
+
+    def test_gql_create_failed_plan_invalid(self):
+        result = self.gql.execute("""
+        mutation {
+            createFailedPlan(messageDetails: {
+                message: "Test Message",
+                plans: []
+            })
+            {
+                id date comment { author { fullName email } message } plans
+            }
+        }
+        """)
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'ValidationError' in err_messages
+        assert 'Field is required and cannot be empty' in err_messages
+
+    def test_gql_get_failed_plans(self):
+        drop_old_data()
+        result = self.gql.execute('query { failedPlans { mid date message } }')
+        print(result)
+
+    def test_gql_get_failed_plans_empty(self):
+        pass
+
+    def test_gql_get_single_failed_plan(self):
+        pass
+
+    def test_gql_get_single_failed_plan_not_found(self):
+        pass
