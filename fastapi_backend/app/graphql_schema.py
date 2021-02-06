@@ -8,6 +8,7 @@ from models import ActionsLog as ActionsLogModel
 from models import Commune as CommuneModel
 from models import Project as ProjectModel
 from models import Comment as CommentModel
+from models import ControllerModel as ControllerModelModel
 from models import PlanParseFailedMessage as PlanParseFailedMessageModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
@@ -72,6 +73,11 @@ class JunctionCoordinates(graphene.ObjectType):
     latitude = graphene.NonNull(graphene.Float)
     longitude = graphene.NonNull(graphene.Float)
 
+class ControllerModel(MongoengineObjectType):
+    class Meta:
+        model = ControllerModelModel
+        interfaces = (Node,)
+
 class Query(graphene.ObjectType):
     users = graphene.List(User)
     user = graphene.Field(User, email=graphene.NonNull(graphene.String))
@@ -82,6 +88,10 @@ class Query(graphene.ObjectType):
     junctions_coordinates = graphene.List(JunctionCoordinates)
     failed_plans = graphene.List(PartialPlanParseFailedMessage)
     failed_plan = graphene.Field(PlanParseFailedMessage, mid=graphene.NonNull(graphene.String))
+    controller_models = graphene.List(ControllerModel)
+
+    def resolve_controller_models(self, info):
+        return list(ControllerModelModel.objects.all())
 
     def resolve_failed_plans(self, info):
         return list(PlanParseFailedMessageModel.objects.only('id', 'date', 'message').all())
