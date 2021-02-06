@@ -337,6 +337,7 @@ class Mutation(graphene.ObjectType):
     create_company = CreateCompany.Field()
     delete_company = DeleteCompany.Field()
     delete_failed_plan = DeletePlanParseFailedMessage.Field()
+    create_failed_plan = CreatePlanParseFailedMessage.Field()
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
 
