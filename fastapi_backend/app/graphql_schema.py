@@ -309,7 +309,7 @@ class DeletePlanParseFailedMessage(CustomMutation):
         if not message:
             cls.log_action('Failed to delete parse failed message "{}". Message not found'.format(message_details.mid), info)
             return GraphQLError('Message "{}" not found'.format(message_details.mid))
-        mid = message.mid
+        mid = message.id
         message.delete()
         cls.log_action('Message "{}" deleted'.format(message_details.mid), info)
         return mid

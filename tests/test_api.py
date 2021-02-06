@@ -804,3 +804,30 @@ class TestFastAPI(unittest.TestCase):
         result = self.gql.execute('query {{ failedPlan(mid: "{}") {{ id date comment {{ message }} }} }}'.format(fake_mid))
         assert 'errors' not in result
         assert result['data']['failedPlan'] == None
+
+    def test_gql_delete_single_failed_plan(self):
+        mid = self.gql.execute("""
+        mutation {
+            createFailedPlan(messageDetails: {
+                message: "Test Message",
+                plans: [
+                    "Plan   1 J001121 M.MONTT-PROVIDE CY104 C 30, A 46, B 97",
+                    "Plan   2 AAAAAAA M.MONTT-PROVIDE CY104 C 30, A 46, B 97",
+                    "Plan   3 J001123 CY104 C* 30, A* 46, B* 97"
+                ]
+            })
+            {
+                id
+            }
+        }
+        """)['data']['createFailedPlan']['id']
+        parsed_mid = self.parse_mongomock_id(mid)
+        result = self.gql.execute("""
+        mutation {{
+            deleteFailedPlan(messageDetails: {{
+                mid: "{}"
+            }})
+        }}
+        """.format(parsed_mid))
+        assert 'errors' not in result
+        assert result['data']['deleteFailedPlan'] == parsed_mid
