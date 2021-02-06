@@ -7,6 +7,8 @@ from models import ExternalCompany as ExternalCompanyModel
 from models import ActionsLog as ActionsLogModel
 from models import Commune as CommuneModel
 from models import Project as ProjectModel
+from models import Comments as CommentsModel
+from models import PlanParseFailedMessage as PlanParseFailedMessageModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
 
@@ -22,6 +24,21 @@ class CustomMutation(graphene.Mutation):
         op = str(graphql_info.operation)
         log = ActionsLogModel(user='None', context=op, action=message, origin='GraphQL API')
         log.save()
+
+class Comment(MongoengineObjectType):
+    class Meta:
+        model = CommentModel
+        interfaces = (Node,)
+
+class PlanParseFailedMessage(MongoengineObjectType):
+    class Meta:
+        model = PlanParseFailedMessageModel
+        interfaces = (Node,)
+
+class PartialPlanParseFailedMessage(graphene.ObjectType):
+    mid = graphene.NonNull(graphene.String)
+    date = graphene.NonNull(graphene.DateTime)
+    message = graphene.NonNull(graphene.String)
 
 class ExternalCompany(MongoengineObjectType):
     class Meta:
@@ -56,6 +73,14 @@ class Query(graphene.ObjectType):
     communes = graphene.List(Commune)
     companies = graphene.List(ExternalCompany)
     junctions_coordinates = graphene.List(JunctionCoordinates)
+    failed_plans = graphene.List(PartialPlanParseFailedMessage)
+    failed_plan = graphene.Field(PlanParseFailedMessage, mid=graphene.NonNull(graphene.String))
+
+    def resolve_failed_plans(self, info):
+        return list(PlanParseFailedMessageModel.objects.only('id', 'date', 'message').all())
+
+    def resolve_failed_plan(self, info, mid):
+        return PlanParseFailedMessageModel.objects(id=mid).first()
 
     def resolve_junctions_coordinates(self, info):
         coords = []
@@ -251,6 +276,26 @@ class DeleteCompany(CustomMutation):
         cls.log_action('Company "{}" deleted'.format(company_details.name), info)
         return cid
 
+class DeletePlanParseFailedMessageInput(graphene.InputObjectType):
+    mid = graphene.NonNull(graphene.String)
+
+class DeletePlanParseFailedMessage(CustomMutation):
+    class Arguments:
+        message_details = DeletePlanParseFailedMessageInput()
+
+    Output = graphene.String
+
+    @classmethod
+    def mutate(cls, root, info, message_details):
+        message = PlanParseFailedMessageModel.objects(id=message_details.mid).first()
+        if not message:
+            cls.log_action('Failed to delete parse failed message "{}". Message not found'.format(message_details.mid), info)
+            return GraphQLError('Message "{}" not found'.format(message_details.mid))
+        mid = message.mid
+        message.delete()
+        cls.log_action('Message "{}" deleted'.format(message_details.mid), info)
+        return mid
+
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     delete_user = DeleteUser.Field()
@@ -258,6 +303,7 @@ class Mutation(graphene.ObjectType):
     update_commune = UpdateCommune.Field()
     create_company = CreateCompany.Field()
     delete_company = DeleteCompany.Field()
+    delete_failed_plan = DeletePlanParseFailedMessage.Field()
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
 
