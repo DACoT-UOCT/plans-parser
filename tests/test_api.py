@@ -703,3 +703,14 @@ class TestFastAPI(unittest.TestCase):
         """)
         err_messages = self.assert_errors_and_get_messages(result)
         assert 'Company "Fake Company" not found' in err_messages
+
+    def test_gql_get_junctions_coordinates(self):
+        result = self.gql.execute('query { junctionsCoordinates { jid latitude longitude} }')
+        assert 'errors' not in result
+        assert len(result['data']['junctionsCoordinates']) > 0
+
+    def test_gql_get_junctions_coordinates_empty(self):
+        drop_old_data()
+        result = self.gql.execute('query { junctionsCoordinates { jid latitude longitude} }')
+        assert 'errors' not in result
+        assert len(result['data']['junctionsCoordinates']) == 0

@@ -101,7 +101,7 @@ class Query(graphene.ObjectType):
 
     def resolve_junctions_coordinates(self, info):
         coords = []
-        filter1 = 'otu.junctions.id'
+        filter1 = 'otu.junctions.jid'
         filter2 = 'otu.junctions.metadata.location'
         locations = ProjectModel.objects.only(filter1, filter2).all()
         for project in locations:
