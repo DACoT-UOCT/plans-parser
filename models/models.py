@@ -139,8 +139,8 @@ class ControllerModel(Document):
     meta = {'collection': 'ControllerModel'}
     company = ReferenceField(ExternalCompany, required=True)
     model = StringField(required=True)
-    firmware_version = StringField(required=True, default='Desconocido')
-    checksum = StringField(required=True, default='Desconocido')
+    firmware_version = StringField(required=True, default='Missing Value')
+    checksum = StringField(required=True, default='Missing Value')
     date = DateTimeField(default=datetime.utcnow)
 
 class Controller(EmbeddedDocument):
