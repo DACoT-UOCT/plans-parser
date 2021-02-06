@@ -39,6 +39,12 @@ class TestFastAPI(unittest.TestCase):
     def setUp(self):
         reset_db_state()
 
+    def assert_errors_and_get_messages(self, mutation_result):
+        assert 'errors' in mutation_result
+        assert len(mutation_result['errors']) > 0
+        err_messages = str([err['message'] for err in mutation_result['errors']])
+        return err_messages
+
     def test_gql_get_users(self):
         result = self.gql.execute('query { users { email fullName } }')
         emails = [ u['email'] for u in result['data']['users'] ]
@@ -66,16 +72,12 @@ class TestFastAPI(unittest.TestCase):
 
     def test_gql_get_users_attribute_not_exists(self):
         result = self.gql.execute('query { users { email fullName attribute_not_exists } }')
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'Cannot query field "attribute_not_exists"' in err_messages
 
     def test_gql_get_users_invalid_query(self):
         result = self.gql.execute('query { {{{ users { email fullName } }')
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'Syntax Error' in err_messages
 
     def test_gql_create_user(self):
@@ -137,9 +139,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'ValidationError' in err_messages
         assert "String value is too short: ['full_name']" in err_messages
 
@@ -158,9 +158,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'ValidationError' in err_messages
         assert 'Invalid email address: user@example@google@cl.org' in err_messages
 
@@ -179,9 +177,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'ValidationError' in err_messages
         assert 'Value must be one of' in err_messages
         assert '[\'role\']' in err_messages
@@ -201,9 +197,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'ValidationError' in err_messages
         assert 'Value must be one of' in err_messages
         assert '[\'area\']' in err_messages
@@ -222,9 +216,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'field "isAdmin": Expected "Boolean!"' in err_messages
 
     def test_gql_create_user_duplicated(self):
@@ -256,9 +248,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'E11000 Duplicate Key Error' in err_messages
 
     def test_gql_create_user_company(self):
@@ -298,9 +288,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'ExternalCompany "Fake Company" not found' in err_messages
 
     def test_gql_create_user_uoct_role(self):
@@ -343,9 +331,7 @@ class TestFastAPI(unittest.TestCase):
             })
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'User "user_not_found@example.org" not found' in err_messages
 
     def test_gql_update_user_admin(self):
@@ -393,9 +379,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'User "user_not_found@example.org" not found' in err_messages
     
     def test_gql_update_user_invalid_field(self):
@@ -410,9 +394,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'Argument "userDetails" has invalid value' in err_messages
         assert 'field "company": Unknown field.' in err_messages
 
@@ -567,9 +549,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'Commune "1" not found' in err_messages
 
     def test_gql_update_commune_maintainer(self):
@@ -616,9 +596,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)
-        assert 'errors' in result
-        assert len(result['errors']) > 0
-        err_messages = str([ err['message'] for err in result['errors'] ])
+        err_messages = self.assert_errors_and_get_messages(result)
         assert 'field "name": Unknown field' in err_messages
 
     def test_gql_get_companies(self):
@@ -633,3 +611,74 @@ class TestFastAPI(unittest.TestCase):
         result = self.gql.execute('query { companies { name } }')
         assert 'errors' not in result
         assert len(result['data']['companies']) == 0
+
+    def test_gql_create_company(self):
+        result = self.gql.execute("""
+        mutation {
+            createCompany(companyDetails: {
+                name: "SpeeDevs"
+            })
+            {
+                name
+            }
+        }
+        """)
+        assert 'errors' not in result
+        assert result['data']['createCompany']['name'] == 'SpeeDevs'
+
+    def test_gql_create_company_invalid_name(self):
+        result = self.gql.execute("""
+        mutation {
+            createCompany(companyDetails: {
+                name: "A"
+            })
+            {
+                name
+            }
+        }
+        """)
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'ValidationError' in err_messages
+        assert 'String value is too short' in err_messages
+
+    def test_gql_create_company_invalid_field(self):
+        result = self.gql.execute("""
+        mutation {
+            createCompany(companyDetails: {
+                nameOfTheNewCompany: "A"
+            })
+            {
+                name
+            }
+        }
+        """)
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'Argument "companyDetails" has invalid value' in err_messages
+        assert 'Unknown field' in err_messages
+
+    def test_gql_create_company_missing_field(self):
+        result = self.gql.execute("""
+        mutation {
+            createCompany(companyDetails: {})
+            {
+                name
+            }
+        }
+        """)
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'Argument "companyDetails" has invalid value' in err_messages
+        assert 'Expected "String!", found null' in err_messages
+
+    def test_gql_create_company_duplicated(self):
+        result = self.gql.execute("""
+        mutation {
+            createCompany(companyDetails: {
+                name: "ACME Corporation"
+            })
+            {
+                name
+            }
+        }
+        """)
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'E11000 Duplicate Key Error' in err_messages
