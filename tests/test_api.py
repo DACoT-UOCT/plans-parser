@@ -775,7 +775,6 @@ class TestFastAPI(unittest.TestCase):
 
     def test_gql_get_failed_plans_empty(self):
         result = self.gql.execute('query { failedPlans { id date comment { message } } }')
-        print(result)
         assert 'errors' not in result
         assert len(result['data']['failedPlans']) == 0
 
