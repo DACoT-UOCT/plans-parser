@@ -33,9 +33,9 @@ jobs:
       - name: Generate pylint report
         run: |
           pushd ..
-          pylint backend/ --output-format=parseable -r n --exit-zero | tee backend/pylint_report.txt
+          pylint backend/ --output-format=parseable -r n --exit-zero > pylint_report.txt
           popd
-          sed -i 's|backend/||g' pylint_report.txt
+          sed -i 's|^backend/||g' pylint_report.txt
       - name: Upload xml coverage report
         uses: actions/upload-artifact@v1
         with:
