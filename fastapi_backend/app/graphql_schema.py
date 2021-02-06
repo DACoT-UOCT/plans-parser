@@ -114,7 +114,7 @@ class Query(graphene.ObjectType):
         return coords
 
     def resolve_companies(self, info):
-        return list(ExternalCompany.objects.all())
+        return list(ExternalCompanyModel.objects.all())
 
     def resolve_communes(self, info):
         return list(CommuneModel.objects.all())

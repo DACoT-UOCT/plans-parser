@@ -620,3 +620,16 @@ class TestFastAPI(unittest.TestCase):
         assert len(result['errors']) > 0
         err_messages = str([ err['message'] for err in result['errors'] ])
         assert 'field "name": Unknown field' in err_messages
+
+    def test_gql_get_companies(self):
+        result = self.gql.execute('query { companies { name } }')
+        assert 'errors' not in result
+        assert len(result['data']['companies']) > 0
+        names = [x['name'] for x in result['data']['companies']]
+        assert 'ACME Corporation' in names
+
+    def test_gql_get_companies_empty(self):
+        drop_old_data()
+        result = self.gql.execute('query { companies { name } }')
+        assert 'errors' not in result
+        assert len(result['data']['companies']) == 0
