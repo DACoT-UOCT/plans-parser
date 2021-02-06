@@ -22,8 +22,15 @@ class CustomMutation(graphene.Mutation):
     @classmethod
     def log_action(cls, message, graphql_info):
         op = str(graphql_info.operation)
-        log = ActionsLogModel(user='None', context=op, action=message, origin='GraphQL API')
+        current_user = cls.get_current_user()
+        log = ActionsLogModel(user=current_user.email, context=op, action=message, origin='GraphQL API')
         log.save()
+
+    @classmethod
+    def get_current_user(cls):
+        # Returns the currently logged user
+        # TODO: FIXME: For now, we return the same user for all requests
+        return UserModel.objects(email='seed@dacot.uoct.cl').first()
 
 class Comment(MongoengineObjectType):
     class Meta:
@@ -295,6 +302,32 @@ class DeletePlanParseFailedMessage(CustomMutation):
         message.delete()
         cls.log_action('Message "{}" deleted'.format(message_details.mid), info)
         return mid
+
+class CreatePlanParseFailedMessageInput(graphene.InputObjectType):
+    plans = graphene.List(graphene.NonNull(graphene.String))
+    message = graphene.NonNull(graphene.String)
+
+class CreatePlanParseFailedMessage(CustomMutation):
+    class Arguments:
+        message_details = CreatePlanParseFailedMessageInput()
+
+    Output = PlanParseFailedMessage
+
+    @classmethod
+    def mutate(cls, root, info, message_details):
+        comment = CommentModel()
+        comment.message = message_details.message
+        comment.author = cls.get_current_user()
+        failed_plan = PlanParseFailedMessageModel()
+        failed_plan.message = comment
+        failed_plan.plans = message_details.plans
+        try:
+            failed_plan.save()
+        except (ValidationError, NotUniqueError) as excep:
+            cls.log_action('Failed to create error message "{}". {}'.format(failed_plan.id, excep), info)
+            return GraphQLError(excep)
+        cls.log_action('Error message "{}" created'.format(failed_plan.id), info)
+        return failed_plan
 
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
