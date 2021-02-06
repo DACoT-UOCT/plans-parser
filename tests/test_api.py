@@ -831,3 +831,14 @@ class TestFastAPI(unittest.TestCase):
         """.format(parsed_mid))
         assert 'errors' not in result
         assert result['data']['deleteFailedPlan'] == parsed_mid
+
+    def test_gql_get_controller_models(self):
+        result = self.gql.execute('query { controllerModels { company { name } model date } }')
+        assert 'errors' not in result
+        assert len(result['data']['controllerModels']) > 0
+
+    def test_gql_get_controller_models_empty(self):
+        drop_old_data()
+        result = self.gql.execute('query { controllerModels { company { name } model date } }')
+        assert 'errors' not in result
+        assert len(result['data']['controllerModels']) == 0
