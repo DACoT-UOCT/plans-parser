@@ -45,6 +45,9 @@ class TestFastAPI(unittest.TestCase):
         err_messages = str([err['message'] for err in mutation_result['errors']])
         return err_messages
 
+    def parse_mongomock_id(self, mock_id):
+        return str(base64.b64decode(mock_id)).replace('\'', '').split(':')[1]
+
     def test_gql_get_users(self):
         result = self.gql.execute('query { users { email fullName } }')
         emails = [ u['email'] for u in result['data']['users'] ]
@@ -65,7 +68,6 @@ class TestFastAPI(unittest.TestCase):
         assert result['data']['user'] == None
 
     def test_gql_get_users_empty_list(self):
-        drop_old_data()
         result = self.gql.execute('query { users { email fullName } }')
         assert type(result['data']['users']) == list
         assert len(result['data']['users']) == 0
@@ -519,8 +521,7 @@ class TestFastAPI(unittest.TestCase):
         assert 'errors' not in result
         assert len(result['data']['actionsLogs']) > 0
         assert result['data']['actionsLogs'][0]['id'] != None
-        mock_logid = result['data']['actionsLogs'][0]['id']
-        logid = str(base64.b64decode(mock_logid)).replace('\'', '').split(':')[1] # mongomock
+        logid = self.parse_mongomock_id(result['data']['actionsLogs'][0]['id'])
         qry = 'query {{ actionsLog(logid: "{}") {{ id user context action date }} }}'.format(logid)
         result = self.gql.execute(qry)
         assert 'errors' not in result
@@ -532,7 +533,6 @@ class TestFastAPI(unittest.TestCase):
         assert len(result['data']['communes']) > 0
 
     def test_gql_get_communes_empty(self):
-        drop_old_data()
         result = self.gql.execute('query { communes { code name maintainer { name } userInCharge { email } } }')
         assert 'errors' not in result
         assert len(result['data']['communes']) == 0
@@ -607,7 +607,6 @@ class TestFastAPI(unittest.TestCase):
         assert 'ACME Corporation' in names
 
     def test_gql_get_companies_empty(self):
-        drop_old_data()
         result = self.gql.execute('query { companies { name } }')
         assert 'errors' not in result
         assert len(result['data']['companies']) == 0
@@ -710,7 +709,6 @@ class TestFastAPI(unittest.TestCase):
         assert len(result['data']['junctionsCoordinates']) > 0
 
     def test_gql_get_junctions_coordinates_empty(self):
-        drop_old_data()
         result = self.gql.execute('query { junctionsCoordinates { jid latitude longitude} }')
         assert 'errors' not in result
         assert len(result['data']['junctionsCoordinates']) == 0
@@ -752,15 +750,54 @@ class TestFastAPI(unittest.TestCase):
         assert 'Field is required and cannot be empty' in err_messages
 
     def test_gql_get_failed_plans(self):
-        drop_old_data()
-        result = self.gql.execute('query { failedPlans { mid date message } }')
-        print(result)
+        self.gql.execute("""
+        mutation {
+            createFailedPlan(messageDetails: {
+                message: "Test Message",
+                plans: [
+                    "Plan   1 J001121 M.MONTT-PROVIDE CY104 C 30, A 46, B 97",
+                    "Plan   2 AAAAAAA M.MONTT-PROVIDE CY104 C 30, A 46, B 97",
+                    "Plan   3 J001123 CY104 C* 30, A* 46, B* 97"
+                ]
+            })
+            {
+                id
+            }
+        }
+        """)
+        result = self.gql.execute('query { failedPlans { id date comment { message } } }')
+        assert 'errors' not in result
+        assert len(result['data']['failedPlans']) > 0
 
     def test_gql_get_failed_plans_empty(self):
-        pass
+        result = self.gql.execute('query { failedPlans { id date comment { message } } }')
+        print(result)
+        assert 'errors' not in result
+        assert len(result['data']['failedPlans']) == 0
 
     def test_gql_get_single_failed_plan(self):
-        pass
+        mid = self.gql.execute("""
+        mutation {
+            createFailedPlan(messageDetails: {
+                message: "Test Message",
+                plans: [
+                    "Plan   1 J001121 M.MONTT-PROVIDE CY104 C 30, A 46, B 97",
+                    "Plan   2 AAAAAAA M.MONTT-PROVIDE CY104 C 30, A 46, B 97",
+                    "Plan   3 J001123 CY104 C* 30, A* 46, B* 97"
+                ]
+            })
+            {
+                id
+            }
+        }
+        """)['data']['createFailedPlan']['id']
+        parsed_mid = self.parse_mongomock_id(mid)
+        result = self.gql.execute('query {{ failedPlan(mid: "{}") {{ id date comment {{ message }} }} }}'.format(parsed_mid))
+        assert 'errors' not in result
+        assert result['data']['failedPlan']['id'] == mid
 
     def test_gql_get_single_failed_plan_not_found(self):
-        pass
+        fake_mid = '00000a1bdacc63d2cd111111'
+        result = self.gql.execute('query {{ failedPlan(mid: "{}") {{ id date comment {{ message }} }} }}'.format(fake_mid))
+        assert 'errors' not in result
+        assert result['data']['failedPlan'] == None

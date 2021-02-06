@@ -17,6 +17,7 @@ class CustomMutation(graphene.Mutation):
     # TODO: FIXME: Send emails functions
     # TODO: FIXME: Add current user to log
     # TODO: FIXME: Make log in background_task
+    # TODO: FIXME: Replace all '{something}id' to 'id'
     class Meta:
         abstract = True
 
@@ -44,9 +45,9 @@ class PlanParseFailedMessage(MongoengineObjectType):
         interfaces = (Node,)
 
 class PartialPlanParseFailedMessage(graphene.ObjectType):
-    mid = graphene.NonNull(graphene.String)
+    id = graphene.NonNull(graphene.String)
     date = graphene.NonNull(graphene.DateTime)
-    comment = graphene.NonNull(graphene.String)
+    comment = graphene.NonNull(Comment)
 
 class ExternalCompany(MongoengineObjectType):
     class Meta:
@@ -94,7 +95,7 @@ class Query(graphene.ObjectType):
         return list(ControllerModelModel.objects.all())
 
     def resolve_failed_plans(self, info):
-        return list(PlanParseFailedMessageModel.objects.only('id', 'date', 'message').all())
+        return list(PlanParseFailedMessageModel.objects.only('id', 'date', 'comment').all())
 
     def resolve_failed_plan(self, info, mid):
         return PlanParseFailedMessageModel.objects(id=mid).first()
