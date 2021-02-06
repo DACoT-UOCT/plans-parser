@@ -33,7 +33,7 @@ jobs:
       - name: Generate pylint report
         run: |
           pushd ..
-          pylint backend/ --output-format=parseable -r n --exit-zero > pylint_report.txt
+          pylint backend/ --output-format=parseable -r n --exit-zero > backend/pylint_report.txt
           popd
           sed -i 's|^backend/||g' pylint_report.txt
       - name: Generate flake8 report
