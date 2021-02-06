@@ -7,7 +7,7 @@ from models import ExternalCompany as ExternalCompanyModel
 from models import ActionsLog as ActionsLogModel
 from models import Commune as CommuneModel
 from models import Project as ProjectModel
-from models import Comments as CommentsModel
+from models import Comment as CommentModel
 from models import PlanParseFailedMessage as PlanParseFailedMessageModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
