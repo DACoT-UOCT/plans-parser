@@ -38,7 +38,7 @@ jobs:
           sed -i 's|^backend/||g' pylint_report.txt
       - name: Generate flake8 report
         run: |
-          flake8 . > flake8_report.txt
+          flake8 --exit-zero . > flake8_report.txt
       - name: Upload xml coverage report
         uses: actions/upload-artifact@v1
         with:
