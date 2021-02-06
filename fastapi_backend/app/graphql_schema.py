@@ -46,7 +46,7 @@ class PlanParseFailedMessage(MongoengineObjectType):
 class PartialPlanParseFailedMessage(graphene.ObjectType):
     mid = graphene.NonNull(graphene.String)
     date = graphene.NonNull(graphene.DateTime)
-    message = graphene.NonNull(graphene.String)
+    comment = graphene.NonNull(graphene.String)
 
 class ExternalCompany(MongoengineObjectType):
     class Meta:
@@ -329,7 +329,7 @@ class CreatePlanParseFailedMessage(CustomMutation):
         comment.message = message_details.message
         comment.author = cls.get_current_user()
         failed_plan = PlanParseFailedMessageModel()
-        failed_plan.message = comment
+        failed_plan.comment = comment
         failed_plan.plans = message_details.plans
         try:
             failed_plan.save()

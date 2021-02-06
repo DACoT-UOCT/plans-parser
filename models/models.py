@@ -229,4 +229,4 @@ class PlanParseFailedMessage(Document):
     meta = {'collection': 'PlanParseFailedMessage'}
     date = DateTimeField(default=datetime.now, required=True)
     plans = ListField(StringField(), required=True)
-    message = EmbeddedDocumentField(Comment, required=True)
+    comment = EmbeddedDocumentField(Comment, required=True)
