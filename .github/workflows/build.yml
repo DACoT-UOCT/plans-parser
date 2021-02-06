@@ -36,6 +36,9 @@ jobs:
           pylint backend/ --output-format=parseable -r n --exit-zero > pylint_report.txt
           popd
           sed -i 's|^backend/||g' pylint_report.txt
+      - name: Generate flake8 report
+        run: |
+          flake8 . > flake8_report.txt
       - name: Upload xml coverage report
         uses: actions/upload-artifact@v1
         with:
@@ -46,6 +49,11 @@ jobs:
         with:
           name: report
           path: pylint_report.txt
+      - name: Upload flake8 report
+        uses: actions/upload-artifact@v1
+        with:
+          name: report
+          path: flake8_report.txt
   sonarcloud:
     runs-on: ubuntu-latest
     needs: [coverage_test]
