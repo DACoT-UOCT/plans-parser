@@ -339,6 +339,66 @@ class CreatePlanParseFailedMessage(CustomMutation):
         cls.log_action('Error message "{}" created'.format(failed_plan.id), info)
         return failed_plan
 
+class CreateControllerModelInput(graphene.InputObjectType):
+    company = graphene.NonNull(graphene.String)
+    model = graphene.NonNull(graphene.String)
+    firmware_version = graphene.String()
+    checksum = graphene.String()
+
+class CreateControllerModel(CustomMutation):
+    class Arguments:
+        controller_details = CreateControllerModelInput()
+
+    Output = ControllerModel
+
+    @classmethod
+    def mutate(cls, root, info, controller_details):
+        company = ExternalCompanyModel.objects(name=controller_details.company).first()
+        if not company:
+            cls.log_action('Failed to create model "{}". Company not found'.format(controller_details.model), info)
+            return GraphQLError('Company "{}" not found'.format(controller_details.company))
+        model = ControllerModelModel()
+        model.company = company
+        model.model = controller_details.model
+        model.firmware_version = controller_details.firmware_version
+        model.checksum = controller_details.checksum
+        try:
+            model.save()
+        except (ValidationError, NotUniqueError) as excep:
+            cls.log_action('Failed to create model "{}". {}'.format(controller_details.model, excep), info)
+            return GraphQLError(excep)
+        cls.log_action('Model "{}" created'.format(controller_details.model), info)
+        return model
+
+class UpdateControllerModelInput(graphene.InputObjectType):
+    cid = graphene.NonNull(graphene.String)
+    firmware_version = graphene.String()
+    checksum = graphene.String()
+
+class UpdateControllerModel(CustomMutation):
+    class Arguments:
+        controller_details = UpdateControllerModelInput()
+
+    Output = ControllerModel
+
+    @classmethod
+    def mutate(cls, root, info, controller_details):
+        model = ControllerModelModel.objects(id=controller_details.cid).first()
+        if not model:
+            cls.log_action('Failed to update model "{}". Model not found'.format(controller_details.cid), info)
+            return GraphQLError('Model "{}" not found'.format(controller_details.cid))
+        if controller_details.checksum != None:
+            model.checksum = controller_details.checksum
+        if controller_details.firmware_version != None:
+            model.firmware_version = controller_details.firmware_version
+        try:
+            model.save()
+        except ValidationError as excep:
+            cls.log_action('Failed to update model "{}". {}'.format(controller_details.cid, excep), info)
+            return GraphQLError(excep)
+        cls.log_action('Model "{}" updated.'.format(controller_details.cid), info)
+        return model
+
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     delete_user = DeleteUser.Field()
@@ -348,6 +408,8 @@ class Mutation(graphene.ObjectType):
     delete_company = DeleteCompany.Field()
     delete_failed_plan = DeletePlanParseFailedMessage.Field()
     create_failed_plan = CreatePlanParseFailedMessage.Field()
+    create_controller = CreateControllerModel.Field()
+    update_controller = UpdateControllerModel.Field()
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
 
