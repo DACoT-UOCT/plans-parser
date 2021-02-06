@@ -842,3 +842,138 @@ class TestFastAPI(unittest.TestCase):
         result = self.gql.execute('query { controllerModels { company { name } model date } }')
         assert 'errors' not in result
         assert len(result['data']['controllerModels']) == 0
+
+    def test_gql_create_controller_model(self):
+        result = self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                company: "ACME Corporation",
+                model: "ABC1",
+                firmwareVersion: "Linux 4.19.104-microsoft-standard x86_64 GNU/Linux",
+                checksum: "TGludXggNC4xOS4xMDQgeDg2XzY0"
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)
+        assert 'errors' not in result
+        assert result['data']['createController']['company']['name'] == 'ACME Corporation'
+        assert result['data']['createController']['model'] == 'ABC1'
+        assert result['data']['createController']['firmwareVersion'] == 'Linux 4.19.104-microsoft-standard x86_64 GNU/Linux'
+        assert result['data']['createController']['checksum'] == 'TGludXggNC4xOS4xMDQgeDg2XzY0'
+
+    def test_gql_create_controller_model_company_not_found(self):
+        result = self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                company: "ACME",
+                model: "ABC1",
+                firmwareVersion: "Linux 4.19.104-microsoft-standard x86_64 GNU/Linux",
+                checksum: "TGludXggNC4xOS4xMDQgeDg2XzY0"
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'Company "ACME" not found' in err_messages
+
+    def test_gql_create_controller_model_missing_field(self):
+        result = self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                model: "ABC1",
+                firmwareVersion: "Linux 4.19.104-microsoft-standard x86_64 GNU/Linux",
+                checksum: "TGludXggNC4xOS4xMDQgeDg2XzY0"
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'Argument "controllerDetails" has invalid value' in err_messages
+        assert 'In field "company": Expected "String!", found null' in err_messages
+
+    def test_gql_create_controller_model_invalid_field(self):
+        result = self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                modelField: "ABC1",
+                firmwareVersion: "Linux 4.19.104-microsoft-standard x86_64 GNU/Linux",
+                checksum: "TGludXggNC4xOS4xMDQgeDg2XzY0"
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'Argument "controllerDetails" has invalid value' in err_messages
+        assert 'In field "modelField": Unknown field' in err_messages
+
+    def test_gql_create_controller_model_with_firmware(self):
+        result = self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                company: "ACME Corporation",
+                model: "ABC1",
+                firmwareVersion: "Linux 4.19.104-microsoft-standard x86_64 GNU/Linux",
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)
+        assert 'errors' not in result
+        assert result['data']['createController']['company']['name'] == 'ACME Corporation'
+        assert result['data']['createController']['model'] == 'ABC1'
+        assert result['data']['createController']['firmwareVersion'] == 'Linux 4.19.104-microsoft-standard x86_64 GNU/Linux'
+        assert result['data']['createController']['checksum'] == 'Missing Value'
+
+    def test_gql_create_controller_model_with_version(self):
+        result = self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                company: "ACME Corporation",
+                model: "ABC1",
+                checksum: "TGludXggNC4xOS4xMDQgeDg2XzY0"
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)
+        assert 'errors' not in result
+        assert result['data']['createController']['company']['name'] == 'ACME Corporation'
+        assert result['data']['createController']['model'] == 'ABC1'
+        assert result['data']['createController']['firmwareVersion'] == 'Missing Value'
+        assert result['data']['createController']['checksum'] == 'TGludXggNC4xOS4xMDQgeDg2XzY0'
+
+    def test_gql_create_controller_model_duplicated(self):
+        self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                company: "ACME Corporation",
+                model: "ABC1",
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)
+        result = self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                company: "ACME Corporation",
+                model: "ABC1",
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'E11000 Duplicate Key Error' in err_messages
