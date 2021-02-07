@@ -2,7 +2,8 @@ from .config import get_settings
 from mongoengine import connect
 from starlette.graphql import GraphQLApp
 from .graphql_schema import dacot_schema
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from starlette.datastructures import URL
 
 connect(host=get_settings().mongo_uri)
 
@@ -20,4 +21,13 @@ app = FastAPI(
     description=api_description
 )
 
-app.add_route('/graphql', GraphQLApp(schema=dacot_schema))
+graphql_app = GraphQLApp(schema=dacot_schema)
+
+@app.get('/')
+async def graphiql(request: Request):
+    request._url = URL('/graphql')
+    return await graphql_app.handle_graphiql(request=request)
+
+@app.post('/graphql')
+async def graphql(request: Request):
+    return await graphql_app.handle_graphql(request=request)
