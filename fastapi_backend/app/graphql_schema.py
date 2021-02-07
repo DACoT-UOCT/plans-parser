@@ -9,30 +9,53 @@ from models import Commune as CommuneModel
 from models import Project as ProjectModel
 from models import Comment as CommentModel
 from models import ControllerModel as ControllerModelModel
+from models import OTU as OTUModel
+from models import OTUMeta as OTUMetaModel
+from models import OTUProgramItem as OTUProgramItemModel
+from models import OTUSequenceItem as OTUSequenceItemModel
+from models import OTUPhasesItem as OTUPhasesItemModel
+from models import OTUStagesItem as OTUStagesItemModel
+from models import Project as ProjectModel
+from models import Junction as JunctionModel
+from models import JunctionMeta as JunctionMetaModel
+from models import JunctionPlan as JunctionPlanModel
+from models import JunctionPlanPhaseValue as JunctionPlanPhaseValueModel
+from models import JunctionPlanIntergreenValue as JunctionPlanIntergreenValueModel
 from models import PlanParseFailedMessage as PlanParseFailedMessageModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
 
-class CustomMutation(graphene.Mutation):
-    # TODO: FIXME: Send emails functions
-    # TODO: FIXME: Add current user to log
-    # TODO: FIXME: Make log in background_task
-    # TODO: FIXME: Replace all '{something}id' to 'id'
+class JunctionMeta(MongoengineObjectType):
     class Meta:
-        abstract = True
+        model = JunctionMetaModel
 
-    @classmethod
-    def log_action(cls, message, graphql_info):
-        op = str(graphql_info.operation)
-        current_user = cls.get_current_user()
-        log = ActionsLogModel(user=current_user.email, context=op, action=message, origin='GraphQL API')
-        log.save()
+class JunctionPlan(MongoengineObjectType):
+    class Meta:
+        model = JunctionPlanModel
 
-    @classmethod
-    def get_current_user(cls):
-        # Returns the currently logged user
-        # TODO: FIXME: For now, we return the same user for all requests
-        return UserModel.objects(email='seed@dacot.uoct.cl').first()
+class JunctionPlanPhaseValue(MongoengineObjectType):
+    class Meta:
+        model = JunctionPlanPhaseValueModel
+
+class JunctionPlanIntergreenValue(MongoengineObjectType):
+    class Meta:
+        model = JunctionPlanIntergreenValueModel
+
+class Junction(MongoengineObjectType):
+    class Meta:
+        model = JunctionModel
+
+class OTUStagesItem(MongoengineObjectType):
+    class Meta:
+        model = OTUStagesItemModel
+
+class OTUPhasesItem(MongoengineObjectType):
+    class Meta:
+        model = OTUPhasesItemModel
+
+class OTUSequenceItem(MongoengineObjectType):
+    class Meta:
+        model = OTUSequenceItemModel
 
 class Comment(MongoengineObjectType):
     class Meta:
@@ -79,6 +102,40 @@ class ControllerModel(MongoengineObjectType):
         model = ControllerModelModel
         interfaces = (Node,)
 
+class OTU(MongoengineObjectType):
+    class Meta:
+        model = OTUModel
+
+class OTUMeta(MongoengineObjectType):
+    class Meta:
+        model = OTUMetaModel
+
+class OTUProgramItem(MongoengineObjectType):
+    class Meta:
+        model = OTUProgramItemModel
+
+class CustomMutation(graphene.Mutation):
+    # TODO: FIXME: Send emails functions
+    # TODO: FIXME: Add current user to log
+    # TODO: FIXME: Make log in background_task
+    # TODO: FIXME: Replace all '{something}id' to 'id'
+    # TODO: FIXME: Move models folder to a local pip package
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def log_action(cls, message, graphql_info):
+        op = str(graphql_info.operation)
+        current_user = cls.get_current_user()
+        log = ActionsLogModel(user=current_user.email, context=op, action=message, origin='GraphQL API')
+        log.save()
+
+    @classmethod
+    def get_current_user(cls):
+        # Returns the currently logged user
+        # TODO: FIXME: For now, we return the same user for all requests
+        return UserModel.objects(email='seed@dacot.uoct.cl').first()
+
 class Query(graphene.ObjectType):
     users = graphene.List(User)
     user = graphene.Field(User, email=graphene.NonNull(graphene.String))
@@ -90,6 +147,18 @@ class Query(graphene.ObjectType):
     failed_plans = graphene.List(PartialPlanParseFailedMessage)
     failed_plan = graphene.Field(PlanParseFailedMessage, mid=graphene.NonNull(graphene.String))
     controller_models = graphene.List(ControllerModel)
+    otus = graphene.List(OTU)
+    otu = graphene.Field(OTU, oid=graphene.NonNull(graphene.String))
+
+    def resolve_otus(self, info):
+        projects = ProjectModel.objects.only('otu').all()
+        return [proj.otu for proj in projects]
+
+    def resolve_otu(self, info, oid):
+        proj = ProjectModel.objects(oid=oid).only('otu').first()
+        if proj:
+            return proj.otu
+        return None
 
     def resolve_controller_models(self, info):
         return list(ControllerModelModel.objects.all())

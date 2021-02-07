@@ -1053,3 +1053,55 @@ class TestFastAPI(unittest.TestCase):
         err_messages = self.assert_errors_and_get_messages(result)
         assert 'Argument "controllerDetails" has invalid value' in err_messages
         assert 'In field "company": Unknown field' in err_messages
+
+    def test_gql_get_otus_all(self):
+        result = self.gql.execute("""
+        query {
+            otus {
+                oid metadata {
+                    serial ipAddress netmask
+                } programs {
+                    day time plan
+                } sequences {
+                    seqid phases {
+                        phid stages {
+                            stid type
+                        }
+                    }
+                } intergreens junctions {
+                    jid metadata {
+                        location {
+                            coordinates
+                        } salesId addressReference
+                    } plans {
+                        plid cycle phaseStart { phid value } vehicleIntergreen { phfrom phto value }
+                        greenStart { phid value } vehicleGreen { phid value } pedestrianGreen { phid value }
+                        pedestrianIntergreen { phfrom phto value } systemStart { phid value }
+                    }
+                }
+            }
+        }
+        """)
+        assert 'errors' not in result
+        assert len(result['data']['otus']) > 0
+
+    def test_gql_get_otus_all_empty(self):
+        drop_old_data()
+        result = self.gql.execute('query { otus { oid } }')
+        assert 'errors' not in result
+        assert len(result['data']['otus']) == 0
+
+    def test_gql_get_single_otu(self):
+        result = self.gql.execute('query { otu(oid: "X001140") { oid } }')
+        assert 'errors' not in result
+        assert result['data']['otu']['oid'] == 'X001140'
+
+    def test_gql_get_single_otu_not_found(self):
+        result = self.gql.execute('query { otu(oid: "AAAAA") { oid } }')
+        assert 'errors' not in result
+        assert result['data']['otu'] == None
+
+    def test_gql_get_single_otu_invalid_field(self):
+        result = self.gql.execute('query { otu(oid: "X001140") { invalidField } }')
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'Cannot query field "invalidField" on type "OTU"' in err_messages
