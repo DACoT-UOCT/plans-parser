@@ -179,7 +179,7 @@ class OTUMeta(EmbeddedDocument):
 class OTU(EmbeddedDocument):
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True)#, unique=True) #BUG: If we use unique=True inserts fails
     metadata = EmbeddedDocumentField(OTUMeta)
-    program = EmbeddedDocumentListField(OTUProgramItem) # PDF
+    programs = EmbeddedDocumentListField(OTUProgramItem) # PDF
     sequences = EmbeddedDocumentListField(OTUSequenceItem) # PDF
     intergreens = ListField(IntField(min_value=0)) # PDF # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
     junctions = EmbeddedDocumentListField(Junction)#, required=True)
