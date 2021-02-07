@@ -8,7 +8,7 @@ fastapi==0.61.1
 fastapi-mail==0.2.8.3
 coverage==5.1
 python-magic==0.4.18
-requests==2.22.0
+requests==2.25.1
 mongomock==3.21.0
 PyJWT==1.7.0
 httplib2==0.18.1
