@@ -977,3 +977,79 @@ class TestFastAPI(unittest.TestCase):
         """)
         err_messages = self.assert_errors_and_get_messages(result)
         assert 'E11000 Duplicate Key Error' in err_messages
+
+    def test_gql_update_controller_model(self):
+        cid = self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                company: "ACME Corporation",
+                model: "ABC1",
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)['data']['createController']['id']
+        parsed_cid = self.parse_mongomock_id(cid)
+        result = self.gql.execute("""
+        mutation {{
+            updateController(controllerDetails: {{
+                cid: "{}",
+                firmwareVersion: "Firmware1",
+                checksum: "ChecksumValue"
+            }})
+            {{
+                id company {{ name }} model firmwareVersion checksum
+            }}
+        }}
+        """.format(parsed_cid))
+        assert 'errors' not in result
+        assert result['data']['updateController']['firmwareVersion'] == 'Firmware1'
+        assert result['data']['updateController']['checksum'] == 'ChecksumValue'
+
+    def test_gql_update_controller_model_not_found(self):
+        fake_cid = '00000a1bdacc63d2cd111111'
+        result = self.gql.execute("""
+        mutation {{
+            updateController(controllerDetails: {{
+                cid: "{}",
+                firmwareVersion: "Firmware1",
+                checksum: "ChecksumValue"
+            }})
+            {{
+                id company {{ name }} model firmwareVersion checksum
+            }}
+        }}
+        """.format(fake_cid))
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'Model "00000a1bdacc63d2cd111111" not found' in err_messages
+
+    def test_gql_update_controller_model_invalid_field(self):
+        cid = self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                company: "ACME Corporation",
+                model: "ABC1",
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)['data']['createController']['id']
+        parsed_cid = self.parse_mongomock_id(cid)
+        result = self.gql.execute("""
+        mutation {{
+            updateController(controllerDetails: {{
+                cid: "{}",
+                company: "ACME",
+                firmwareVersion: "Firmware1",
+                checksum: "ChecksumValue"
+            }})
+            {{
+                id company {{ name }} model firmwareVersion checksum
+            }}
+        }}
+        """.format(parsed_cid))
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'Argument "controllerDetails" has invalid value' in err_messages
+        assert 'In field "company": Unknown field' in err_messages
