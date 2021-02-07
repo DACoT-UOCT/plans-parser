@@ -522,7 +522,7 @@ class TestFastAPI(unittest.TestCase):
         assert 'errors' not in result
         assert len(result['data']['actionsLogs']) > 0
         assert result['data']['actionsLogs'][0]['id'] != None
-        logid = self.parse_mongomock_id(result['data']['actionsLogs'][0]['id'])
+        logid = result['data']['actionsLogs'][0]['id']
         qry = 'query {{ actionsLog(logid: "{}") {{ id user context action date }} }}'.format(logid)
         result = self.gql.execute(qry)
         assert 'errors' not in result
@@ -794,8 +794,7 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)['data']['createFailedPlan']['id']
-        parsed_mid = self.parse_mongomock_id(mid)
-        result = self.gql.execute('query {{ failedPlan(mid: "{}") {{ id date comment {{ message }} }} }}'.format(parsed_mid))
+        result = self.gql.execute('query {{ failedPlan(mid: "{}") {{ id date comment {{ message }} }} }}'.format(mid))
         assert 'errors' not in result
         assert result['data']['failedPlan']['id'] == mid
 
@@ -821,16 +820,15 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)['data']['createFailedPlan']['id']
-        parsed_mid = self.parse_mongomock_id(mid)
         result = self.gql.execute("""
         mutation {{
             deleteFailedPlan(messageDetails: {{
                 mid: "{}"
             }})
         }}
-        """.format(parsed_mid))
+        """.format(mid))
         assert 'errors' not in result
-        assert result['data']['deleteFailedPlan'] == parsed_mid
+        assert result['data']['deleteFailedPlan'] == mid
 
     def test_gql_get_controller_models(self):
         result = self.gql.execute('query { controllerModels { company { name } model date } }')
@@ -990,7 +988,6 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)['data']['createController']['id']
-        parsed_cid = self.parse_mongomock_id(cid)
         result = self.gql.execute("""
         mutation {{
             updateController(controllerDetails: {{
@@ -1002,7 +999,7 @@ class TestFastAPI(unittest.TestCase):
                 id company {{ name }} model firmwareVersion checksum
             }}
         }}
-        """.format(parsed_cid))
+        """.format(cid))
         assert 'errors' not in result
         assert result['data']['updateController']['firmwareVersion'] == 'Firmware1'
         assert result['data']['updateController']['checksum'] == 'ChecksumValue'
@@ -1036,7 +1033,6 @@ class TestFastAPI(unittest.TestCase):
             }
         }
         """)['data']['createController']['id']
-        parsed_cid = self.parse_mongomock_id(cid)
         result = self.gql.execute("""
         mutation {{
             updateController(controllerDetails: {{
@@ -1049,7 +1045,7 @@ class TestFastAPI(unittest.TestCase):
                 id company {{ name }} model firmwareVersion checksum
             }}
         }}
-        """.format(parsed_cid))
+        """.format(cid))
         err_messages = self.assert_errors_and_get_messages(result)
         assert 'Argument "controllerDetails" has invalid value' in err_messages
         assert 'In field "company": Unknown field' in err_messages

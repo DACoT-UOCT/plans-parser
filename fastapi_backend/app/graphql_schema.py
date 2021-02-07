@@ -1,6 +1,5 @@
 import logging
 import graphene
-from graphene.relay import Node
 from graphene_mongo import MongoengineObjectType
 from models import User as UserModel
 from models import ExternalCompany as ExternalCompanyModel
@@ -60,12 +59,10 @@ class OTUSequenceItem(MongoengineObjectType):
 class Comment(MongoengineObjectType):
     class Meta:
         model = CommentModel
-        interfaces = (Node,)
 
 class PlanParseFailedMessage(MongoengineObjectType):
     class Meta:
         model = PlanParseFailedMessageModel
-        interfaces = (Node,)
 
 class PartialPlanParseFailedMessage(graphene.ObjectType):
     id = graphene.NonNull(graphene.String)
@@ -75,22 +72,18 @@ class PartialPlanParseFailedMessage(graphene.ObjectType):
 class ExternalCompany(MongoengineObjectType):
     class Meta:
         model = ExternalCompanyModel
-        interfaces = (Node,)
 
 class User(MongoengineObjectType):
     class Meta:
         model = UserModel
-        interfaces = (Node,)
 
 class ActionsLog(MongoengineObjectType):
     class Meta:
         model = ActionsLogModel
-        interfaces = (Node,)
 
 class Commune(MongoengineObjectType):
     class Meta:
         model = CommuneModel
-        interfaces = (Node,)
 
 class JunctionCoordinates(graphene.ObjectType):
     jid = graphene.NonNull(graphene.String)
@@ -100,7 +93,6 @@ class JunctionCoordinates(graphene.ObjectType):
 class ControllerModel(MongoengineObjectType):
     class Meta:
         model = ControllerModelModel
-        interfaces = (Node,)
 
 class OTU(MongoengineObjectType):
     class Meta:
