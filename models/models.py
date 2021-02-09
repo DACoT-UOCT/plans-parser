@@ -195,7 +195,7 @@ class ActionsLog(Document):
 class Project(Document):
     meta = {'collection': 'Project'}
     metadata = EmbeddedDocumentField(ProjectMeta, required=True)
-    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with='metadata.version')
+    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with=('metadata.version', 'metadata.status'))
     otu = EmbeddedDocumentField(OTU, required=True)
     controller = EmbeddedDocumentField(Controller)
     headers = EmbeddedDocumentListField(HeaderItem) # PDF
