@@ -85,11 +85,6 @@ class Commune(MongoengineObjectType):
     class Meta:
         model = CommuneModel
 
-class JunctionCoordinates(graphene.ObjectType):
-    jid = graphene.NonNull(graphene.String)
-    latitude = graphene.NonNull(graphene.Float)
-    longitude = graphene.NonNull(graphene.Float)
-
 class ControllerModel(MongoengineObjectType):
     class Meta:
         model = ControllerModelModel
@@ -135,12 +130,28 @@ class Query(graphene.ObjectType):
     actions_log = graphene.Field(ActionsLog, logid=graphene.NonNull(graphene.String))
     communes = graphene.List(Commune)
     companies = graphene.List(ExternalCompany)
-    junctions_coordinates = graphene.List(JunctionCoordinates)
     failed_plans = graphene.List(PartialPlanParseFailedMessage)
     failed_plan = graphene.Field(PlanParseFailedMessage, mid=graphene.NonNull(graphene.String))
     controller_models = graphene.List(ControllerModel)
     otus = graphene.List(OTU)
     otu = graphene.Field(OTU, oid=graphene.NonNull(graphene.String))
+    junctions = graphene.List(Junction)
+    junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
+
+    def resolve_junctions(self, info):
+        juncs = []
+        projects = ProjectModel.objects.only('otu.junctions').all()
+        for proj in projects:
+            juncs.extend(proj.otu.junctions)
+        return juncs
+
+    def resolve_junction(self, info, jid):
+        proj = ProjectModel.objects(otu__junctions__jid=jid).only('otu.junctions').first()
+        if proj:
+            for junc in proj.junctions:
+                if junc.jid == jid:
+                    return junc
+        return None
 
     def resolve_otus(self, info):
         projects = ProjectModel.objects.only('otu').all()
@@ -160,20 +171,6 @@ class Query(graphene.ObjectType):
 
     def resolve_failed_plan(self, info, mid):
         return PlanParseFailedMessageModel.objects(id=mid).first()
-
-    def resolve_junctions_coordinates(self, info):
-        coords = []
-        filter1 = 'otu.junctions.jid'
-        filter2 = 'otu.junctions.metadata.location'
-        locations = ProjectModel.objects.only(filter1, filter2).all()
-        for project in locations:
-            for junction in project.otu.junctions:
-                coords.append({
-                    'jid': junction.jid,
-                    'latitude': junction.metadata.location['coordinates'][0],
-                    'longitude': junction.metadata.location['coordinates'][1]
-                })
-        return coords
 
     def resolve_companies(self, info):
         return list(ExternalCompanyModel.objects.all())
