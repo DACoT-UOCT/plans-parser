@@ -707,15 +707,15 @@ class TestFastAPI(unittest.TestCase):
         assert 'Company "Fake Company" not found' in err_messages
 
     def test_gql_get_junctions_coordinates(self):
-        result = self.gql.execute('query { junctionsCoordinates { jid latitude longitude} }')
+        result = self.gql.execute('query { junctions { jid metadata { location { coordinates } } } }')
         assert 'errors' not in result
-        assert len(result['data']['junctionsCoordinates']) > 0
+        assert len(result['data']['junctions']) > 0
 
     def test_gql_get_junctions_coordinates_empty(self):
         drop_old_data()
-        result = self.gql.execute('query { junctionsCoordinates { jid latitude longitude} }')
+        result = self.gql.execute('query { junctions { jid metadata { location { coordinates } } } }')
         assert 'errors' not in result
-        assert len(result['data']['junctionsCoordinates']) == 0
+        assert len(result['data']['junctions']) == 0
 
     def test_gql_create_failed_plan(self):
         result = self.gql.execute("""
