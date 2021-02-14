@@ -1,3 +1,5 @@
+import magic
+import base64
 import logging
 import graphene
 from graphene_mongo import MongoengineObjectType
@@ -15,6 +17,7 @@ from models import OTUSequenceItem as OTUSequenceItemModel
 from models import OTUPhasesItem as OTUPhasesItemModel
 from models import OTUStagesItem as OTUStagesItemModel
 from models import Project as ProjectModel
+from models import ProjectMeta as ProjectMetaModel
 from models import Junction as JunctionModel
 from models import JunctionMeta as JunctionMetaModel
 from models import JunctionPlan as JunctionPlanModel
@@ -126,6 +129,12 @@ class CustomMutation(graphene.Mutation):
         # Returns the currently logged user
         # TODO: FIXME: For now, we return the same user for all requests
         return UserModel.objects(email='seed@dacot.uoct.cl').first()
+
+    def get_b64file_data(cls, base64data):
+        _, filedata = base64data.split(',')
+        b64bytes = base64.b64decode(filedata)
+        mime = magic.from_buffer(b64bytes[0:2048], mime=True)
+        return b64bytes, mime
 
 class Query(graphene.ObjectType):
     users = graphene.List(User)
@@ -278,9 +287,79 @@ class CreateProject(CustomMutation):
     Output = Project
 
     @classmethod
+    def build_metadata_files(cls, meta, metain, oid, info):
+        if metain.img:
+            fdata, ftype = cls.get_b64file_data(metain.img)
+            if ftype in ['image/jpeg', 'image/png']:
+                meta.img.put(fdata, content_type=ftype)
+            else:
+                cls.log_action('Failed to create project "{}". Invalid image file type: "{}"'.format(oid, ftype), info)
+                return False, GraphQLError('Invalid image file type: "{}"'.format(ftype))
+        if metain.pdf_data:
+            fdata, ftype = cls.get_b64file_data(metain.pdf_data)
+            if ftype in ['application/pdf']:
+                meta.pdf_data.put(fdata, content_type=ftype)
+            else:
+                cls.log_action('Failed to create project "{}". Invalid  file type: "{}"'.format(oid, ftype), info)
+                return False, GraphQLError('Invalid PDF document file type: "{}"'.format(ftype))
+        return True, meta
+
+    @classmethod
+    def build_metadata_options(cls, meta, metain):
+        if metain.pedestrian_demand:
+            meta.pedestrian_demand = metain.pedestrian_demand
+        if metain.pedestrian_facility:
+            meta.pedestrian_facility = metain.pedestrian_facility
+        if metain.local_detector:
+            meta.local_detector = metain.local_detector
+        if metain.scoot_detector:
+            meta.scoot_detector = metain.scoot_detector
+        return meta
+
+    @classmethod
+    def build_metadata(cls, metain, oid, info):
+        meta = ProjectMetaModel()
+        meta.status = 'NEW'
+        meta.status_user = cls.get_current_user()
+        if metain.installation_date:
+            meta.installation_date = metain.installation_date
+        if metain.installation_company:
+            installation_company = ExternalCompanyModel.objects(name=metain.installation_company).first()
+            if not installation_company:
+                cls.log_action('Failed to create project "{}". Company "{}" not found'.format(oid, metain.installation_company), info)
+                return False, GraphQLError('Company "{}" not found'.format(metain.installation_company))
+            meta.installation_company = installation_company
+        maintainer = ExternalCompanyModel.objects(name=metain.maintainer).first()
+        if not maintainer:
+            cls.log_action('Failed to create project "{}". Company "{}" not found'.format(oid, metain.maintainer), info)
+            return False, GraphQLError('Company "{}" not found'.format(metain.maintainer))
+        meta.maintainer = maintainer
+        commune = CommuneModel.objects(code=metain.commune).first()
+        if not commune:
+            cls.log_action('Failed to create project "{}". Commune "{}" not found'.format(oid, metain.commune), info)
+            return False, GraphQLError('Commune "{}" not found'.format(metain.commune))
+        meta.commune = commune.name # TODO: FIXME: This should be a reference! Update model
+        meta = cls.build_metadata_options(meta, metain)
+        return cls.build_metadata_files(meta, metain, oid, info)
+
+    @classmethod
     def mutate(cls, root, info, project_details):
         proj = ProjectModel()
         proj.oid = project_details.oid
+        # Metadata
+        is_success, meta_result = cls.build_metadata(project_details.metadata, project_details.oid, info)
+        if is_success:
+            proj.metadata = meta_result
+        else:
+            return meta_result # Result is a GraphQLError
+        # OTU
+        is_success, otu_result = cls.build_otu()
+        if is_success:
+            proj.otu = otu_result
+        else:
+            return otu_result
+        proj.save()
+        # TODO: Send notification emails
         return proj
 
 class CreateCommuneInput(graphene.InputObjectType):
@@ -300,13 +379,13 @@ class CreateCommune(CustomMutation):
         commune = CommuneModel()
         commune.name = commune_details.name
         commune.code = commune_details.code
-        if commune_details.maintainer != None:
+        if commune_details.maintainer:
             maintainer = ExternalCompanyModel.objects(name=commune_details.maintainer).first()
             if not maintainer:
                 cls.log_action('Failed to create commune "{}". Maintainer "{}" not found'.format(commune_details.code, commune_details.maintainer), info)
                 return GraphQLError('Maintainer "{}" not found'.format(commune_details.maintainer))
             commune.maintainer = maintainer
-        if commune_details.user_in_charge != None:
+        if commune_details.user_in_charge:
             user = UserModel.objects(email=commune_details.user_in_charge).first()
             if not user:
                 cls.log_action('Failed to create commune "{}". User "{}" not found'.format(commune_details.code, commune_details.user_in_charge), info)
@@ -337,13 +416,13 @@ class UpdateCommune(CustomMutation):
         if not commune:
             cls.log_action('Failed to update commune "{}". Commune not found'.format(commune_details.code), info)
             return GraphQLError('Commune "{}" not found'.format(commune_details.code))
-        if commune_details.maintainer != None:
+        if commune_details.maintainer:
             maintainer = ExternalCompanyModel.objects(name=commune_details.maintainer).first()
             if not maintainer:
                 cls.log_action('Failed to update commune "{}". Maintainer "{}" not found'.format(commune_details.code, commune_details.maintainer), info)
                 return GraphQLError('Maintainer "{}" not found'.format(commune_details.maintainer))
             commune.maintainer = maintainer
-        if commune_details.user_in_charge != None:
+        if commune_details.user_in_charge:
             user = UserModel.objects(email=commune_details.user_in_charge).first()
             if not user:
                 cls.log_action('Failed to update commune "{}". User "{}" not found'.format(commune_details.code, commune_details.user_in_charge), info)
@@ -429,9 +508,9 @@ class UpdateUser(CustomMutation):
         if not user:
             cls.log_action('Failed to update user "{}". User not found'.format(user_details.email), info)
             return GraphQLError('User "{}" not found'.format(user_details.email))
-        if user_details.is_admin != None:
+        if user_details.is_admin:
             user.is_admin = user_details.is_admin
-        if user_details.full_name != None:
+        if user_details.full_name:
             user.full_name = user_details.full_name
         try:
             user.save()
@@ -576,9 +655,9 @@ class UpdateControllerModel(CustomMutation):
         if not model:
             cls.log_action('Failed to update model "{}". Model not found'.format(controller_details.cid), info)
             return GraphQLError('Model "{}" not found'.format(controller_details.cid))
-        if controller_details.checksum != None:
+        if controller_details.checksum:
             model.checksum = controller_details.checksum
-        if controller_details.firmware_version != None:
+        if controller_details.firmware_version:
             model.firmware_version = controller_details.firmware_version
         try:
             model.save()
