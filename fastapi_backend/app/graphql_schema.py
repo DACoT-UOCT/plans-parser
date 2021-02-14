@@ -24,6 +24,10 @@ from models import PlanParseFailedMessage as PlanParseFailedMessageModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
 
+class Project(MongoengineObjectType):
+    class Meta:
+        model = ProjectModel
+
 class JunctionMeta(MongoengineObjectType):
     class Meta:
         model = JunctionMetaModel
@@ -189,6 +193,34 @@ class Query(graphene.ObjectType):
 
     def resolve_user(self, info, email):
         return UserModel.objects(email=email).first()
+
+class ControllerModelInput(graphene.InputObjectType):
+    company = graphene.NonNull(graphene.String)
+    model = graphene.NonNull(graphene.String)
+    firmware_version = graphene.NonNull(graphene.String)
+    checksum = graphene.NonNull(graphene.String)
+
+class ControllerLocationInput(graphene.InputObjectType):
+    address_reference = graphene.String()
+    gps = graphene.Boolean()
+    model = graphene.NonNull(ControllerModelInput)
+
+class CreateProjectInput(graphene.InputObjectType):
+    oid = graphene.NonNull(graphene.String)
+    controller = graphene.NonNull(ControllerLocationInput)
+    observations = graphene.List(graphene.String)
+
+class CreateProject(CustomMutation):
+    class Arguments:
+        project_details = CreateProjectInput()
+
+    Output = Project
+
+    @classmethod
+    def mutate(cls, root, info, project_details):
+        proj = ProjectModel()
+        proj.oid = project_details.oid
+        return proj
 
 class CreateCommuneInput(graphene.InputObjectType):
     code = graphene.NonNull(graphene.Int)
@@ -507,6 +539,7 @@ class Mutation(graphene.ObjectType):
     create_failed_plan = CreatePlanParseFailedMessage.Field()
     create_controller = CreateControllerModel.Field()
     update_controller = UpdateControllerModel.Field()
+    create_project = CreateProject.Field()
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
 
