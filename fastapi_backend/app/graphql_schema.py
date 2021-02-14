@@ -223,25 +223,53 @@ class ProjectPolesInput(graphene.InputObjectType):
     pedestrian = graphene.NonNull(graphene.Int)
 
 class ProjectMetaInput(graphene.InputObjectType):
-    # installation_date = graphene.String() DateType?
+    installation_date = graphene.Date()
     installation_company = graphene.String()
     maintainer = graphene.NonNull(graphene.String)
     commune = graphene.NonNull(graphene.Int)
-    # img = '' FileType?
-    # pdf_data = '' FileType?
+    img = graphene.Base64()
+    pdf_data = graphene.Base64()
     pedestrian_demand = graphene.Boolean()
     pedestrian_facility = graphene.Boolean()
     local_detector = graphene.Boolean()
     scoot_detector = graphene.Boolean()
 
+class OTUMetadataInput(graphene.InputObjectType):
+    serial = graphene.String()
+    ip_address = graphene.String()
+    netmask = graphene.String()
+    control = graphene.Int()
+    answer = graphene.Int()
+    link_type = graphene.String()
+    link_owner = graphene.String()
+
+class OTUProgramInput(graphene.InputObjectType):
+    day = graphene.NonNull(graphene.String)
+    time = graphene.NonNull(graphene.String)
+    plan = graphene.NonNull(graphene.String)
+
+class JunctionMetadataInput(graphene.InputObjectType):
+    coordinates = graphene.NonNull(graphene.List(graphene.NonNull(graphene.Float)))
+    sales_id = graphene.NonNull(graphene.Int)
+    address_reference = graphene.NonNull(graphene.String)
+
+class ProjectJunctionInput(graphene.InputObjectType):
+    jid = graphene.NonNull(graphene.String)
+    metadata = graphene.NonNull(JunctionMetadataInput)
+
+class ProjectOTUInput(graphene.InputObjectType):
+    metadata = OTUMetadataInput()
+    junctions = graphene.NonNull(graphene.List(graphene.NonNull(ProjectJunctionInput)))
+
 class CreateProjectInput(graphene.InputObjectType):
     oid = graphene.NonNull(graphene.String)
     metadata = graphene.NonNull(ProjectMetaInput)
+    otu = graphene.NonNull(ProjectOTUInput)
     controller = graphene.NonNull(ControllerLocationInput)
     headers = graphene.List(ProjectHeadersInput)
     ups = ProjectUPSInput()
     poles = ProjectPolesInput()
-    observations = graphene.List(graphene.String)
+    observations = graphene.NonNull(graphene.List(graphene.String))
 
 class CreateProject(CustomMutation):
     class Arguments:
@@ -475,7 +503,7 @@ class DeletePlanParseFailedMessage(CustomMutation):
         return mid
 
 class CreatePlanParseFailedMessageInput(graphene.InputObjectType):
-    plans = graphene.List(graphene.NonNull(graphene.String))
+    plans = graphene.NonNull(graphene.List(graphene.NonNull(graphene.String)))
     message = graphene.NonNull(graphene.String)
 
 class CreatePlanParseFailedMessage(CustomMutation):
