@@ -205,9 +205,42 @@ class ControllerLocationInput(graphene.InputObjectType):
     gps = graphene.Boolean()
     model = graphene.NonNull(ControllerModelInput)
 
+class ProjectHeadersInput(graphene.InputObjectType):
+    hal = graphene.NonNull(graphene.Int)
+    led = graphene.NonNull(graphene.Int)
+    type = graphene.NonNull(graphene.String)
+
+class ProjectUPSInput(graphene.InputObjectType):
+    brand = graphene.NonNull(graphene.String)
+    model = graphene.NonNull(graphene.String)
+    serial = graphene.NonNull(graphene.String)
+    capacity = graphene.NonNull(graphene.String)
+    charge_duration = graphene.NonNull(graphene.String)
+
+class ProjectPolesInput(graphene.InputObjectType):
+    hooks = graphene.NonNull(graphene.Int)
+    vehicular = graphene.NonNull(graphene.Int)
+    pedestrian = graphene.NonNull(graphene.Int)
+
+class ProjectMetaInput(graphene.InputObjectType):
+    # installation_date = graphene.String() DateType?
+    installation_company = graphene.String()
+    maintainer = graphene.NonNull(graphene.String)
+    commune = graphene.NonNull(graphene.Int)
+    # img = '' FileType?
+    # pdf_data = '' FileType?
+    pedestrian_demand = graphene.Boolean()
+    pedestrian_facility = graphene.Boolean()
+    local_detector = graphene.Boolean()
+    scoot_detector = graphene.Boolean()
+
 class CreateProjectInput(graphene.InputObjectType):
     oid = graphene.NonNull(graphene.String)
+    metadata = graphene.NonNull(ProjectMetaInput)
     controller = graphene.NonNull(ControllerLocationInput)
+    headers = graphene.List(ProjectHeadersInput)
+    ups = ProjectUPSInput()
+    poles = ProjectPolesInput()
     observations = graphene.List(graphene.String)
 
 class CreateProject(CustomMutation):
