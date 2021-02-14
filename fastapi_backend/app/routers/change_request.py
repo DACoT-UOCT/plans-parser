@@ -139,18 +139,6 @@ def send_notification_mail(bg, recipients, motive,mail_header=header,mail_footer
     else:
         register_action('backend', 'Requests', 'No hemos enviado ninguna notificacion, debido a que los emails estan desactivados', background=bg)
 
-def __base64file_to_bytes(base64data):
-    _, filedata = base64data.split(',')
-    try:
-        b64bytes = base64.b64decode(filedata)
-    except Exception as excep:
-        return False, str(excep)
-    mime = magic.from_buffer(b64bytes[0:2048], mime=True)
-    if mime in ['image/jpeg', 'image/png', 'application/pdf']:
-        return b64bytes, mime
-    else:
-        return False, 'Invalid content-type of file data: {}'.format(mime)
-
 def __build_otu_from_dict(otu_dict):
     junc_objs = []
     for junc in otu_dict['junctions']:
@@ -243,52 +231,6 @@ def __update_by_admin(user, body, bgtask):
         if not user.is_admin:
             bgtask.add_task(send_notification_mail, bgtask, creation_recipients, creation_motive)
         return JSONResponse(status_code=201, content={'detail': 'Created'})
-
-@router.post("/requests", status_code=201, tags=["MissingDocs"])
-async def create_request(bgtask: BackgroundTasks, request: Request, current_user: User = Depends(get_current_user),token: str = Depends(oauth2_scheme)):
-    user_email = current_user.email
-    user = UserModel.objects(email=user_email).first()
-    if user:
-        if user.is_admin or user.rol == 'Empresa':
-            try:
-                body = await request.json()
-            except json.decoder.JSONDecodeError as err:
-                return JSONResponse(status_code=422, content={'detail': 'Invalid JSON document: {}'.format(err)})
-            if body['metadata']['status'] == 'NEW':
-                try:
-                    new_project, files = __build_new_project(body, user, bgtask)
-                    # new_project = new_project.save_with_transaction()
-                    # TODO: Optimization = Search for md5 instead of re-inserting file
-                    new_project.metadata.img.put(files['img'][0], content_type=files['img'][1])
-                    new_project.metadata.pdf_data.put(files['pdf'][0], content_type=files['pdf'][1])
-                    if user.is_admin:
-                        new_project.metadata.status = 'SYSTEM'
-                    new_project.save()
-                    new_project.id = None
-                    new_project.metadata.version = 'latest'
-                    new_project.save()
-                except DACoTBackendException as err:
-                    register_action(user.email, 'Requests', STATUS_CREATE_ERROR.format(user.email, err), background=bgtask)
-                    return JSONResponse(status_code=err.get_status(), content={'detail': err.get_details()})
-                else:
-                    register_action(user.email, 'Requests', STATUS_CREATE_OK.format(user.email, new_project.id), background=bgtask)
-                    if not user.is_admin:
-                        bgtask.add_task(send_notification_mail, bgtask, creation_recipients, creation_motive)
-                    return JSONResponse(status_code=201, content={'detail': 'Created'})
-            elif body['metadata']['status'] == 'UPDATE': #oid comuna region
-                if user.is_admin:
-                    return __update_by_admin(user, body, bgtask)
-                else:
-                    return JSONResponse(status_code=422, content={'detail': 'NOT IMPLEMENTED'})
-            else:
-                register_action(user.email, 'Requests', 'El usuario {} ha intentado enviar una solicitud con estado invalido: {}'.format(user.email, body['metadata']['status']), background=bgtask)
-                return JSONResponse(status_code=422, content={'detail': 'Invalid status'})
-        else:
-            register_action(user_email, 'Requests', STATUS_CREATE_FORBIDDEN.format(user_email), background=bgtask)
-            return JSONResponse(status_code=403, content={'detail': 'Forbidden'})
-    else:
-        register_action(user_email, 'Requests', STATUS_USER_NOT_FOUND.format(user_email), background=bgtask)
-        return JSONResponse(status_code=404, content={'detail': 'User {} not found'.format(user_email)})
 
 @router.get('/requests', tags=["Requests"], responses={
     200: {
