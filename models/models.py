@@ -118,12 +118,14 @@ class Comment(EmbeddedDocument):
 
 class ProjectMeta(EmbeddedDocument):
     version = StringField(choices=['base', 'latest'], required=True, default='base')
-    status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True) 
+    status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True)
+    # status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'PRODUCTION'], required=True)
     status_date = DateTimeField(default=datetime.utcnow, required=True)
     status_user = ReferenceField(User, required=True)
     installation_date = DateTimeField() # PDF
     installation_company = ReferenceField(ExternalCompany)
     maintainer = ReferenceField(ExternalCompany)
+    # commune = ReferenceField(Commune)
     commune = StringField()
     region = StringField(default='Metropolitana', required=True)
     img = FileField() # PDF
