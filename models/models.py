@@ -127,7 +127,6 @@ class ProjectMeta(EmbeddedDocument):
     maintainer = ReferenceField(ExternalCompany)
     # commune = ReferenceField(Commune)
     commune = StringField()
-    region = StringField(default='Metropolitana', required=True)
     img = FileField() # PDF
     pdf_data = FileField() # PDF
     pedestrian_demand = BooleanField() # PDF
