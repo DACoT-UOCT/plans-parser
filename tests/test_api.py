@@ -76,7 +76,7 @@ class TestFastAPI(unittest.TestCase):
     def test_gql_get_users_attribute_not_exists(self):
         result = self.gql.execute('query { users { email fullName attribute_not_exists } }')
         err_messages = self.assert_errors_and_get_messages(result)
-        assert 'Cannot query field "attribute_not_exists"' in err_messages
+        assert "Cannot query field 'attribute_not_exists' on type 'User'." in err_messages
 
     def test_gql_get_users_invalid_query(self):
         result = self.gql.execute('query { {{{ users { email fullName } }')
@@ -220,7 +220,7 @@ class TestFastAPI(unittest.TestCase):
         }
         """)
         err_messages = self.assert_errors_and_get_messages(result)
-        assert 'field "isAdmin": Expected "Boolean!"' in err_messages
+        assert "Field 'CreateUserInput.isAdmin' of required type 'Boolean!' was not provided." in err_messages
 
     def test_gql_create_user_duplicated(self):
         self.gql.execute("""
@@ -398,8 +398,7 @@ class TestFastAPI(unittest.TestCase):
         }
         """)
         err_messages = self.assert_errors_and_get_messages(result)
-        assert 'Argument "userDetails" has invalid value' in err_messages
-        assert 'field "company": Unknown field.' in err_messages
+        assert "Field 'company' is not defined by type 'UpdateUserInput'." in err_messages
 
     def test_gql_actions_log_get_all_empty(self):
         result = self.gql.execute('query { actionsLogs { action } }')
@@ -599,7 +598,7 @@ class TestFastAPI(unittest.TestCase):
         }
         """)
         err_messages = self.assert_errors_and_get_messages(result)
-        assert 'field "name": Unknown field' in err_messages
+        assert "Field 'name' is not defined by type 'UpdateCommuneInput'." in err_messages
 
     def test_gql_get_companies(self):
         result = self.gql.execute('query { companies { name } }')
@@ -655,8 +654,7 @@ class TestFastAPI(unittest.TestCase):
         }
         """)
         err_messages = self.assert_errors_and_get_messages(result)
-        assert 'Argument "companyDetails" has invalid value' in err_messages
-        assert 'Unknown field' in err_messages
+        assert "Field 'nameOfTheNewCompany' is not defined" in err_messages
 
     def test_gql_create_company_missing_field(self):
         result = self.gql.execute("""
@@ -668,8 +666,7 @@ class TestFastAPI(unittest.TestCase):
         }
         """)
         err_messages = self.assert_errors_and_get_messages(result)
-        assert 'Argument "companyDetails" has invalid value' in err_messages
-        assert 'Expected "String!", found null' in err_messages
+        assert "Field 'CreateCompanyInput.name' of required type 'String!' was not provided." in err_messages
 
     def test_gql_create_company_duplicated(self):
         result = self.gql.execute("""
@@ -892,8 +889,7 @@ class TestFastAPI(unittest.TestCase):
         }
         """)
         err_messages = self.assert_errors_and_get_messages(result)
-        assert 'Argument "controllerDetails" has invalid value' in err_messages
-        assert 'In field "company": Expected "String!", found null' in err_messages
+        assert "Field 'CreateControllerModelInput.company' of required type 'String!' was not provided." in err_messages
 
     def test_gql_create_controller_model_invalid_field(self):
         result = self.gql.execute("""
@@ -909,8 +905,7 @@ class TestFastAPI(unittest.TestCase):
         }
         """)
         err_messages = self.assert_errors_and_get_messages(result)
-        assert 'Argument "controllerDetails" has invalid value' in err_messages
-        assert 'In field "modelField": Unknown field' in err_messages
+        assert "Field 'modelField' is not defined by type 'CreateControllerModelInput'" in err_messages
 
     def test_gql_create_controller_model_with_firmware(self):
         result = self.gql.execute("""
@@ -1047,8 +1042,7 @@ class TestFastAPI(unittest.TestCase):
         }}
         """.format(cid))
         err_messages = self.assert_errors_and_get_messages(result)
-        assert 'Argument "controllerDetails" has invalid value' in err_messages
-        assert 'In field "company": Unknown field' in err_messages
+        assert "Field 'company' is not defined by type 'UpdateControllerModelInput'." in err_messages
 
     def test_gql_get_otus_all(self):
         result = self.gql.execute("""
@@ -1100,4 +1094,4 @@ class TestFastAPI(unittest.TestCase):
     def test_gql_get_single_otu_invalid_field(self):
         result = self.gql.execute('query { otu(oid: "X001140") { invalidField } }')
         err_messages = self.assert_errors_and_get_messages(result)
-        assert 'Cannot query field "invalidField" on type "OTU"' in err_messages
+        assert "Cannot query field 'invalidField' on type 'OTU'." in err_messages
