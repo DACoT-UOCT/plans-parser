@@ -343,6 +343,40 @@ class CreateProject(CustomMutation):
         return cls.build_metadata_files(meta, metain, oid, info)
 
     @classmethod
+    def build_otu(cls, otuin, oid, info):
+        otu = OTUModel()
+        otu.oid = oid
+        if otuin.metadata:
+            meta = OTUMetaModel()
+            if otuin.metadata.serial:
+                meta.serial = otuin.metadata.serial
+            if otuin.metadata.ip_address:
+                meta.ip_address = otuin.metadata.ip_address
+            if otuin.metadata.netmask:
+                meta.netmask = otuin.metadata.netmask
+            if otuin.metadata.control:
+                meta.control = otuin.metadata.control
+            if otuin.metadata.answer:
+                meta.answer = otuin.metadata.answer
+            if otuin.metadata.link_type:
+                meta.link_type = otuin.metadata.link_type
+            if otuin.metadata.link_owner:
+                meta.link_owner = otuin.metadata.link_owner
+            otu.meta = meta
+        junctions = []
+        for junc in otuin.junctions:
+            otu_junc = JunctionModel()
+            otu_junc.jid = junc.jid
+            junc_meta = JunctionMetaModel()
+            junc_meta.sales_id = junc.metadata.sales_id
+            junc_meta.address_reference = junc.metadata.address_reference
+            junc_meta.location = (junc.metadata.coordinates[0], junc.metadata.coordinates[1])
+            otu_junc.metadata = junc_meta
+            junctions.append(otu_junc)
+        otu.junctions = junctions
+        return otu
+
+    @classmethod
     def mutate(cls, root, info, project_details):
         proj = ProjectModel()
         proj.oid = project_details.oid
@@ -353,11 +387,12 @@ class CreateProject(CustomMutation):
         else:
             return meta_result # Result is a GraphQLError
         # OTU
-        is_success, otu_result = cls.build_otu()
-        if is_success:
-            proj.otu = otu_result
-        else:
-            return otu_result
+        for junc in proj.otu.junctions:
+            coordlen = len(junc.metadata.coordinates)
+            if coordlen != 2:
+                cls.log_action('Failed to create project "{}". Invalid length for coordinates in jid "{}": {}'.format(project_details.oid, junc.jid, coordlen), info)
+                GraphQLError('Invalid length for coordinates in jid "{}": {}'.format(junc.jid, coordlen))
+        proj.otu = cls.build_otu(project_details.otu, project_details.oid, info)
         proj.save()
         # TODO: Send notification emails
         return proj
