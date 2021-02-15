@@ -259,7 +259,6 @@ class OTUProgramInput(graphene.InputObjectType):
 
 class JunctionMetadataInput(graphene.InputObjectType):
     coordinates = graphene.NonNull(graphene.List(graphene.NonNull(graphene.Float)))
-    sales_id = graphene.NonNull(graphene.Int)
     address_reference = graphene.NonNull(graphene.String)
 
 class ProjectJunctionInput(graphene.InputObjectType):
@@ -343,32 +342,36 @@ class CreateProject(CustomMutation):
         return cls.build_metadata_files(meta, metain, oid, info)
 
     @classmethod
+    def build_otu_meta(cls, metain, oid, info):
+        meta = OTUMetaModel()
+        if metain.serial:
+            meta.serial = metain.serial
+        if metain.ip_address:
+            meta.ip_address = metain.ip_address
+        if metain.netmask:
+            meta.netmask = metain.netmask
+        if metain.control:
+            meta.control = metain.control
+        if metain.answer:
+            meta.answer = metain.answer
+        if metain.link_type:
+            meta.link_type = metain.link_type
+        if metain.link_owner:
+            meta.link_owner = metain.link_owner
+        return meta
+
+    @classmethod
     def build_otu(cls, otuin, oid, info):
         otu = OTUModel()
         otu.oid = oid
         if otuin.metadata:
-            meta = OTUMetaModel()
-            if otuin.metadata.serial:
-                meta.serial = otuin.metadata.serial
-            if otuin.metadata.ip_address:
-                meta.ip_address = otuin.metadata.ip_address
-            if otuin.metadata.netmask:
-                meta.netmask = otuin.metadata.netmask
-            if otuin.metadata.control:
-                meta.control = otuin.metadata.control
-            if otuin.metadata.answer:
-                meta.answer = otuin.metadata.answer
-            if otuin.metadata.link_type:
-                meta.link_type = otuin.metadata.link_type
-            if otuin.metadata.link_owner:
-                meta.link_owner = otuin.metadata.link_owner
-            otu.meta = meta
+            otu.meta = cls.build_otu_meta(otuin, oid, info)
         junctions = []
         for junc in otuin.junctions:
             otu_junc = JunctionModel()
             otu_junc.jid = junc.jid
             junc_meta = JunctionMetaModel()
-            junc_meta.sales_id = junc.metadata.sales_id
+            junc_meta.sales_id = round((int(junc.jid[1:]) * 11) / 13.0)
             junc_meta.address_reference = junc.metadata.address_reference
             junc_meta.location = (junc.metadata.coordinates[0], junc.metadata.coordinates[1])
             otu_junc.metadata = junc_meta
@@ -387,13 +390,21 @@ class CreateProject(CustomMutation):
         else:
             return meta_result # Result is a GraphQLError
         # OTU
-        for junc in proj.otu.junctions:
+        for junc in project_details.otu.junctions:
             coordlen = len(junc.metadata.coordinates)
             if coordlen != 2:
                 cls.log_action('Failed to create project "{}". Invalid length for coordinates in jid "{}": {}'.format(project_details.oid, junc.jid, coordlen), info)
                 GraphQLError('Invalid length for coordinates in jid "{}": {}'.format(junc.jid, coordlen))
         proj.otu = cls.build_otu(project_details.otu, project_details.oid, info)
-        proj.save()
+        # Controller info
+        # Save
+        try:
+            # TODO: FIXME: Before we save a new project, check if an update exists with the same oid
+            proj.save()
+        except ValidationError as excep:
+            cls.log_action('Failed to create project "{}". {}'.format(proj.oid, excep), info)
+            return GraphQLError(excep)
+        cls.log_action('Project "{}" created.'.format(proj.oid), info)
         # TODO: Send notification emails
         return proj
 
