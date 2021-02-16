@@ -25,7 +25,7 @@ python-multipart
 email-validator
 chardet<3.1.0,>=3.0.2
 idna>=2.5,<3.2
-urllib3!=1.25.0,!=1.25.1,<1.26,>=1.21.1
+urllib3>=1.21.1,!=1.25.0,!=1.25.1,<1.27
 certifi>=2017.4.17
 sentinels
 six
