@@ -41,7 +41,7 @@ singledispatch>=3.4.0.3
 iso8601>=0.1.12
 mccabe<0.7,>=0.6
 toml>=0.7.1
-isort<5,>=4.2.5
+isort>=4.2.5,<6
 astroid<=2.5,>=2.4.0
 pycodestyle<2.7.0,>=2.6.0a1
 pyflakes<2.3.0,>=2.2.0
