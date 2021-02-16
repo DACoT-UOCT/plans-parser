@@ -47,5 +47,5 @@ pycodestyle<2.7.0,>=2.6.0a1
 pyflakes<2.3.0,>=2.2.0
 dnspython>=1.15.0
 wrapt~=1.11
-lazy-object-proxy==1.4.*
+lazy-object-proxy==1.5.*
 promise==2.3
