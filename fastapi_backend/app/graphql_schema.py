@@ -27,6 +27,7 @@ from dacot_models import JunctionPlan as JunctionPlanModel
 from dacot_models import JunctionPlanPhaseValue as JunctionPlanPhaseValueModel
 from dacot_models import JunctionPlanIntergreenValue as JunctionPlanIntergreenValueModel
 from dacot_models import PlanParseFailedMessage as PlanParseFailedMessageModel
+from dacot_models import ChangeSet as ChangeSetModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
 
@@ -111,6 +112,10 @@ class OTUProgramItem(MongoengineObjectType):
     class Meta:
         model = OTUProgramItemModel
 
+class ChangeSet(MongoengineObjectType):
+    class Meta:
+        model = ChangeSetModel
+
 class CustomMutation(graphene.Mutation):
     # TODO: FIXME: Send emails functions
     # TODO: FIXME: Add current user to log
@@ -156,6 +161,18 @@ class Query(graphene.ObjectType):
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
     projects = graphene.Field(Project, status=graphene.NonNull(graphene.String))
     project = graphene.Field(Project, oid=graphene.NonNull(graphene.String), status=graphene.NonNull(graphene.String))
+    versions = graphene.List(ChangeSet, oid=graphene.NonNull(graphene.String))
+    base_version = graphene.Field(Project, oid=graphene.NonNull(graphene.String))
+
+    def resolve_base_version(self, info, oid):
+        return ProjectModel.objects(
+            oid=oid,
+            metadata__status__in=['APPROVED', 'SYSTEM'],
+            metadata__version='base'
+        ).exclude('metadata.pdf_data').first()
+
+    def resolve_versions(self, info, oid):
+        return ChangeSetModel.objects(apply_to_id=oid).order_by('-date').exclude('apply_to', 'changes').all()
 
     def resolve_projects(self, info, status):
         return ProjectModel.objects(metadata__status=status, metadata__version='latest').all()
