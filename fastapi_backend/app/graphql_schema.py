@@ -133,6 +133,7 @@ class CustomMutation(graphene.Mutation):
         # TODO: FIXME: For now, we return the same user for all requests
         return UserModel.objects(email='seed@dacot.uoct.cl').first()
 
+    @classmethod
     def get_b64file_data(cls, base64data):
         _, filedata = base64data.split(',')
         b64bytes = base64.b64decode(filedata)
