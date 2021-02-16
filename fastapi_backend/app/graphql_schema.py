@@ -486,6 +486,25 @@ class CreateProject(CustomMutation):
         # TODO: Send notification emails
         return proj
 
+class DeleteProjectInput(graphene.InputObjectType):
+    oid = graphene.NonNull(graphene.String)
+    status = graphene.NonNull(graphene.String)
+
+class DeleteProject(CustomMutation):
+    class Arguments:
+        project_details = DeleteProjectInput()
+
+    Output = graphene.String
+
+    @classmethod
+    def mutate(cls, root, info, project_details):
+        proj = ProjectModel.objects(oid=project_details.oid, status=project_details.status).first()
+        if not proj:
+            cls.log_action('Failed to delete project "{}" in status "{}". Project not found'.format(project_details.oid, project_details.status), info)
+            return GraphQLError('Project "{}" in status "{}" not found'.format(project_details.oid, project_details.status))
+        proj.delete()
+        return project_details.oid
+
 class CreateCommuneInput(graphene.InputObjectType):
     code = graphene.NonNull(graphene.Int)
     name = graphene.NonNull(graphene.String)
@@ -804,6 +823,7 @@ class Mutation(graphene.ObjectType):
     create_controller = CreateControllerModel.Field()
     update_controller = UpdateControllerModel.Field()
     create_project = CreateProject.Field()
+    delete_project = DeleteProject.Field()
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
 
