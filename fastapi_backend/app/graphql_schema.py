@@ -3,30 +3,30 @@ import base64
 import logging
 import graphene
 from graphene_mongo import MongoengineObjectType
-from models import User as UserModel
-from models import ExternalCompany as ExternalCompanyModel
-from models import ActionsLog as ActionsLogModel
-from models import Commune as CommuneModel
-from models import Project as ProjectModel
-from models import Comment as CommentModel
-from models import Controller as ProjControllerModel
-from models import ControllerModel as ControllerModelModel
-from models import OTU as OTUModel
-from models import OTUMeta as OTUMetaModel
-from models import OTUProgramItem as OTUProgramItemModel
-from models import OTUSequenceItem as OTUSequenceItemModel
-from models import OTUPhasesItem as OTUPhasesItemModel
-from models import OTUStagesItem as OTUStagesItemModel
-from models import HeaderItem as ProjectHeaderItemModel
-from models import UPS as UPSModel
-from models import Poles as PolesModel
-from models import ProjectMeta as ProjectMetaModel
-from models import Junction as JunctionModel
-from models import JunctionMeta as JunctionMetaModel
-from models import JunctionPlan as JunctionPlanModel
-from models import JunctionPlanPhaseValue as JunctionPlanPhaseValueModel
-from models import JunctionPlanIntergreenValue as JunctionPlanIntergreenValueModel
-from models import PlanParseFailedMessage as PlanParseFailedMessageModel
+from dacot_models import User as UserModel
+from dacot_models import ExternalCompany as ExternalCompanyModel
+from dacot_models import ActionsLog as ActionsLogModel
+from dacot_models import Commune as CommuneModel
+from dacot_models import Project as ProjectModel
+from dacot_models import Comment as CommentModel
+from dacot_models import Controller as ProjControllerModel
+from dacot_models import ControllerModel as ControllerModelModel
+from dacot_models import OTU as OTUModel
+from dacot_models import OTUMeta as OTUMetaModel
+from dacot_models import OTUProgramItem as OTUProgramItemModel
+from dacot_models import OTUSequenceItem as OTUSequenceItemModel
+from dacot_models import OTUPhasesItem as OTUPhasesItemModel
+from dacot_models import OTUStagesItem as OTUStagesItemModel
+from dacot_models import HeaderItem as ProjectHeaderItemModel
+from dacot_models import UPS as UPSModel
+from dacot_models import Poles as PolesModel
+from dacot_models import ProjectMeta as ProjectMetaModel
+from dacot_models import Junction as JunctionModel
+from dacot_models import JunctionMeta as JunctionMetaModel
+from dacot_models import JunctionPlan as JunctionPlanModel
+from dacot_models import JunctionPlanPhaseValue as JunctionPlanPhaseValueModel
+from dacot_models import JunctionPlanIntergreenValue as JunctionPlanIntergreenValueModel
+from dacot_models import PlanParseFailedMessage as PlanParseFailedMessageModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
 

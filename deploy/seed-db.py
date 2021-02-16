@@ -13,22 +13,19 @@ from mongoengine import connect
 from pymongo.operations import ReplaceOne
 from pymongo.errors import BulkWriteError
 
+from dacot_models import Commune, ExternalCompany, ControllerModel
+from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
+from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
+from dacot_models import JunctionPlanPhaseValue, OTUProgramItem, ActionsLog
+from dacot_models import PlanParseFailedMessage
+
 if os.environ.get('RUNNING_TEST'):
-    from .dacot_models import Commune, ExternalCompany, ControllerModel
-    from .dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
-    from .dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
-    from .dacot_models import JunctionPlanPhaseValue, OTUProgramItem, ActionsLog
-    from .dacot_models import PlanParseFailedMessage
     class log:
         @staticmethod
         def info(msg):
             return
     is_diff = False
 else:
-    from dacot_models import Commune, ExternalCompany, ControllerModel
-    from dacot_models import User, ProjectMeta, OTU, Project, OTUMeta
-    from dacot_models import Controller, Junction, JunctionMeta, JunctionPlan
-    from dacot_models import JunctionPlanPhaseValue, OTUProgramItem, ActionsLog
     log = None
     is_diff = None # FIXME: Should be a parameter, not a global variable
 
