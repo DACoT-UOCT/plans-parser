@@ -17,7 +17,9 @@ from models import OTUProgramItem as OTUProgramItemModel
 from models import OTUSequenceItem as OTUSequenceItemModel
 from models import OTUPhasesItem as OTUPhasesItemModel
 from models import OTUStagesItem as OTUStagesItemModel
-from models import Project as ProjectModel
+from models import HeaderItem as ProjectHeaderItemModel
+from models import UPS as UPSModel
+from models import Poles as PolesModel
 from models import ProjectMeta as ProjectMetaModel
 from models import Junction as JunctionModel
 from models import JunctionMeta as JunctionMetaModel
@@ -278,7 +280,7 @@ class CreateProjectInput(graphene.InputObjectType):
     headers = graphene.List(ProjectHeadersInput)
     ups = ProjectUPSInput()
     poles = ProjectPolesInput()
-    observations = graphene.NonNull(graphene.List(graphene.String))
+    observation = graphene.NonNull(graphene.String)
 
 class CreateProject(CustomMutation):
     class Arguments:
@@ -426,6 +428,37 @@ class CreateProject(CustomMutation):
             cls.log_action('Failed to create project "{}". {}'.format(proj.oid, ctrl_result), info)
             return ctrl_result
         proj.controller = ctrl_result
+        # Headers
+        if project_details.headers:
+            headers = []
+            for head in project_details.headers:
+                header_item = ProjectHeaderItemModel()
+                header_item.hal = head.hal
+                header_item.led = head.led
+                header_item.type = head.type
+                headers.append(header_item)
+            proj.headers = headers
+        # UPS
+        if project_details.ups:
+            ups = UPSModel()
+            ups.brand = project_details.ups.brand
+            ups.model = project_details.ups.model
+            ups.serial = project_details.ups.serial
+            ups.capacity = project_details.ups.capacity
+            ups.charge_duration = project_details.ups.charge_duration
+            proj.ups = ups
+        # Poles
+        if project_details.poles:
+            poles = PolesModel()
+            poles.hooks = project_details.poles.hooks
+            poles.vehicular = project_details.poles.vehicular
+            poles.pedestrian = project_details.poles.pedestrian
+            proj.poles = poles
+        # Observations
+        obs = CommentModel()
+        obs.author = cls.get_current_user()
+        obs.message = project_details.observation
+        proj.observation = obs
         return proj
 
     @classmethod
