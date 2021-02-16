@@ -294,15 +294,15 @@ class CreateProject(CustomMutation):
                 meta.img.put(fdata, content_type=ftype)
             else:
                 cls.log_action('Failed to create project "{}". Invalid image file type: "{}"'.format(oid, ftype), info)
-                return False, GraphQLError('Invalid image file type: "{}"'.format(ftype))
+                return GraphQLError('Invalid image file type: "{}"'.format(ftype))
         if metain.pdf_data:
             fdata, ftype = cls.get_b64file_data(metain.pdf_data)
             if ftype in ['application/pdf']:
                 meta.pdf_data.put(fdata, content_type=ftype)
             else:
                 cls.log_action('Failed to create project "{}". Invalid  file type: "{}"'.format(oid, ftype), info)
-                return False, GraphQLError('Invalid PDF document file type: "{}"'.format(ftype))
-        return True, meta
+                return GraphQLError('Invalid PDF document file type: "{}"'.format(ftype))
+        return meta
 
     @classmethod
     def build_metadata_options(cls, meta, metain):
@@ -327,17 +327,17 @@ class CreateProject(CustomMutation):
             installation_company = ExternalCompanyModel.objects(name=metain.installation_company).first()
             if not installation_company:
                 cls.log_action('Failed to create project "{}". Company "{}" not found'.format(oid, metain.installation_company), info)
-                return False, GraphQLError('Company "{}" not found'.format(metain.installation_company))
+                return GraphQLError('Company "{}" not found'.format(metain.installation_company))
             meta.installation_company = installation_company
         maintainer = ExternalCompanyModel.objects(name=metain.maintainer).first()
         if not maintainer:
             cls.log_action('Failed to create project "{}". Company "{}" not found'.format(oid, metain.maintainer), info)
-            return False, GraphQLError('Company "{}" not found'.format(metain.maintainer))
+            return GraphQLError('Company "{}" not found'.format(metain.maintainer))
         meta.maintainer = maintainer
         commune = CommuneModel.objects(code=metain.commune).first()
         if not commune:
             cls.log_action('Failed to create project "{}". Commune "{}" not found'.format(oid, metain.commune), info)
-            return False, GraphQLError('Commune "{}" not found'.format(metain.commune))
+            return GraphQLError('Commune "{}" not found'.format(metain.commune))
         meta.commune = commune.name # TODO: FIXME: This should be a reference! Update model
         meta = cls.build_metadata_options(meta, metain)
         return cls.build_metadata_files(meta, metain, oid, info)
@@ -390,7 +390,7 @@ class CreateProject(CustomMutation):
         company = ExternalCompanyModel.objects(name=controller_in.model.company).first()
         if not company:
             cls.log_action('Failed to create project "{}". Company "{}" not found'.format(oid, controller_in.model.company), info)
-            return False, GraphQLError('Company "{}" not found'.format(controller_in.model.company))
+            return GraphQLError('Company "{}" not found'.format(controller_in.model.company))
         model = ControllerModelModel.objects(
             company=company,
             model=controller_in.model.model,
@@ -399,20 +399,20 @@ class CreateProject(CustomMutation):
         ).first()
         if not model:
             cls.log_action('Failed to create project "{}". Model "{}" not found'.format(oid, controller_in.model), info)
-            return False, GraphQLError('Model "{}" not found'.format(controller_in.model))
+            return GraphQLError('Model "{}" not found'.format(controller_in.model))
         ctrl.model = model
-        return True, ctrl
+        return ctrl
 
     @classmethod
-    def mutate(cls, root, info, project_details):
+    def build_project_model(cls, project_details, info):
         proj = ProjectModel()
         proj.oid = project_details.oid
         # Metadata
-        is_success, meta_result = cls.build_metadata(project_details.metadata, project_details.oid, info)
-        if is_success:
-            proj.metadata = meta_result
-        else:
-            return meta_result # Result is a GraphQLError
+        meta_result = cls.build_metadata(project_details.metadata, project_details.oid, info)
+        if isinstance(meta_result, GraphQLError):
+            cls.log_action('Failed to create project "{}". {}'.format(proj.oid, meta_result), info)
+            return meta_result
+        proj.metadata = meta_result
         # OTU
         for junc in project_details.otu.junctions:
             coordlen = len(junc.metadata.coordinates)
@@ -421,11 +421,18 @@ class CreateProject(CustomMutation):
                 GraphQLError('Invalid length for coordinates in jid "{}": {}'.format(junc.jid, coordlen))
         proj.otu = cls.build_otu(project_details.otu, project_details.oid, info)
         # Controller info
-        is_success, ctrl_result = cls.build_controller_info(project_details.controller, project_details.oid, info)
-        if is_success:
-            proj.controller = ctrl_result
-        else:
-            return ctrl_result # Result is a GraphQLError
+        ctrl_result = cls.build_controller_info(project_details.controller, project_details.oid, info)
+        if isinstance(ctrl_result, GraphQLError):
+            cls.log_action('Failed to create project "{}". {}'.format(proj.oid, ctrl_result), info)
+            return ctrl_result
+        proj.controller = ctrl_result
+        return proj
+
+    @classmethod
+    def mutate(cls, root, info, project_details):
+        proj = cls.build_project_model(project_details, info)
+        if isinstance(proj, GraphQLError):
+            return proj
         # Save
         try:
             # TODO: FIXME: Before we save a new project, check if an update exists with the same oid
