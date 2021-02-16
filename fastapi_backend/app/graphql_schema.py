@@ -9,6 +9,7 @@ from models import ActionsLog as ActionsLogModel
 from models import Commune as CommuneModel
 from models import Project as ProjectModel
 from models import Comment as CommentModel
+from models import Controller as ProjControllerModel
 from models import ControllerModel as ControllerModelModel
 from models import OTU as OTUModel
 from models import OTUMeta as OTUMetaModel
@@ -380,6 +381,29 @@ class CreateProject(CustomMutation):
         return otu
 
     @classmethod
+    def build_controller_info(cls, controller_in, oid, info):
+        ctrl = ProjControllerModel()
+        if controller_in.address_reference:
+            ctrl.address_reference = controller_in.address_reference
+        if controller_in.gps:
+            ctrl.gps = controller_in.gps
+        company = ExternalCompanyModel.objects(name=controller_in.model.company).first()
+        if not company:
+            cls.log_action('Failed to create project "{}". Company "{}" not found'.format(oid, controller_in.model.company), info)
+            return False, GraphQLError('Company "{}" not found'.format(controller_in.model.company))
+        model = ControllerModelModel.objects(
+            company=company,
+            model=controller_in.model.model,
+            firmware_version=controller_in.model.firmware_version,
+            checksum=controller_in.model.checksum,
+        ).first()
+        if not model:
+            cls.log_action('Failed to create project "{}". Model "{}" not found'.format(oid, controller_in.model), info)
+            return False, GraphQLError('Model "{}" not found'.format(controller_in.model))
+        ctrl.model = model
+        return True, ctrl
+
+    @classmethod
     def mutate(cls, root, info, project_details):
         proj = ProjectModel()
         proj.oid = project_details.oid
@@ -397,6 +421,11 @@ class CreateProject(CustomMutation):
                 GraphQLError('Invalid length for coordinates in jid "{}": {}'.format(junc.jid, coordlen))
         proj.otu = cls.build_otu(project_details.otu, project_details.oid, info)
         # Controller info
+        is_success, ctrl_result = cls.build_controller_info(project_details.controller, project_details.oid, info)
+        if is_success:
+            proj.controller = ctrl_result
+        else:
+            return ctrl_result # Result is a GraphQLError
         # Save
         try:
             # TODO: FIXME: Before we save a new project, check if an update exists with the same oid
