@@ -153,6 +153,14 @@ class Query(graphene.ObjectType):
     otu = graphene.Field(OTU, oid=graphene.NonNull(graphene.String))
     junctions = graphene.List(Junction)
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
+    projects = graphene.Field(Project, status=graphene.NonNull(graphene.String))
+    project = graphene.Field(Project, oid=graphene.NonNull(graphene.String), status=graphene.NonNull(graphene.String))
+
+    def resolve_projects(self, info, status):
+        return ProjectModel.objects(metadata__status=status, metadata__version='latest').all()
+
+    def resolve_project(self, info, oid, status):
+        return ProjectModel.objects(oid=oid, metadata__status=status, metadata__version='latest').first()
 
     def resolve_junctions(self, info):
         juncs = []
