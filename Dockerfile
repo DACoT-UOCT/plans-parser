@@ -3,7 +3,8 @@ RUN apt update && apt install -y libmagic1 python3-testresources && rm -rf /var/
 RUN python -m pip install --upgrade pip
 COPY requirements.txt requirements.txt
 RUN python -m pip install --no-deps -r requirements.txt
-RUN pushd dacot_models && python -m pip install . && popd
+COPY dacot_models /dacot_models
+RUN cd /dacot_models && python -m pip install .
 COPY fastapi_backend/app /app
 COPY run-api.sh /run-api.sh
 EXPOSE 8080

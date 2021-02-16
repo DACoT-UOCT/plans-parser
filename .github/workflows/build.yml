@@ -23,9 +23,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install --no-deps -r requirements.txt
-          pushd dacot_models
-          pip install .
-          popd
+          cd dacot_models && pip install . && cd ..
       - name: Run coverage tool
         run: |
           coverage run -m unittest -v
