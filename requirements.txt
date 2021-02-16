@@ -48,3 +48,4 @@ pyflakes<2.3.0,>=2.2.0
 dnspython>=1.15.0
 wrapt~=1.11
 lazy-object-proxy==1.4.*
+promise==2.3
