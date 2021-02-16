@@ -11,27 +11,7 @@ from pymongo.errors import DuplicateKeyError
 
 from datetime import datetime
 
-# TODO: Make index
 # TODO: Deletion flags (Cascade, DENY, etc)
-
-# Junction Model ====
-
-class DACoTBackendException(Exception):
-    def __init__(self, status_code=500, details='Internal Server Error'):
-        self._code = status_code
-        self._detail = details
-
-    def __str__(self):
-        return "{}: status_code={} details='{}'".format(self.__class__.__name__, self._code, self._detail)
-
-    def __repr__(self):
-        return "{} (status_code={}, details={})".format(self.__class__.__name__, self._code, self._detail)
-
-    def get_status(self):
-        return self._code
-
-    def get_details(self):
-        return self._detail
 
 class JunctionPlanIntergreenValue(EmbeddedDocument):
     phfrom = IntField(min_value=1, required=True)
@@ -56,15 +36,13 @@ class JunctionPlan(EmbeddedDocument):
 
 class JunctionMeta(EmbeddedDocument):
     location = PointField(required=True)
-    sales_id = IntField(min_value=0, required=True) # This field cannot be unique, the hash function collides in f(J001121) and f(J001122)!!
+    sales_id = IntField(min_value=0, required=True)
     address_reference = StringField()
 
 class Junction(EmbeddedDocument):
-    jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True)#, unique=True) #BUG: If we use unique=True inserts fails
+    jid = StringField(regex=r'J\d{6}', min_length=7, max_length=7, required=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan)
-
-# External Company Model ====
 
 class ExternalCompany(Document):
     meta = {'collection': 'ExternalCompany'}
@@ -76,22 +54,20 @@ class HeaderItem(EmbeddedDocument):
     type = StringField(choices=[
         'L1', 'L2A', 'L2B', 'L2C', 'LD', 'L3A', 'L3B',
         'L3C', 'L4A', 'L4B', 'L4C', 'L5', 'L6',
-        'L7 Peatonal', 'L8 Biciclos', 'L9 Buses', 'L10 Repetidora'
+        'L7', 'L8', 'L9', 'L10'
     ])
 
 class UPS(EmbeddedDocument):
     brand = StringField()
     model = StringField()
     serial = StringField()
-    capacity = StringField() #TODO: preguntar unidad de medida
-    charge_duration = StringField() #TODO: preguntar unidad de medida
+    capacity = StringField()
+    charge_duration = StringField()
 
 class Poles(EmbeddedDocument):
     hooks = IntField(min_value=0)
     vehicular = IntField(min_value=0)
     pedestrian = IntField(min_value=0)
-
-# User Model ====
 
 class User(Document): 
     meta = {'collection': 'User'}
@@ -109,8 +85,6 @@ class Commune(Document):
     user_in_charge = ReferenceField(User)
     name = StringField(unique=True, required=True)
 
-# Comment Model ====
-
 class Comment(EmbeddedDocument):
     date = DateTimeField(default=datetime.utcnow, required=True)
     message = StringField(required=True)
@@ -122,19 +96,17 @@ class ProjectMeta(EmbeddedDocument):
     # status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'PRODUCTION'], required=True)
     status_date = DateTimeField(default=datetime.utcnow, required=True)
     status_user = ReferenceField(User, required=True)
-    installation_date = DateTimeField() # PDF
+    installation_date = DateTimeField()
     installation_company = ReferenceField(ExternalCompany)
     maintainer = ReferenceField(ExternalCompany)
     # commune = ReferenceField(Commune)
     commune = StringField()
-    img = FileField() # PDF
-    pdf_data = FileField() # PDF
-    pedestrian_demand = BooleanField() # PDF
-    pedestrian_facility = BooleanField() # PDF
-    local_detector = BooleanField() # PDF
-    scoot_detector = BooleanField() # PDF
-
-# OTU Controller Model ====
+    img = FileField()
+    pdf_data = FileField()
+    pedestrian_demand = BooleanField()
+    pedestrian_facility = BooleanField()
+    local_detector = BooleanField()
+    scoot_detector = BooleanField()
 
 class ControllerModel(Document):
     meta = {'collection': 'ControllerModel'}
@@ -145,11 +117,9 @@ class ControllerModel(Document):
     date = DateTimeField(default=datetime.utcnow)
 
 class Controller(EmbeddedDocument):
-    address_reference = StringField() # PDF
-    gps = BooleanField() # PDF
+    address_reference = StringField()
+    gps = BooleanField()
     model = ReferenceField(ControllerModel)
-
-# OTU Model ====
 
 class OTUProgramItem(EmbeddedDocument):
     day = StringField(choices=['L', 'V', 'S', 'D'], required=True)
@@ -162,28 +132,28 @@ class OTUStagesItem(EmbeddedDocument):
 
 class OTUPhasesItem(EmbeddedDocument):
     phid = IntField(min_value=1, required=True)
-    stages = EmbeddedDocumentListField(OTUStagesItem, required=True) # TODO: validate sid unique in the list
+    stages = EmbeddedDocumentListField(OTUStagesItem, required=True)
 
 class OTUSequenceItem(EmbeddedDocument):
     seqid = IntField(min_value=1, required=True)
     phases = EmbeddedDocumentListField(OTUPhasesItem, required=True)
 
 class OTUMeta(EmbeddedDocument):
-    serial = StringField() # PDF
+    serial = StringField()
     ip_address = StringField()
-    netmask = StringField() # PDF
-    control = IntField() # PDF
-    answer = IntField() # PDF
-    link_type = StringField(choices=['Digital', 'Analogo']) # PDF
-    link_owner = StringField(choices=['Propio', 'Compartido']) # PDF
+    netmask = StringField()
+    control = IntField()
+    answer = IntField()
+    link_type = StringField(choices=['Digital', 'Analogo'])
+    link_owner = StringField(choices=['Propio', 'Compartido'])
 
 class OTU(EmbeddedDocument):
-    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True)#, unique=True) #BUG: If we use unique=True inserts fails
+    oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True)
     metadata = EmbeddedDocumentField(OTUMeta)
-    programs = EmbeddedDocumentListField(OTUProgramItem) # PDF
-    sequences = EmbeddedDocumentListField(OTUSequenceItem) # PDF
-    intergreens = ListField(IntField(min_value=0)) # PDF # This is in row major oder, TODO: check size has square root (should be a n*n matrix)
-    junctions = EmbeddedDocumentListField(Junction)#, required=True)
+    programs = EmbeddedDocumentListField(OTUProgramItem)
+    sequences = EmbeddedDocumentListField(OTUSequenceItem)
+    intergreens = ListField(IntField(min_value=0))
+    junctions = EmbeddedDocumentListField(Junction, required=True)
 
 class ActionsLog(Document):
     meta = {'collection': 'ActionsLog'}
@@ -199,12 +169,10 @@ class Project(Document):
     oid = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True, unique=True, unique_with=('metadata.version', 'metadata.status'))
     otu = EmbeddedDocumentField(OTU, required=True)
     controller = EmbeddedDocumentField(Controller)
-    headers = EmbeddedDocumentListField(HeaderItem) # PDF
-    ups = EmbeddedDocumentField(UPS) # PDF
-    poles = EmbeddedDocumentField(Poles) # PDF
-    observation = EmbeddedDocumentField(Comment) # PDF
-
-# JsonPatch changes Model ====
+    headers = EmbeddedDocumentListField(HeaderItem)
+    ups = EmbeddedDocumentField(UPS)
+    poles = EmbeddedDocumentField(Poles)
+    observation = EmbeddedDocumentField(Comment)
 
 class ChangeSet(Document):
     meta = {'collection': 'ChangeSets'}
