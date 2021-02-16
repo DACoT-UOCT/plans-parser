@@ -25,7 +25,7 @@ jobs:
           pip install --no-deps -r requirements.txt
       - name: Run coverage tool
         run: |
-          coverage run -m unittest -v || true
+          coverage run -m unittest -v
       - name: Generate xml coverage report
         run: |
           coverage report -m
