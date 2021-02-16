@@ -467,7 +467,7 @@ class CreateProject(CustomMutation):
         obs = CommentModel()
         obs.author = cls.get_current_user()
         obs.message = project_details.observation
-        proj.observation = obs
+        proj.observation = [obs]
         return proj
 
     @classmethod
@@ -486,13 +486,13 @@ class CreateProject(CustomMutation):
         # TODO: Send notification emails
         return proj
 
-class DeleteProjectInput(graphene.InputObjectType):
+class GetProjectInput(graphene.InputObjectType):
     oid = graphene.NonNull(graphene.String)
     status = graphene.NonNull(graphene.String)
 
 class DeleteProject(CustomMutation):
     class Arguments:
-        project_details = DeleteProjectInput()
+        project_details = GetProjectInput()
 
     Output = graphene.String
 
@@ -503,6 +503,46 @@ class DeleteProject(CustomMutation):
             cls.log_action('Failed to delete project "{}" in status "{}". Project not found'.format(project_details.oid, project_details.status), info)
             return GraphQLError('Project "{}" in status "{}" not found'.format(project_details.oid, project_details.status))
         proj.delete()
+        return project_details.oid
+
+class AcceptProject(CustomMutation):
+    class Arguments:
+        project_details = GetProjectInput()
+
+    Output = graphene.String
+
+    @classmethod
+    def mutate(cls, root, info, project_details):
+        if project_details.status not in ['NEW', 'UPDATE']:
+            cls.log_action('Failed to accept project "{}". Invalid status: {}'.format(project_details.oid, project_details.status), info)
+            return GraphQLError('Invalid status: {}'.format(project_details.status))
+        proj = ProjectModel.objects(oid=project_details.oid, status=project_details.status).first()
+        if not proj:
+            cls.log_action('Failed to accept project "{}" in status "{}". Project not found'.format(project_details.oid, project_details.status), info)
+            return GraphQLError('Project "{}" in status "{}" not found'.format(project_details.oid, project_details.status))
+        proj.metadata.status = 'APPROVED'
+        proj.save()
+        cls.log_action('Project "{}" accepted'.format(project_details.oid), info)
+        return project_details.oid
+
+class RejectProject(CustomMutation):
+    class Arguments:
+        project_details = GetProjectInput()
+
+    Output = graphene.String
+
+    @classmethod
+    def mutate(cls, root, info, project_details):
+        if project_details.status not in ['NEW', 'UPDATE']:
+            cls.log_action('Failed to reject project "{}". Invalid status: {}'.format(project_details.oid, project_details.status), info)
+            return GraphQLError('Invalid status: {}'.format(project_details.status))
+        proj = ProjectModel.objects(oid=project_details.oid, status=project_details.status).first()
+        if not proj:
+            cls.log_action('Failed to reject project "{}" in status "{}". Project not found'.format(project_details.oid, project_details.status), info)
+            return GraphQLError('Project "{}" in status "{}" not found'.format(project_details.oid, project_details.status))
+        proj.metadata.status = 'REJECTED'
+        proj.save()
+        cls.log_action('Project "{}" rejected'.format(project_details.oid), info)
         return project_details.oid
 
 class CreateCommuneInput(graphene.InputObjectType):
@@ -824,6 +864,8 @@ class Mutation(graphene.ObjectType):
     update_controller = UpdateControllerModel.Field()
     create_project = CreateProject.Field()
     delete_project = DeleteProject.Field()
+    accept_project = AcceptProject.Field()
+    reject_project = RejectProject.Field()
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
 

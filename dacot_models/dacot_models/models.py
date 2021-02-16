@@ -172,7 +172,7 @@ class Project(Document):
     headers = EmbeddedDocumentListField(HeaderItem)
     ups = EmbeddedDocumentField(UPS)
     poles = EmbeddedDocumentField(Poles)
-    observation = EmbeddedDocumentField(Comment)
+    observation = EmbeddedDocumentListField(Comment)
 
 class ChangeSet(Document):
     meta = {'collection': 'ChangeSets'}
