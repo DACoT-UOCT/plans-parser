@@ -127,7 +127,6 @@ class ProjectMeta(EmbeddedDocument):
     maintainer = ReferenceField(ExternalCompany)
     # commune = ReferenceField(Commune)
     commune = StringField()
-    region = StringField(default='Metropolitana', required=True)
     img = FileField() # PDF
     pdf_data = FileField() # PDF
     pedestrian_demand = BooleanField() # PDF
@@ -203,7 +202,7 @@ class Project(Document):
     headers = EmbeddedDocumentListField(HeaderItem) # PDF
     ups = EmbeddedDocumentField(UPS) # PDF
     poles = EmbeddedDocumentField(Poles) # PDF
-    observations = EmbeddedDocumentListField(Comment) # PDF
+    observation = EmbeddedDocumentField(Comment) # PDF
 
 # JsonPatch changes Model ====
 

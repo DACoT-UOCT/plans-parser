@@ -1095,3 +1095,59 @@ class TestFastAPI(unittest.TestCase):
         result = self.gql.execute('query { otu(oid: "X001140") { invalidField } }')
         err_messages = self.assert_errors_and_get_messages(result)
         assert "Cannot query field 'invalidField' on type 'OTU'." in err_messages
+
+    def test_gql_create_project(self):
+        self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                company: "ACME Corporation",
+                model: "ABC1",
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)
+        result = self.gql.execute("""
+            mutation {
+                createProject(projectDetails: {
+                        oid: "X001110",
+                        metadata: {
+                            maintainer: "ACME Corporation",
+                            commune: 13106
+                        },
+                        controller: {
+                            addressReference: "Street #Number",
+                            gps: false,
+                            model: {
+                                company: "ACME Corporation",
+                                model: "ABC1",
+                                firmwareVersion: "Missing Value",
+                                checksum: "Missing Value"
+                            }
+                        },
+                        otu: {
+                            junctions: [
+                                {
+                                    jid: "J001111",
+                                    metadata: {
+                                        coordinates: [10.10, 20.20],
+                                        addressReference: "Street #Number1"
+                                    }
+                                },
+                                {
+                                    jid: "J001112",
+                                    metadata: {
+                                        coordinates: [30.30, 40.50],
+                                        addressReference: "Street #Number2"
+                                    }
+                                }
+                            ]
+                        },
+                        observation: "Created from selftest"
+                    }
+                ) { oid }
+            }
+        """)
+        assert not 'errors' in result
+        assert result['data']['createProject']['oid'] == 'X001110'
