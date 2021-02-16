@@ -1,4 +1,4 @@
-python-dotenv==0.14.0
+python-dotenv==0.15.0
 mongoengine==0.22.1
 jsonpatch==1.28
 jsonpointer==2.0
