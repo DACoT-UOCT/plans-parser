@@ -91,15 +91,14 @@ class Comment(EmbeddedDocument):
     author = ReferenceField(User, required=True)
 
 class ProjectMeta(EmbeddedDocument):
-    version = StringField(choices=['base', 'latest'], required=True, default='base')
-    status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'SYSTEM'], required=True)
-    # status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'PRODUCTION'], required=True)
+    version = StringField(required=True, default='latest')
+    status = StringField(choices=['NEW', 'UPDATE', 'REJECTED', 'APPROVED', 'PRODUCTION'], required=True)
     status_date = DateTimeField(default=datetime.utcnow, required=True)
     status_user = ReferenceField(User, required=True)
     installation_date = DateTimeField()
     installation_company = ReferenceField(ExternalCompany)
     maintainer = ReferenceField(ExternalCompany)
-    # commune = ReferenceField(Commune)
+    commune = ReferenceField(Commune)
     commune = StringField()
     img = FileField()
     pdf_data = FileField()
@@ -173,14 +172,6 @@ class Project(Document):
     ups = EmbeddedDocumentField(UPS)
     poles = EmbeddedDocumentField(Poles)
     observation = EmbeddedDocumentListField(Comment)
-
-class ChangeSet(Document):
-    meta = {'collection': 'ChangeSets'}
-    apply_to = ReferenceField(Project, required=True)
-    apply_to_id = StringField(regex=r'X\d{5}0', min_length=7, max_length=7, required=True)
-    date = DateTimeField(default=datetime.utcnow, required=True)
-    changes = ListField(DictField(), required=True)
-    message = StringField()
 
 class PlanParseFailedMessage(Document):
     meta = {'collection': 'PlanParseFailedMessage'}
