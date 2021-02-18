@@ -27,7 +27,6 @@ from dacot_models import JunctionPlan as JunctionPlanModel
 from dacot_models import JunctionPlanPhaseValue as JunctionPlanPhaseValueModel
 from dacot_models import JunctionPlanIntergreenValue as JunctionPlanIntergreenValueModel
 from dacot_models import PlanParseFailedMessage as PlanParseFailedMessageModel
-from dacot_models import ChangeSet as ChangeSetModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
 
@@ -112,9 +111,10 @@ class OTUProgramItem(MongoengineObjectType):
     class Meta:
         model = OTUProgramItemModel
 
-class ChangeSet(MongoengineObjectType):
-    class Meta:
-        model = ChangeSetModel
+class PartialVersionInfo(graphene.ObjectType):
+    vid = graphene.NonNull(graphene.String)
+    date = graphene.NonNull(graphene.DateTime)
+    comment = graphene.NonNull(Comment)
 
 class CustomMutation(graphene.Mutation):
     # TODO: FIXME: Send emails functions
@@ -161,18 +161,28 @@ class Query(graphene.ObjectType):
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
     projects = graphene.Field(Project, status=graphene.NonNull(graphene.String))
     project = graphene.Field(Project, oid=graphene.NonNull(graphene.String), status=graphene.NonNull(graphene.String))
-    versions = graphene.List(ChangeSet, oid=graphene.NonNull(graphene.String))
-    base_version = graphene.Field(Project, oid=graphene.NonNull(graphene.String))
+    versions = graphene.List(PartialVersionInfo, oid=graphene.NonNull(graphene.String))
+    version = graphene.Field(Project, oid=graphene.NonNull(graphene.String), vid=graphene.NonNull(graphene.String))
 
-    def resolve_base_version(self, info, oid):
-        return ProjectModel.objects(
+    def resolve_version(self, info, oid, vid):
+        version = ProjectModel.objects(
             oid=oid,
-            metadata__status__in=['APPROVED', 'SYSTEM'],
-            metadata__version='base'
+            metadata__status='PRODUCTION',
+            metadata__version=vid
         ).exclude('metadata.pdf_data').first()
+        if not version:
+            return GraphQLError('Version "{}" not found'.format(vid))
+        return version
 
     def resolve_versions(self, info, oid):
-        return ChangeSetModel.objects(apply_to_id=oid).order_by('-date').exclude('apply_to', 'changes').all()
+        result = []
+        project_versions = ProjectModel.objects(
+            oid=oid,
+            metadata__status='PRODUCTION'
+        ).order_by('-status_date').only('metadata.version', 'metadata.status_date', 'observation').all()
+        for ver in project_versions:
+            result.append(PartialVersionInfo(vid=ver.metadata.version, date=ver.metadata.status_date, comment=ver.observation))
+        return result
 
     def resolve_projects(self, info, status):
         return ProjectModel.objects(metadata__status=status, metadata__version='latest').all()
@@ -484,7 +494,7 @@ class CreateProject(CustomMutation):
         obs = CommentModel()
         obs.author = cls.get_current_user()
         obs.message = project_details.observation
-        proj.observation = [obs]
+        proj.observation = obs
         return proj
 
     @classmethod
