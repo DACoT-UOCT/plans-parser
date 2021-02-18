@@ -254,7 +254,7 @@ def build_project_meta(csv_index):
     u = User.objects(email='seed@dacot.uoct.cl').first()
     for k, v in csv_index.items():
         rk = k.split('.')[0]
-        m = ProjectMeta(version='base', status='SYSTEM', status_user=u)
+        m = ProjectMeta(version='base', status='PRODUCTION', status_user=u)
         m.commune = v.get('commune')
         m.maintainer = comp.get(v.get('maintainer'))
         r[rk] = m

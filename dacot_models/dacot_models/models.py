@@ -171,7 +171,7 @@ class Project(Document):
     headers = EmbeddedDocumentListField(HeaderItem)
     ups = EmbeddedDocumentField(UPS)
     poles = EmbeddedDocumentField(Poles)
-    observation = EmbeddedDocumentListField(Comment)
+    observation = EmbeddedDocumentField(Comment)
 
 class PlanParseFailedMessage(Document):
     meta = {'collection': 'PlanParseFailedMessage'}
