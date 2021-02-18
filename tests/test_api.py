@@ -53,8 +53,6 @@ class TestFastAPI(unittest.TestCase):
         data = {'query': '{ loginApiKey(key: "key", secret: "secret_key") }'}
         response = self.client.post('/graphql', json=data)
         response.raise_for_status()
-        print(response.content)
-        assert False
 
     def test_gql_get_users(self):
         result = self.gql.execute('query { users { email fullName } }')
