@@ -66,6 +66,9 @@ jobs:
         uses: actions/download-artifact@v2.0.8
         with:
           name: report
+      - name: List files in coverage report
+        run: |
+          ls -lah /home/runner/work/backend/backend
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master
         env:
