@@ -163,6 +163,12 @@ class Query(graphene.ObjectType):
     project = graphene.Field(Project, oid=graphene.NonNull(graphene.String), status=graphene.NonNull(graphene.String))
     versions = graphene.List(PartialVersionInfo, oid=graphene.NonNull(graphene.String))
     version = graphene.Field(Project, oid=graphene.NonNull(graphene.String), vid=graphene.NonNull(graphene.String))
+    login_api_key = graphene.String(key=graphene.NonNull(graphene.String), secret=graphene.NonNull(graphene.String))
+
+    def resolve_login_api_key(self, info, key, secret):
+        authorize = info.context['request'].state.authorize
+        token = authorize.create_access_token(subject=key)
+        return token
 
     def resolve_version(self, info, oid, vid):
         version = ProjectModel.objects(

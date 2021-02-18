@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     mail_ssl: bool = False
     mail_config: ConnectionConfig = None
     mail_creation_recipients: List[str] = set()
+    authjwt_secret_key: str
 
 settings = Settings()
 

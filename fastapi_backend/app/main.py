@@ -2,8 +2,9 @@ from .config import get_settings
 from mongoengine import connect
 from starlette.graphql import GraphQLApp
 from .graphql_schema import dacot_schema
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from starlette.datastructures import URL
+from fastapi_jwt_auth import AuthJWT
 
 connect(host=get_settings().mongo_uri)
 
@@ -21,6 +22,10 @@ app = FastAPI(
     description=api_description
 )
 
+@AuthJWT.load_config
+def get_config():
+    return get_settings()
+
 graphql_app = GraphQLApp(schema=dacot_schema)
 
 @app.get('/')
@@ -29,5 +34,6 @@ async def graphiql(request: Request):
     return await graphql_app.handle_graphiql(request=request)
 
 @app.post('/graphql')
-async def graphql(request: Request):
+async def graphql(request: Request, authorize: AuthJWT = Depends()):
+    request.state.authorize = authorize
     return await graphql_app.handle_graphql(request=request)

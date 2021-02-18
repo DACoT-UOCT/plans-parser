@@ -5,6 +5,7 @@ import mongomock
 import mongomock.gridfs
 from graphene.test import Client as GQLClient
 
+os.environ['authjwt_secret_key'] = 'JCTn;o1?wH:c<aJJt;HO4wXQW}*Rz('
 os.environ['mongo_db'] = 'db'
 os.environ['mongo_uri'] = 'mongomock://127.0.0.1'
 os.environ['RUNNING_TEST'] = 'OK'
@@ -47,6 +48,13 @@ class TestFastAPI(unittest.TestCase):
 
     def parse_mongomock_id(self, mock_id):
         return str(base64.b64decode(mock_id)).replace('\'', '').split(':')[1]
+
+    def test_auth_do_login_apikey(self):
+        data = {'query': '{ loginApiKey(key: "key", secret: "secret_key") }'}
+        response = self.client.post('/graphql', json=data)
+        response.raise_for_status()
+        print(response.content)
+        assert False
 
     def test_gql_get_users(self):
         result = self.gql.execute('query { users { email fullName } }')
