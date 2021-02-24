@@ -83,7 +83,7 @@ class Commune(Document):
     code = IntField(min_value=0, required=True, unique=True)
     maintainer = ReferenceField(ExternalCompany)
     user_in_charge = ReferenceField(User)
-    name = StringField(unique=True, required=True)
+    name = StringField(unique=True, required=True, min_length=4)
 
 class Comment(EmbeddedDocument):
     date = DateTimeField(default=datetime.utcnow, required=True)
