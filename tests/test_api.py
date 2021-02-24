@@ -1178,3 +1178,87 @@ class TestFastAPI(unittest.TestCase):
         result = self.gql.execute('query { checkOtuExists(oid: "") }')
         assert not 'errors' in result
         assert result['data']['checkOtuExists'] == False
+
+    def test_gql_create_commune_min_fields(self):
+        result = self.gql.execute('mutation { createCommune(communeDetails: { code: 10101, name: "FakeName" }) { name code } }')
+        assert not 'errors' in result
+        assert result['data']['createCommune']['code'] == 10101
+        assert result['data']['createCommune']['name'] == 'FakeName'
+
+    def test_gql_create_commune_all_fields(self):
+        result = self.gql.execute('''mutation {
+            createCommune(communeDetails: {
+                code: 10101, name: "FakeName", maintainer: "ACME Corporation", userInCharge: "seed@dacot.uoct.cl"
+                }
+            ) { name code maintainer { name } userInCharge { email } }
+        }''')
+        assert not 'errors' in result
+        assert result['data']['createCommune']['code'] == 10101
+        assert result['data']['createCommune']['name'] == 'FakeName'
+        assert result['data']['createCommune']['maintainer']['name'] == 'ACME Corporation'
+        assert result['data']['createCommune']['userInCharge']['email'] == 'seed@dacot.uoct.cl'
+
+    def test_gql_create_commune_only_user(self):
+        result = self.gql.execute('''mutation {
+            createCommune(communeDetails: {
+                code: 10101, name: "FakeName", userInCharge: "seed@dacot.uoct.cl"
+                }
+            ) { name code maintainer { name } userInCharge { email } }
+        }''')
+        assert not 'errors' in result
+        assert result['data']['createCommune']['code'] == 10101
+        assert result['data']['createCommune']['name'] == 'FakeName'
+        assert result['data']['createCommune']['userInCharge']['email'] == 'seed@dacot.uoct.cl'
+
+    def test_gql_create_commune_only_maintainer(self):
+        result = self.gql.execute('''mutation {
+            createCommune(communeDetails: {
+                code: 10101, name: "FakeName", maintainer: "ACME Corporation"
+                }
+            ) { name code maintainer { name } userInCharge { email } }
+        }''')
+        assert not 'errors' in result
+        assert result['data']['createCommune']['code'] == 10101
+        assert result['data']['createCommune']['name'] == 'FakeName'
+        assert result['data']['createCommune']['maintainer']['name'] == 'ACME Corporation'
+
+    def test_gql_create_commune_missing_fields(self):
+        result = self.gql.execute('mutation { createCommune(communeDetails: { code: 10101 }) { name code } }')
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert "Field 'CreateCommuneInput.name' of required type 'String!' was not provided." in err_messages
+
+    def test_gql_create_commune_invalid_field(self):
+        result = self.gql.execute('mutation { createCommune(details: { code: 101011, name: "FakeName" }) { name code } }')
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert "Unknown argument 'details' on field 'Mutation.createCommune'." in err_messages
+
+    def test_gql_create_commune_duplicated(self):
+        result = self.gql.execute('mutation { createCommune(communeDetails: { code: 13502, name: "FakeName" }) { name code } }')
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'Tried to save duplicate unique keys (E11000 Duplicate Key Error)' in err_messages
+
+    def test_gql_create_commune_empty_value(self):
+        result = self.gql.execute('mutation { createCommune(communeDetails: { code: 101011, name: "" }) { name code } }')
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert "String value is too short: ['name']" in err_messages
+        assert 'ValidationError' in err_messages
+
+    def test_gql_create_commune_maintainer_not_found(self):
+        result = self.gql.execute('''mutation {
+            createCommune(communeDetails: {
+                code: 10101, name: "FakeName", maintainer: "Not Exists"
+                }
+            ) { name code maintainer { name } userInCharge { email } }
+        }''')
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'Maintainer "Not Exists" not found' in err_messages
+
+    def test_gql_create_commune_user_not_found(self):
+        result = self.gql.execute('''mutation {
+            createCommune(communeDetails: {
+                code: 10101, name: "FakeName", userInCharge: "missing@example.org"
+                }
+            ) { name code maintainer { name } userInCharge { email } }
+        }''')
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert 'User "missing@example.org" not found' in err_messages
