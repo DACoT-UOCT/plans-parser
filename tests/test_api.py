@@ -1158,3 +1158,23 @@ class TestFastAPI(unittest.TestCase):
         """)
         assert not 'errors' in result
         assert result['data']['createProject']['oid'] == 'X001110'
+
+    def test_gql_check_otu_exists(self):
+        result = self.gql.execute('query { checkOtuExists(oid: "X001110") }')
+        assert not 'errors' in result
+        assert result['data']['checkOtuExists'] == True
+
+    def test_gql_check_otu_exists_not_found(self):
+        result = self.gql.execute('query { checkOtuExists(oid: "X001111") }')
+        assert not 'errors' in result
+        assert result['data']['checkOtuExists'] == False
+
+    def test_gql_check_otu_exists_invalid_input(self):
+        result = self.gql.execute('query { checkOtuExists(inputValue: "X001111") }')
+        err_messages = self.assert_errors_and_get_messages(result)
+        assert "Unknown argument 'inputValue' on field 'Query.checkOtuExists'." in err_messages
+
+    def test_gql_check_otu_exists_null_input(self):
+        result = self.gql.execute('query { checkOtuExists(oid: "") }')
+        assert not 'errors' in result
+        assert result['data']['checkOtuExists'] == False

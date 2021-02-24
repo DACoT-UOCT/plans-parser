@@ -164,6 +164,11 @@ class Query(graphene.ObjectType):
     versions = graphene.List(PartialVersionInfo, oid=graphene.NonNull(graphene.String))
     version = graphene.Field(Project, oid=graphene.NonNull(graphene.String), vid=graphene.NonNull(graphene.String))
     login_api_key = graphene.String(key=graphene.NonNull(graphene.String), secret=graphene.NonNull(graphene.String))
+    check_otu_exists = graphene.Boolean(oid=graphene.NonNull(graphene.String))
+
+    def resolve_check_otu_exists(self, info, oid):
+        proj = ProjectModel.objects(oid=oid).only('id').first()
+        return proj != None
 
     def resolve_login_api_key(self, info, key, secret):
         authorize = info.context['request'].state.authorize
