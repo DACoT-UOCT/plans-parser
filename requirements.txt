@@ -49,4 +49,5 @@ dnspython>=1.15.0
 wrapt~=1.12
 lazy-object-proxy==1.5.*
 promise==2.3
+typing-extensions==3.7.4.3
 fastapi-jwt-auth==0.5.0
