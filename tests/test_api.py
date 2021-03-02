@@ -1252,6 +1252,13 @@ class TestFastAPI(unittest.TestCase):
         assert not 'errors' in result
         assert len(result['data']['versions']) == 2 # TODO: FIXME: This will break when updating seed script (drop base version)
 
+    def test_gql_get_single_version(self):
+        result = self.gql.execute('query { version(oid: "X001110", vid: "latest") { oid metadata { status version } } }')
+        assert not 'errors' in result
+        assert result['data']['version']['oid'] == 'X001110'
+        assert result['data']['version']['metadata']['status'] == 'PRODUCTION'
+        assert result['data']['version']['metadata']['version'] == 'latest'
+
     def test_gql_check_otu_exists(self):
         result = self.gql.execute('query { checkOtuExists(oid: "X001110") }')
         assert not 'errors' in result
