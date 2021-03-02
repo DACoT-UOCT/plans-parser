@@ -2,6 +2,7 @@ import magic
 import base64
 import logging
 import graphene
+from datetime import datetime
 from graphene_mongo import MongoengineObjectType
 from dacot_models import User as UserModel
 from dacot_models import ExternalCompany as ExternalCompanyModel
@@ -524,6 +525,25 @@ class CreateProject(CustomMutation):
         # TODO: Send notification emails
         return proj
 
+class UpdateProject(CreateProject):
+    class Arguments:
+        project_details = CreateProjectInput()
+
+    Output = Project
+
+    @classmethod
+    def mutate(cls, root, info, project_details):
+        update_input = cls.build_project_model(project_details, info)
+        if isinstance(update_input, GraphQLError):
+            return update_input
+        update_input.metadata.status = 'UPDATE'
+        try:
+            update_input.save()
+        except ValidationError as excep:
+            cls.log_action('Failed to create update for project "{}". {}'.format(update_input.oid, excep), info)
+            return GraphQLError(excep)
+        return update_input
+
 class GetProjectInput(graphene.InputObjectType):
     oid = graphene.NonNull(graphene.String)
     status = graphene.NonNull(graphene.String)
@@ -554,14 +574,38 @@ class AcceptProject(CustomMutation):
         if project_details.status not in ['NEW', 'UPDATE']:
             cls.log_action('Failed to accept project "{}". Invalid status: {}'.format(project_details.oid, project_details.status), info)
             return GraphQLError('Invalid status: {}'.format(project_details.status))
-        proj = ProjectModel.objects(oid=project_details.oid, status=project_details.status).first()
+        proj = ProjectModel.objects(oid=project_details.oid, metadata__status=project_details.status, metadata__version='latest').first()
         if not proj:
             cls.log_action('Failed to accept project "{}" in status "{}". Project not found'.format(project_details.oid, project_details.status), info)
             return GraphQLError('Project "{}" in status "{}" not found'.format(project_details.oid, project_details.status))
-        proj.metadata.status = 'APPROVED'
-        proj.save()
-        cls.log_action('Project "{}" accepted'.format(project_details.oid), info)
-        return project_details.oid
+        if project_details.status == 'UPDATE':
+            # Find latest version
+            base_proj = ProjectModel.objects(oid=project_details.oid, metadata__status='PRODUCTION', metadata__version='latest').first()
+            if not base_proj:
+                cls.log_action('Failed to update project "{}". Base version not found'.format(project_details.oid), info)
+                return GraphQLError('Base version not found')
+            # Old latest is '$now' version
+            new_version = datetime.now().isoformat()
+            base_proj.metadata.version = new_version
+            # New input will be the latest version
+            proj.metadata.status = 'PRODUCTION'
+            try:
+                base_proj.save()
+                proj.save()
+            except ValidationError as excep:
+                cls.log_action('Failed to accept update for project "{}". {}'.format(project_details.oid, excep), info)
+                return GraphQLError(excep)
+            cls.log_action('Update for project "{}" ACCEPTED'.format(project_details.oid), info)
+            return proj.oid
+        else:
+            proj.metadata.status = 'PRODUCTION'
+            try:
+                proj.save()
+            except ValidationError as excep:
+                cls.log_action('Failed to accept new project "{}". {}'.format(project_details.oid, excep), info)
+                return GraphQLError(excep)
+            cls.log_action('New project "{}" ACCEPTED'.format(project_details.oid), info)
+            return proj.oid
 
 class RejectProject(CustomMutation):
     class Arguments:
@@ -904,6 +948,7 @@ class Mutation(graphene.ObjectType):
     delete_project = DeleteProject.Field()
     accept_project = AcceptProject.Field()
     reject_project = RejectProject.Field()
+    update_project = UpdateProject.Field()
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
 
