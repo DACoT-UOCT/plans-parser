@@ -35,6 +35,10 @@ class Project(MongoengineObjectType):
     class Meta:
         model = ProjectModel
 
+class ProjectMeta(MongoengineObjectType):
+    class Meta:
+        model = ProjectMetaModel
+
 class JunctionMeta(MongoengineObjectType):
     class Meta:
         model = JunctionMetaModel
@@ -115,7 +119,7 @@ class OTUProgramItem(MongoengineObjectType):
 class PartialVersionInfo(graphene.ObjectType):
     vid = graphene.NonNull(graphene.String)
     date = graphene.NonNull(graphene.DateTime)
-    comment = graphene.NonNull(Comment)
+    comment = graphene.Field(Comment)
 
 class CustomMutation(graphene.Mutation):
     # TODO: FIXME: Send emails functions
@@ -160,7 +164,8 @@ class Query(graphene.ObjectType):
     otu = graphene.Field(OTU, oid=graphene.NonNull(graphene.String))
     junctions = graphene.List(Junction)
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
-    projects = graphene.Field(Project, status=graphene.NonNull(graphene.String))
+    all_projects = graphene.List(Project)
+    projects = graphene.List(Project, status=graphene.NonNull(graphene.String))
     project = graphene.Field(Project, oid=graphene.NonNull(graphene.String), status=graphene.NonNull(graphene.String))
     versions = graphene.List(PartialVersionInfo, oid=graphene.NonNull(graphene.String))
     version = graphene.Field(Project, oid=graphene.NonNull(graphene.String), vid=graphene.NonNull(graphene.String))
@@ -170,6 +175,9 @@ class Query(graphene.ObjectType):
     def resolve_check_otu_exists(self, info, oid):
         proj = ProjectModel.objects(oid=oid).only('id').first()
         return proj != None
+
+    def resolve_all_projects(self, info):
+        return ProjectModel.objects.all()
 
     def resolve_login_api_key(self, info, key, secret):
         authorize = info.context['request'].state.authorize

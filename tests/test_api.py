@@ -1159,6 +1159,99 @@ class TestFastAPI(unittest.TestCase):
         assert not 'errors' in result
         assert result['data']['createProject']['oid'] == 'X001110'
 
+    def test_gql_update_project_create(self):
+        self.gql.execute("""
+        mutation {
+            createController(controllerDetails: {
+                company: "ACME Corporation",
+                model: "ABC1",
+            })
+            {
+                id company { name } model firmwareVersion checksum
+            }
+        }
+        """)
+        result = self.gql.execute("""
+            mutation {
+                updateProject(projectDetails: {
+                        oid: "X001110",
+                        metadata: {
+                            maintainer: "ACME Corporation",
+                            commune: 13106
+                        },
+                        controller: {
+                            addressReference: "Street #Number",
+                            gps: false,
+                            model: {
+                                company: "ACME Corporation",
+                                model: "ABC1",
+                                firmwareVersion: "Missing Value",
+                                checksum: "Missing Value"
+                            }
+                        },
+                        otu: {
+                            junctions: [
+                                {
+                                    jid: "J001111",
+                                    metadata: {
+                                        coordinates: [10.10, 20.20],
+                                        addressReference: "Street #Number1"
+                                    }
+                                },
+                                {
+                                    jid: "J001112",
+                                    metadata: {
+                                        coordinates: [30.30, 40.50],
+                                        addressReference: "Street #Number2"
+                                    }
+                                }
+                            ]
+                        },
+                        observation: "Created from selftest"
+                    }
+                ) { oid }
+            }
+        """)
+        assert not 'errors' in result
+        assert result['data']['updateProject']['oid'] == 'X001110'
+
+    def test_gql_update_project_accept(self):
+        self.test_gql_update_project_create()
+        result = self.gql.execute('mutation { acceptProject(projectDetails: { oid: "X001110" status: "UPDATE"}) }')
+        assert not 'errors' in result
+        assert result['data']['acceptProject'] == 'X001110'
+
+    def test_gql_get_all_projects(self):
+        result = self.gql.execute('query { allProjects { oid metadata { status } } }')
+        assert not 'errors' in result
+        assert len(result['data']['allProjects'])
+
+    def test_gql_get_update_projects_empty(self):
+        result = self.gql.execute('query { projects(status: "UPDATE") { oid metadata { status } } }')
+        assert not 'errors' in result
+        assert len(result['data']['projects']) == 0
+
+    def test_gql_get_update_projects_create_and_accept(self):
+        self.test_gql_get_update_projects_empty()
+        self.test_gql_update_project_create()
+        result1 = self.gql.execute('query { projects(status: "UPDATE") { oid metadata { status } } }')
+        assert not 'errors' in result1
+        assert len(result1['data']['projects']) == 1
+        self.gql.execute('mutation { acceptProject(projectDetails: { oid: "X001110" status: "UPDATE"}) }')
+        self.test_gql_get_update_projects_empty()
+
+    def test_gql_list_versions_create_and_accept_update(self):
+        self.test_gql_list_versions_empty()
+        self.test_gql_get_update_projects_create_and_accept()
+        result = self.gql.execute('query { versions(oid: "X001110") { vid date comment { author { email } message } } }')
+        assert not 'errors' in result
+        assert len(result['data']['versions']) == 3 # TODO: FIXME: This will break when updating seed script (drop base version)
+
+    def test_gql_list_versions_empty(self):
+        result = self.gql.execute('query { versions(oid: "X001110") { vid date comment { author { email } message } } }')
+        assert not 'errors' in result
+        assert len(result['data']['versions']) == 2 # TODO: FIXME: This will break when updating seed script (drop base version)
+
     def test_gql_check_otu_exists(self):
         result = self.gql.execute('query { checkOtuExists(oid: "X001110") }')
         assert not 'errors' in result
