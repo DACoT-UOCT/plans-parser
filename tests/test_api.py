@@ -1240,6 +1240,26 @@ class TestFastAPI(unittest.TestCase):
         self.gql.execute('mutation { acceptProject(projectDetails: { oid: "X001110" status: "UPDATE"}) }')
         self.test_gql_get_update_projects_empty()
 
+    def test_gql_get_update_projects_create_and_delete(self):
+        self.test_gql_get_update_projects_empty()
+        self.test_gql_update_project_create()
+        result1 = self.gql.execute('query { projects(status: "UPDATE") { oid metadata { status } } }')
+        assert not 'errors' in result1
+        assert len(result1['data']['projects']) == 1
+        response = self.gql.execute('mutation { deleteProject(projectDetails: { oid: "X001110" status: "UPDATE"}) }')
+        assert not 'errors' in response
+        self.test_gql_get_update_projects_empty()
+
+    def test_gql_get_update_projects_create_and_reject(self):
+        self.test_gql_get_update_projects_empty()
+        self.test_gql_update_project_create()
+        result1 = self.gql.execute('query { projects(status: "UPDATE") { oid metadata { status } } }')
+        assert not 'errors' in result1
+        assert len(result1['data']['projects']) == 1
+        response = self.gql.execute('mutation { rejectProject(projectDetails: { oid: "X001110" status: "UPDATE"}) }')
+        assert not 'errors' in response
+        self.test_gql_get_update_projects_empty()
+
     def test_gql_list_versions_create_and_accept_update(self):
         self.test_gql_list_versions_empty()
         self.test_gql_get_update_projects_create_and_accept()
@@ -1362,3 +1382,19 @@ class TestFastAPI(unittest.TestCase):
         }''')
         err_messages = self.assert_errors_and_get_messages(result)
         assert 'User "missing@example.org" not found' in err_messages
+
+    def test_gql_get_junctions(self):
+        result = self.gql.execute('query { junctions { jid } }')
+        assert not 'errors' in result
+        assert len(result['data']['junctions']) > 0
+
+    def test_gql_get_junctions_empty(self):
+        drop_old_data()
+        result = self.gql.execute('query { junctions { jid } }')
+        assert not 'errors' in result
+        assert len(result['data']['junctions']) == 0
+
+    def test_gql_get_junctions_coordinates(self):
+        result = self.gql.execute('query { junctions { jid metadata { location { coordinates } } } }')
+        assert not 'errors' in result
+        assert len(result['data']['junctions']) > 0

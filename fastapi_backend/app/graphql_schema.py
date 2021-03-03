@@ -564,11 +564,18 @@ class DeleteProject(CustomMutation):
 
     @classmethod
     def mutate(cls, root, info, project_details):
-        proj = ProjectModel.objects(oid=project_details.oid, status=project_details.status).first()
+        if project_details == 'PRODUCTION':
+            cls.log_action('Failed to delete project "{}". Cannot delete data in PRODUCTION status'.format(project_details.oid), info)
+            return GraphQLError('Failed to delete project "{}". Cannot delete data in PRODUCTION status'.format(project_details.oid))
+        proj = ProjectModel.objects(oid=project_details.oid, metadata__status=project_details.status).first()
         if not proj:
             cls.log_action('Failed to delete project "{}" in status "{}". Project not found'.format(project_details.oid, project_details.status), info)
             return GraphQLError('Project "{}" in status "{}" not found'.format(project_details.oid, project_details.status))
-        proj.delete()
+        try:
+            proj.delete()
+        except ValidationError as excep:
+            cls.log_action('Failed to delete project "{}" in status "{}": {}'.format(project_details.oid, project_details.status, excep), info)
+            return GraphQLError(excep)
         return project_details.oid
 
 class AcceptProject(CustomMutation):
@@ -626,12 +633,18 @@ class RejectProject(CustomMutation):
         if project_details.status not in ['NEW', 'UPDATE']:
             cls.log_action('Failed to reject project "{}". Invalid status: {}'.format(project_details.oid, project_details.status), info)
             return GraphQLError('Invalid status: {}'.format(project_details.status))
-        proj = ProjectModel.objects(oid=project_details.oid, status=project_details.status).first()
+        proj = ProjectModel.objects(oid=project_details.oid, metadata__status=project_details.status).first()
         if not proj:
             cls.log_action('Failed to reject project "{}" in status "{}". Project not found'.format(project_details.oid, project_details.status), info)
             return GraphQLError('Project "{}" in status "{}" not found'.format(project_details.oid, project_details.status))
         proj.metadata.status = 'REJECTED'
-        proj.save()
+        new_version = datetime.now().isoformat()
+        proj.metadata.version = new_version
+        try:
+            proj.save()
+        except ValidationError as excep:
+            cls.log_action('Failed to reject project "{}" in status "{}": {}'.format(project_details.oid, project_details.status, excep), info)
+            return GraphQLError(excep)
         cls.log_action('Project "{}" rejected'.format(project_details.oid), info)
         return project_details.oid
 
