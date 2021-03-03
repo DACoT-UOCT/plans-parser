@@ -31,95 +31,118 @@ from dacot_models import PlanParseFailedMessage as PlanParseFailedMessageModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
 
+
 class Project(MongoengineObjectType):
     class Meta:
         model = ProjectModel
+
 
 class ProjectMeta(MongoengineObjectType):
     class Meta:
         model = ProjectMetaModel
 
+
 class JunctionMeta(MongoengineObjectType):
     class Meta:
         model = JunctionMetaModel
+
 
 class JunctionPlan(MongoengineObjectType):
     class Meta:
         model = JunctionPlanModel
 
+
 class JunctionPlanPhaseValue(MongoengineObjectType):
     class Meta:
         model = JunctionPlanPhaseValueModel
+
 
 class JunctionPlanIntergreenValue(MongoengineObjectType):
     class Meta:
         model = JunctionPlanIntergreenValueModel
 
+
 class Junction(MongoengineObjectType):
     class Meta:
         model = JunctionModel
+
 
 class OTUStagesItem(MongoengineObjectType):
     class Meta:
         model = OTUStagesItemModel
 
+
 class OTUPhasesItem(MongoengineObjectType):
     class Meta:
         model = OTUPhasesItemModel
+
 
 class OTUSequenceItem(MongoengineObjectType):
     class Meta:
         model = OTUSequenceItemModel
 
+
 class Comment(MongoengineObjectType):
     class Meta:
         model = CommentModel
 
+
 class PlanParseFailedMessage(MongoengineObjectType):
     class Meta:
         model = PlanParseFailedMessageModel
+
 
 class PartialPlanParseFailedMessage(graphene.ObjectType):
     id = graphene.NonNull(graphene.String)
     date = graphene.NonNull(graphene.DateTime)
     comment = graphene.NonNull(Comment)
 
+
 class ExternalCompany(MongoengineObjectType):
     class Meta:
         model = ExternalCompanyModel
+
 
 class User(MongoengineObjectType):
     class Meta:
         model = UserModel
 
+
 class ActionsLog(MongoengineObjectType):
     class Meta:
         model = ActionsLogModel
+
 
 class Commune(MongoengineObjectType):
     class Meta:
         model = CommuneModel
 
+
 class ControllerModel(MongoengineObjectType):
     class Meta:
         model = ControllerModelModel
+
 
 class OTU(MongoengineObjectType):
     class Meta:
         model = OTUModel
 
+
 class OTUMeta(MongoengineObjectType):
     class Meta:
         model = OTUMetaModel
+
 
 class OTUProgramItem(MongoengineObjectType):
     class Meta:
         model = OTUProgramItemModel
 
+
 class PartialVersionInfo(graphene.ObjectType):
     vid = graphene.NonNull(graphene.String)
     date = graphene.NonNull(graphene.DateTime)
     comment = graphene.Field(Comment)
+
 
 class CustomMutation(graphene.Mutation):
     # TODO: FIXME: Send emails functions
@@ -134,21 +157,24 @@ class CustomMutation(graphene.Mutation):
     def log_action(cls, message, graphql_info):
         op = str(graphql_info.operation)
         current_user = cls.get_current_user()
-        log = ActionsLogModel(user=current_user.email, context=op, action=message, origin='GraphQL API')
+        log = ActionsLogModel(
+            user=current_user.email, context=op, action=message, origin="GraphQL API"
+        )
         log.save()
 
     @classmethod
     def get_current_user(cls):
         # Returns the currently logged user
         # TODO: FIXME: For now, we return the same user for all requests
-        return UserModel.objects(email='seed@dacot.uoct.cl').first()
+        return UserModel.objects(email="seed@dacot.uoct.cl").first()
 
     @classmethod
     def get_b64file_data(cls, base64data):
-        _, filedata = base64data.split(',')
+        _, filedata = base64data.split(",")
         b64bytes = base64.b64decode(filedata)
         mime = magic.from_buffer(b64bytes[0:2048], mime=True)
         return b64bytes, mime
+
 
 class Query(graphene.ObjectType):
     users = graphene.List(User)
@@ -158,7 +184,9 @@ class Query(graphene.ObjectType):
     communes = graphene.List(Commune)
     companies = graphene.List(ExternalCompany)
     failed_plans = graphene.List(PartialPlanParseFailedMessage)
-    failed_plan = graphene.Field(PlanParseFailedMessage, mid=graphene.NonNull(graphene.String))
+    failed_plan = graphene.Field(
+        PlanParseFailedMessage, mid=graphene.NonNull(graphene.String)
+    )
     controller_models = graphene.List(ControllerModel)
     otus = graphene.List(OTU)
     otu = graphene.Field(OTU, oid=graphene.NonNull(graphene.String))
@@ -166,59 +194,85 @@ class Query(graphene.ObjectType):
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
     all_projects = graphene.List(Project)
     projects = graphene.List(Project, status=graphene.NonNull(graphene.String))
-    project = graphene.Field(Project, oid=graphene.NonNull(graphene.String), status=graphene.NonNull(graphene.String))
+    project = graphene.Field(
+        Project,
+        oid=graphene.NonNull(graphene.String),
+        status=graphene.NonNull(graphene.String),
+    )
     versions = graphene.List(PartialVersionInfo, oid=graphene.NonNull(graphene.String))
-    version = graphene.Field(Project, oid=graphene.NonNull(graphene.String), vid=graphene.NonNull(graphene.String))
-    login_api_key = graphene.String(key=graphene.NonNull(graphene.String), secret=graphene.NonNull(graphene.String))
+    version = graphene.Field(
+        Project,
+        oid=graphene.NonNull(graphene.String),
+        vid=graphene.NonNull(graphene.String),
+    )
+    login_api_key = graphene.String(
+        key=graphene.NonNull(graphene.String), secret=graphene.NonNull(graphene.String)
+    )
     check_otu_exists = graphene.Boolean(oid=graphene.NonNull(graphene.String))
 
     def resolve_check_otu_exists(self, info, oid):
-        proj = ProjectModel.objects(oid=oid).only('id').first()
+        proj = ProjectModel.objects(oid=oid).only("id").first()
         return proj != None
 
     def resolve_all_projects(self, info):
         return ProjectModel.objects.all()
 
     def resolve_login_api_key(self, info, key, secret):
-        authorize = info.context['request'].state.authorize
+        authorize = info.context["request"].state.authorize
         token = authorize.create_access_token(subject=key)
         return token
 
     def resolve_version(self, info, oid, vid):
-        version = ProjectModel.objects(
-            oid=oid,
-            metadata__status='PRODUCTION',
-            metadata__version=vid
-        ).exclude('metadata.pdf_data').first()
+        version = (
+            ProjectModel.objects(
+                oid=oid, metadata__status="PRODUCTION", metadata__version=vid
+            )
+            .exclude("metadata.pdf_data")
+            .first()
+        )
         if not version:
             return GraphQLError('Version "{}" not found'.format(vid))
         return version
 
     def resolve_versions(self, info, oid):
         result = []
-        project_versions = ProjectModel.objects(
-            oid=oid,
-            metadata__status='PRODUCTION'
-        ).order_by('-status_date').only('metadata.version', 'metadata.status_date', 'observation').all()
+        project_versions = (
+            ProjectModel.objects(oid=oid, metadata__status="PRODUCTION")
+            .order_by("-status_date")
+            .only("metadata.version", "metadata.status_date", "observation")
+            .all()
+        )
         for ver in project_versions:
-            result.append(PartialVersionInfo(vid=ver.metadata.version, date=ver.metadata.status_date, comment=ver.observation))
+            result.append(
+                PartialVersionInfo(
+                    vid=ver.metadata.version,
+                    date=ver.metadata.status_date,
+                    comment=ver.observation,
+                )
+            )
         return result
 
     def resolve_projects(self, info, status):
-        return ProjectModel.objects(metadata__status=status, metadata__version='latest').all()
+        return ProjectModel.objects(
+            metadata__status=status, metadata__version="latest"
+        ).all()
 
     def resolve_project(self, info, oid, status):
-        return ProjectModel.objects(oid=oid, metadata__status=status, metadata__version='latest').first()
+        return ProjectModel.objects(
+            oid=oid, metadata__status=status, metadata__version="latest"
+        ).first()
 
     def resolve_junctions(self, info):
         juncs = []
-        projects = ProjectModel.objects.only('otu.junctions').all()
+        projects = ProjectModel.objects.only("otu.junctions").all()
         for proj in projects:
             juncs.extend(proj.otu.junctions)
         return juncs
 
     def resolve_junction(self, info, jid):
-        proj = ProjectModel.objects(otu__junctions__jid=jid).only('otu.junctions').first()
+        proj = (
+            ProjectModel.objects(otu__junctions__jid=jid).only("otu.junctions").first()
+        )
         if proj:
             for junc in proj.junctions:
                 if junc.jid == jid:
@@ -226,11 +280,11 @@ class Query(graphene.ObjectType):
         return None
 
     def resolve_otus(self, info):
-        projects = ProjectModel.objects.only('otu').all()
+        projects = ProjectModel.objects.only("otu").all()
         return [proj.otu for proj in projects]
 
     def resolve_otu(self, info, oid):
-        proj = ProjectModel.objects(oid=oid).only('otu').first()
+        proj = ProjectModel.objects(oid=oid).only("otu").first()
         if proj:
             return proj.otu
         return None
@@ -239,7 +293,9 @@ class Query(graphene.ObjectType):
         return list(ControllerModelModel.objects.all())
 
     def resolve_failed_plans(self, info):
-        return list(PlanParseFailedMessageModel.objects.only('id', 'date', 'comment').all())
+        return list(
+            PlanParseFailedMessageModel.objects.only("id", "date", "comment").all()
+        )
 
     def resolve_failed_plan(self, info, mid):
         return PlanParseFailedMessageModel.objects(id=mid).first()
@@ -262,21 +318,25 @@ class Query(graphene.ObjectType):
     def resolve_user(self, info, email):
         return UserModel.objects(email=email).first()
 
+
 class ControllerModelInput(graphene.InputObjectType):
     company = graphene.NonNull(graphene.String)
     model = graphene.NonNull(graphene.String)
     firmware_version = graphene.NonNull(graphene.String)
     checksum = graphene.NonNull(graphene.String)
 
+
 class ControllerLocationInput(graphene.InputObjectType):
     address_reference = graphene.String()
     gps = graphene.Boolean()
     model = graphene.NonNull(ControllerModelInput)
 
+
 class ProjectHeadersInput(graphene.InputObjectType):
     hal = graphene.NonNull(graphene.Int)
     led = graphene.NonNull(graphene.Int)
     type = graphene.NonNull(graphene.String)
+
 
 class ProjectUPSInput(graphene.InputObjectType):
     brand = graphene.NonNull(graphene.String)
@@ -285,10 +345,12 @@ class ProjectUPSInput(graphene.InputObjectType):
     capacity = graphene.NonNull(graphene.String)
     charge_duration = graphene.NonNull(graphene.String)
 
+
 class ProjectPolesInput(graphene.InputObjectType):
     hooks = graphene.NonNull(graphene.Int)
     vehicular = graphene.NonNull(graphene.Int)
     pedestrian = graphene.NonNull(graphene.Int)
+
 
 class ProjectMetaInput(graphene.InputObjectType):
     installation_date = graphene.Date()
@@ -302,6 +364,7 @@ class ProjectMetaInput(graphene.InputObjectType):
     local_detector = graphene.Boolean()
     scoot_detector = graphene.Boolean()
 
+
 class OTUMetadataInput(graphene.InputObjectType):
     serial = graphene.String()
     ip_address = graphene.String()
@@ -311,22 +374,27 @@ class OTUMetadataInput(graphene.InputObjectType):
     link_type = graphene.String()
     link_owner = graphene.String()
 
+
 class OTUProgramInput(graphene.InputObjectType):
     day = graphene.NonNull(graphene.String)
     time = graphene.NonNull(graphene.String)
     plan = graphene.NonNull(graphene.String)
 
+
 class JunctionMetadataInput(graphene.InputObjectType):
     coordinates = graphene.NonNull(graphene.List(graphene.NonNull(graphene.Float)))
     address_reference = graphene.NonNull(graphene.String)
+
 
 class ProjectJunctionInput(graphene.InputObjectType):
     jid = graphene.NonNull(graphene.String)
     metadata = graphene.NonNull(JunctionMetadataInput)
 
+
 class ProjectOTUInput(graphene.InputObjectType):
     metadata = OTUMetadataInput()
     junctions = graphene.NonNull(graphene.List(graphene.NonNull(ProjectJunctionInput)))
+
 
 class CreateProjectInput(graphene.InputObjectType):
     oid = graphene.NonNull(graphene.String)
@@ -338,6 +406,7 @@ class CreateProjectInput(graphene.InputObjectType):
     poles = ProjectPolesInput()
     observation = graphene.NonNull(graphene.String)
 
+
 class CreateProject(CustomMutation):
     class Arguments:
         project_details = CreateProjectInput()
@@ -348,18 +417,30 @@ class CreateProject(CustomMutation):
     def build_metadata_files(cls, meta, metain, oid, info):
         if metain.img:
             fdata, ftype = cls.get_b64file_data(metain.img)
-            if ftype in ['image/jpeg', 'image/png']:
+            if ftype in ["image/jpeg", "image/png"]:
                 meta.img.put(fdata, content_type=ftype)
             else:
-                cls.log_action('Failed to create project "{}". Invalid image file type: "{}"'.format(oid, ftype), info)
+                cls.log_action(
+                    'Failed to create project "{}". Invalid image file type: "{}"'.format(
+                        oid, ftype
+                    ),
+                    info,
+                )
                 return GraphQLError('Invalid image file type: "{}"'.format(ftype))
         if metain.pdf_data:
             fdata, ftype = cls.get_b64file_data(metain.pdf_data)
-            if ftype in ['application/pdf']:
+            if ftype in ["application/pdf"]:
                 meta.pdf_data.put(fdata, content_type=ftype)
             else:
-                cls.log_action('Failed to create project "{}". Invalid  file type: "{}"'.format(oid, ftype), info)
-                return GraphQLError('Invalid PDF document file type: "{}"'.format(ftype))
+                cls.log_action(
+                    'Failed to create project "{}". Invalid  file type: "{}"'.format(
+                        oid, ftype
+                    ),
+                    info,
+                )
+                return GraphQLError(
+                    'Invalid PDF document file type: "{}"'.format(ftype)
+                )
         return meta
 
     @classmethod
@@ -377,26 +458,47 @@ class CreateProject(CustomMutation):
     @classmethod
     def build_metadata(cls, metain, oid, info):
         meta = ProjectMetaModel()
-        meta.status = 'NEW'
+        meta.status = "NEW"
         meta.status_user = cls.get_current_user()
         if metain.installation_date:
             meta.installation_date = metain.installation_date
         if metain.installation_company:
-            installation_company = ExternalCompanyModel.objects(name=metain.installation_company).first()
+            installation_company = ExternalCompanyModel.objects(
+                name=metain.installation_company
+            ).first()
             if not installation_company:
-                cls.log_action('Failed to create project "{}". Company "{}" not found'.format(oid, metain.installation_company), info)
-                return GraphQLError('Company "{}" not found'.format(metain.installation_company))
+                cls.log_action(
+                    'Failed to create project "{}". Company "{}" not found'.format(
+                        oid, metain.installation_company
+                    ),
+                    info,
+                )
+                return GraphQLError(
+                    'Company "{}" not found'.format(metain.installation_company)
+                )
             meta.installation_company = installation_company
         maintainer = ExternalCompanyModel.objects(name=metain.maintainer).first()
         if not maintainer:
-            cls.log_action('Failed to create project "{}". Company "{}" not found'.format(oid, metain.maintainer), info)
+            cls.log_action(
+                'Failed to create project "{}". Company "{}" not found'.format(
+                    oid, metain.maintainer
+                ),
+                info,
+            )
             return GraphQLError('Company "{}" not found'.format(metain.maintainer))
         meta.maintainer = maintainer
         commune = CommuneModel.objects(code=metain.commune).first()
         if not commune:
-            cls.log_action('Failed to create project "{}". Commune "{}" not found'.format(oid, metain.commune), info)
+            cls.log_action(
+                'Failed to create project "{}". Commune "{}" not found'.format(
+                    oid, metain.commune
+                ),
+                info,
+            )
             return GraphQLError('Commune "{}" not found'.format(metain.commune))
-        meta.commune = commune.name # TODO: FIXME: This should be a reference! Update model
+        meta.commune = (
+            commune.name
+        )  # TODO: FIXME: This should be a reference! Update model
         meta = cls.build_metadata_options(meta, metain)
         return cls.build_metadata_files(meta, metain, oid, info)
 
@@ -432,7 +534,10 @@ class CreateProject(CustomMutation):
             junc_meta = JunctionMetaModel()
             junc_meta.sales_id = round((int(junc.jid[1:]) * 11) / 13.0)
             junc_meta.address_reference = junc.metadata.address_reference
-            junc_meta.location = (junc.metadata.coordinates[0], junc.metadata.coordinates[1])
+            junc_meta.location = (
+                junc.metadata.coordinates[0],
+                junc.metadata.coordinates[1],
+            )
             otu_junc.metadata = junc_meta
             junctions.append(otu_junc)
         otu.junctions = junctions
@@ -447,8 +552,15 @@ class CreateProject(CustomMutation):
             ctrl.gps = controller_in.gps
         company = ExternalCompanyModel.objects(name=controller_in.model.company).first()
         if not company:
-            cls.log_action('Failed to create project "{}". Company "{}" not found'.format(oid, controller_in.model.company), info)
-            return GraphQLError('Company "{}" not found'.format(controller_in.model.company))
+            cls.log_action(
+                'Failed to create project "{}". Company "{}" not found'.format(
+                    oid, controller_in.model.company
+                ),
+                info,
+            )
+            return GraphQLError(
+                'Company "{}" not found'.format(controller_in.model.company)
+            )
         model = ControllerModelModel.objects(
             company=company,
             model=controller_in.model.model,
@@ -456,7 +568,12 @@ class CreateProject(CustomMutation):
             checksum=controller_in.model.checksum,
         ).first()
         if not model:
-            cls.log_action('Failed to create project "{}". Model "{}" not found'.format(oid, controller_in.model), info)
+            cls.log_action(
+                'Failed to create project "{}". Model "{}" not found'.format(
+                    oid, controller_in.model
+                ),
+                info,
+            )
             return GraphQLError('Model "{}" not found'.format(controller_in.model))
         ctrl.model = model
         return ctrl
@@ -466,22 +583,39 @@ class CreateProject(CustomMutation):
         proj = ProjectModel()
         proj.oid = project_details.oid
         # Metadata
-        meta_result = cls.build_metadata(project_details.metadata, project_details.oid, info)
+        meta_result = cls.build_metadata(
+            project_details.metadata, project_details.oid, info
+        )
         if isinstance(meta_result, GraphQLError):
-            cls.log_action('Failed to create project "{}". {}'.format(proj.oid, meta_result), info)
+            cls.log_action(
+                'Failed to create project "{}". {}'.format(proj.oid, meta_result), info
+            )
             return meta_result
         proj.metadata = meta_result
         # OTU
         for junc in project_details.otu.junctions:
             coordlen = len(junc.metadata.coordinates)
             if coordlen != 2:
-                cls.log_action('Failed to create project "{}". Invalid length for coordinates in jid "{}": {}'.format(project_details.oid, junc.jid, coordlen), info)
-                GraphQLError('Invalid length for coordinates in jid "{}": {}'.format(junc.jid, coordlen))
+                cls.log_action(
+                    'Failed to create project "{}". Invalid length for coordinates in jid "{}": {}'.format(
+                        project_details.oid, junc.jid, coordlen
+                    ),
+                    info,
+                )
+                GraphQLError(
+                    'Invalid length for coordinates in jid "{}": {}'.format(
+                        junc.jid, coordlen
+                    )
+                )
         proj.otu = cls.build_otu(project_details.otu, project_details.oid, info)
         # Controller info
-        ctrl_result = cls.build_controller_info(project_details.controller, project_details.oid, info)
+        ctrl_result = cls.build_controller_info(
+            project_details.controller, project_details.oid, info
+        )
         if isinstance(ctrl_result, GraphQLError):
-            cls.log_action('Failed to create project "{}". {}'.format(proj.oid, ctrl_result), info)
+            cls.log_action(
+                'Failed to create project "{}". {}'.format(proj.oid, ctrl_result), info
+            )
             return ctrl_result
         proj.controller = ctrl_result
         # Headers
@@ -527,11 +661,14 @@ class CreateProject(CustomMutation):
             # TODO: FIXME: Before we save a new project, check if an update exists with the same oid
             proj.save()
         except ValidationError as excep:
-            cls.log_action('Failed to create project "{}". {}'.format(proj.oid, excep), info)
+            cls.log_action(
+                'Failed to create project "{}". {}'.format(proj.oid, excep), info
+            )
             return GraphQLError(excep)
         cls.log_action('Project "{}" created.'.format(proj.oid), info)
         # TODO: Send notification emails
         return proj
+
 
 class UpdateProject(CreateProject):
     class Arguments:
@@ -544,17 +681,24 @@ class UpdateProject(CreateProject):
         update_input = cls.build_project_model(project_details, info)
         if isinstance(update_input, GraphQLError):
             return update_input
-        update_input.metadata.status = 'UPDATE'
+        update_input.metadata.status = "UPDATE"
         try:
             update_input.save()
         except ValidationError as excep:
-            cls.log_action('Failed to create update for project "{}". {}'.format(update_input.oid, excep), info)
+            cls.log_action(
+                'Failed to create update for project "{}". {}'.format(
+                    update_input.oid, excep
+                ),
+                info,
+            )
             return GraphQLError(excep)
         return update_input
+
 
 class GetProjectInput(graphene.InputObjectType):
     oid = graphene.NonNull(graphene.String)
     status = graphene.NonNull(graphene.String)
+
 
 class DeleteProject(CustomMutation):
     class Arguments:
@@ -564,19 +708,45 @@ class DeleteProject(CustomMutation):
 
     @classmethod
     def mutate(cls, root, info, project_details):
-        if project_details == 'PRODUCTION':
-            cls.log_action('Failed to delete project "{}". Cannot delete data in PRODUCTION status'.format(project_details.oid), info)
-            return GraphQLError('Failed to delete project "{}". Cannot delete data in PRODUCTION status'.format(project_details.oid))
-        proj = ProjectModel.objects(oid=project_details.oid, metadata__status=project_details.status).first()
+        if project_details == "PRODUCTION":
+            cls.log_action(
+                'Failed to delete project "{}". Cannot delete data in PRODUCTION status'.format(
+                    project_details.oid
+                ),
+                info,
+            )
+            return GraphQLError(
+                'Failed to delete project "{}". Cannot delete data in PRODUCTION status'.format(
+                    project_details.oid
+                )
+            )
+        proj = ProjectModel.objects(
+            oid=project_details.oid, metadata__status=project_details.status
+        ).first()
         if not proj:
-            cls.log_action('Failed to delete project "{}" in status "{}". Project not found'.format(project_details.oid, project_details.status), info)
-            return GraphQLError('Project "{}" in status "{}" not found'.format(project_details.oid, project_details.status))
+            cls.log_action(
+                'Failed to delete project "{}" in status "{}". Project not found'.format(
+                    project_details.oid, project_details.status
+                ),
+                info,
+            )
+            return GraphQLError(
+                'Project "{}" in status "{}" not found'.format(
+                    project_details.oid, project_details.status
+                )
+            )
         try:
             proj.delete()
         except ValidationError as excep:
-            cls.log_action('Failed to delete project "{}" in status "{}": {}'.format(project_details.oid, project_details.status, excep), info)
+            cls.log_action(
+                'Failed to delete project "{}" in status "{}": {}'.format(
+                    project_details.oid, project_details.status, excep
+                ),
+                info,
+            )
             return GraphQLError(excep)
         return project_details.oid
+
 
 class AcceptProject(CustomMutation):
     class Arguments:
@@ -586,41 +756,83 @@ class AcceptProject(CustomMutation):
 
     @classmethod
     def mutate(cls, root, info, project_details):
-        if project_details.status not in ['NEW', 'UPDATE']:
-            cls.log_action('Failed to accept project "{}". Invalid status: {}'.format(project_details.oid, project_details.status), info)
-            return GraphQLError('Invalid status: {}'.format(project_details.status))
-        proj = ProjectModel.objects(oid=project_details.oid, metadata__status=project_details.status, metadata__version='latest').first()
+        if project_details.status not in ["NEW", "UPDATE"]:
+            cls.log_action(
+                'Failed to accept project "{}". Invalid status: {}'.format(
+                    project_details.oid, project_details.status
+                ),
+                info,
+            )
+            return GraphQLError("Invalid status: {}".format(project_details.status))
+        proj = ProjectModel.objects(
+            oid=project_details.oid,
+            metadata__status=project_details.status,
+            metadata__version="latest",
+        ).first()
         if not proj:
-            cls.log_action('Failed to accept project "{}" in status "{}". Project not found'.format(project_details.oid, project_details.status), info)
-            return GraphQLError('Project "{}" in status "{}" not found'.format(project_details.oid, project_details.status))
-        if project_details.status == 'UPDATE':
+            cls.log_action(
+                'Failed to accept project "{}" in status "{}". Project not found'.format(
+                    project_details.oid, project_details.status
+                ),
+                info,
+            )
+            return GraphQLError(
+                'Project "{}" in status "{}" not found'.format(
+                    project_details.oid, project_details.status
+                )
+            )
+        if project_details.status == "UPDATE":
             # Find latest version
-            base_proj = ProjectModel.objects(oid=project_details.oid, metadata__status='PRODUCTION', metadata__version='latest').first()
+            base_proj = ProjectModel.objects(
+                oid=project_details.oid,
+                metadata__status="PRODUCTION",
+                metadata__version="latest",
+            ).first()
             if not base_proj:
-                cls.log_action('Failed to update project "{}". Base version not found'.format(project_details.oid), info)
-                return GraphQLError('Base version not found')
+                cls.log_action(
+                    'Failed to update project "{}". Base version not found'.format(
+                        project_details.oid
+                    ),
+                    info,
+                )
+                return GraphQLError("Base version not found")
             # Old latest is '$now' version
             new_version = datetime.now().isoformat()
             base_proj.metadata.version = new_version
             # New input will be the latest version
-            proj.metadata.status = 'PRODUCTION'
+            proj.metadata.status = "PRODUCTION"
             try:
                 base_proj.save()
                 proj.save()
             except ValidationError as excep:
-                cls.log_action('Failed to accept update for project "{}". {}'.format(project_details.oid, excep), info)
+                cls.log_action(
+                    'Failed to accept update for project "{}". {}'.format(
+                        project_details.oid, excep
+                    ),
+                    info,
+                )
                 return GraphQLError(excep)
-            cls.log_action('Update for project "{}" ACCEPTED'.format(project_details.oid), info)
+            cls.log_action(
+                'Update for project "{}" ACCEPTED'.format(project_details.oid), info
+            )
             return proj.oid
         else:
-            proj.metadata.status = 'PRODUCTION'
+            proj.metadata.status = "PRODUCTION"
             try:
                 proj.save()
             except ValidationError as excep:
-                cls.log_action('Failed to accept new project "{}". {}'.format(project_details.oid, excep), info)
+                cls.log_action(
+                    'Failed to accept new project "{}". {}'.format(
+                        project_details.oid, excep
+                    ),
+                    info,
+                )
                 return GraphQLError(excep)
-            cls.log_action('New project "{}" ACCEPTED'.format(project_details.oid), info)
+            cls.log_action(
+                'New project "{}" ACCEPTED'.format(project_details.oid), info
+            )
             return proj.oid
+
 
 class RejectProject(CustomMutation):
     class Arguments:
@@ -630,29 +842,52 @@ class RejectProject(CustomMutation):
 
     @classmethod
     def mutate(cls, root, info, project_details):
-        if project_details.status not in ['NEW', 'UPDATE']:
-            cls.log_action('Failed to reject project "{}". Invalid status: {}'.format(project_details.oid, project_details.status), info)
-            return GraphQLError('Invalid status: {}'.format(project_details.status))
-        proj = ProjectModel.objects(oid=project_details.oid, metadata__status=project_details.status).first()
+        if project_details.status not in ["NEW", "UPDATE"]:
+            cls.log_action(
+                'Failed to reject project "{}". Invalid status: {}'.format(
+                    project_details.oid, project_details.status
+                ),
+                info,
+            )
+            return GraphQLError("Invalid status: {}".format(project_details.status))
+        proj = ProjectModel.objects(
+            oid=project_details.oid, metadata__status=project_details.status
+        ).first()
         if not proj:
-            cls.log_action('Failed to reject project "{}" in status "{}". Project not found'.format(project_details.oid, project_details.status), info)
-            return GraphQLError('Project "{}" in status "{}" not found'.format(project_details.oid, project_details.status))
-        proj.metadata.status = 'REJECTED'
+            cls.log_action(
+                'Failed to reject project "{}" in status "{}". Project not found'.format(
+                    project_details.oid, project_details.status
+                ),
+                info,
+            )
+            return GraphQLError(
+                'Project "{}" in status "{}" not found'.format(
+                    project_details.oid, project_details.status
+                )
+            )
+        proj.metadata.status = "REJECTED"
         new_version = datetime.now().isoformat()
         proj.metadata.version = new_version
         try:
             proj.save()
         except ValidationError as excep:
-            cls.log_action('Failed to reject project "{}" in status "{}": {}'.format(project_details.oid, project_details.status, excep), info)
+            cls.log_action(
+                'Failed to reject project "{}" in status "{}": {}'.format(
+                    project_details.oid, project_details.status, excep
+                ),
+                info,
+            )
             return GraphQLError(excep)
         cls.log_action('Project "{}" rejected'.format(project_details.oid), info)
         return project_details.oid
+
 
 class CreateCommuneInput(graphene.InputObjectType):
     code = graphene.NonNull(graphene.Int)
     name = graphene.NonNull(graphene.String)
     maintainer = graphene.String()
     user_in_charge = graphene.String()
+
 
 class CreateCommune(CustomMutation):
     class Arguments:
@@ -666,29 +901,49 @@ class CreateCommune(CustomMutation):
         commune.name = commune_details.name
         commune.code = commune_details.code
         if commune_details.maintainer:
-            maintainer = ExternalCompanyModel.objects(name=commune_details.maintainer).first()
+            maintainer = ExternalCompanyModel.objects(
+                name=commune_details.maintainer
+            ).first()
             if not maintainer:
-                cls.log_action('Failed to create commune "{}". Maintainer "{}" not found'.format(commune_details.code, commune_details.maintainer), info)
-                return GraphQLError('Maintainer "{}" not found'.format(commune_details.maintainer))
+                cls.log_action(
+                    'Failed to create commune "{}". Maintainer "{}" not found'.format(
+                        commune_details.code, commune_details.maintainer
+                    ),
+                    info,
+                )
+                return GraphQLError(
+                    'Maintainer "{}" not found'.format(commune_details.maintainer)
+                )
             commune.maintainer = maintainer
         if commune_details.user_in_charge:
             user = UserModel.objects(email=commune_details.user_in_charge).first()
             if not user:
-                cls.log_action('Failed to create commune "{}". User "{}" not found'.format(commune_details.code, commune_details.user_in_charge), info)
-                return GraphQLError('User "{}" not found'.format(commune_details.user_in_charge))
+                cls.log_action(
+                    'Failed to create commune "{}". User "{}" not found'.format(
+                        commune_details.code, commune_details.user_in_charge
+                    ),
+                    info,
+                )
+                return GraphQLError(
+                    'User "{}" not found'.format(commune_details.user_in_charge)
+                )
             commune.user_in_charge = user
         try:
             commune.save()
         except ValidationError as excep:
-            cls.log_action('Failed to create commune "{}". {}'.format(commune.name, excep), info)
+            cls.log_action(
+                'Failed to create commune "{}". {}'.format(commune.name, excep), info
+            )
             return GraphQLError(excep)
         cls.log_action('Commune "{}" created.'.format(commune.name), info)
         return commune
+
 
 class UpdateCommuneInput(graphene.InputObjectType):
     code = graphene.NonNull(graphene.Int)
     maintainer = graphene.String()
     user_in_charge = graphene.String()
+
 
 class UpdateCommune(CustomMutation):
     class Arguments:
@@ -700,27 +955,51 @@ class UpdateCommune(CustomMutation):
     def mutate(cls, root, info, commune_details):
         commune = CommuneModel.objects(code=commune_details.code).first()
         if not commune:
-            cls.log_action('Failed to update commune "{}". Commune not found'.format(commune_details.code), info)
+            cls.log_action(
+                'Failed to update commune "{}". Commune not found'.format(
+                    commune_details.code
+                ),
+                info,
+            )
             return GraphQLError('Commune "{}" not found'.format(commune_details.code))
         if commune_details.maintainer:
-            maintainer = ExternalCompanyModel.objects(name=commune_details.maintainer).first()
+            maintainer = ExternalCompanyModel.objects(
+                name=commune_details.maintainer
+            ).first()
             if not maintainer:
-                cls.log_action('Failed to update commune "{}". Maintainer "{}" not found'.format(commune_details.code, commune_details.maintainer), info)
-                return GraphQLError('Maintainer "{}" not found'.format(commune_details.maintainer))
+                cls.log_action(
+                    'Failed to update commune "{}". Maintainer "{}" not found'.format(
+                        commune_details.code, commune_details.maintainer
+                    ),
+                    info,
+                )
+                return GraphQLError(
+                    'Maintainer "{}" not found'.format(commune_details.maintainer)
+                )
             commune.maintainer = maintainer
         if commune_details.user_in_charge:
             user = UserModel.objects(email=commune_details.user_in_charge).first()
             if not user:
-                cls.log_action('Failed to update commune "{}". User "{}" not found'.format(commune_details.code, commune_details.user_in_charge), info)
-                return GraphQLError('User "{}" not found'.format(commune_details.user_in_charge))
+                cls.log_action(
+                    'Failed to update commune "{}". User "{}" not found'.format(
+                        commune_details.code, commune_details.user_in_charge
+                    ),
+                    info,
+                )
+                return GraphQLError(
+                    'User "{}" not found'.format(commune_details.user_in_charge)
+                )
             commune.user_in_charge = user
         try:
             commune.save()
         except ValidationError as excep:
-            cls.log_action('Failed to update commune "{}". {}'.format(commune.name, excep), info)
+            cls.log_action(
+                'Failed to update commune "{}". {}'.format(commune.name, excep), info
+            )
             return GraphQLError(excep)
         cls.log_action('Commune "{}" updated.'.format(commune.name), info)
         return commune
+
 
 class CreateUserInput(graphene.InputObjectType):
     is_admin = graphene.NonNull(graphene.Boolean)
@@ -729,6 +1008,7 @@ class CreateUserInput(graphene.InputObjectType):
     role = graphene.NonNull(graphene.String)
     area = graphene.NonNull(graphene.String)
     company = graphene.String()
+
 
 class CreateUser(CustomMutation):
     class Arguments:
@@ -745,20 +1025,33 @@ class CreateUser(CustomMutation):
         user.role = user_details.role
         user.area = user_details.area
         if user_details.company:
-            user.company = ExternalCompanyModel.objects(name=user_details.company).first()
+            user.company = ExternalCompanyModel.objects(
+                name=user_details.company
+            ).first()
             if not user.company:
-                cls.log_action('Failed to create user "{}". ExternalCompany "{}" not found'.format(user.email, user_details.company), info)
-                return GraphQLError('ExternalCompany "{}" not found'.format(user_details.company))
+                cls.log_action(
+                    'Failed to create user "{}". ExternalCompany "{}" not found'.format(
+                        user.email, user_details.company
+                    ),
+                    info,
+                )
+                return GraphQLError(
+                    'ExternalCompany "{}" not found'.format(user_details.company)
+                )
         try:
             user.save()
         except (ValidationError, NotUniqueError) as excep:
-            cls.log_action('Failed to create user "{}". {}'.format(user.email, excep), info)
+            cls.log_action(
+                'Failed to create user "{}". {}'.format(user.email, excep), info
+            )
             return GraphQLError(excep)
         cls.log_action('User "{}" created'.format(user.email), info)
         return user
 
+
 class DeleteUserInput(graphene.InputObjectType):
     email = graphene.NonNull(graphene.String)
+
 
 class DeleteUser(CustomMutation):
     class Arguments:
@@ -770,17 +1063,22 @@ class DeleteUser(CustomMutation):
     def mutate(cls, root, info, user_details):
         user = UserModel.objects(email=user_details.email).first()
         if not user:
-            cls.log_action('Failed to delete user "{}". User not found'.format(user_details.email), info)
+            cls.log_action(
+                'Failed to delete user "{}". User not found'.format(user_details.email),
+                info,
+            )
             return GraphQLError('User "{}" not found'.format(user_details.email))
         uid = user.id
         user.delete()
         cls.log_action('User "{}" deleted'.format(user_details.email), info)
         return uid
 
+
 class UpdateUserInput(graphene.InputObjectType):
     email = graphene.NonNull(graphene.String)
     is_admin = graphene.Boolean()
     full_name = graphene.String()
+
 
 class UpdateUser(CustomMutation):
     class Arguments:
@@ -792,7 +1090,10 @@ class UpdateUser(CustomMutation):
     def mutate(cls, root, info, user_details):
         user = UserModel.objects(email=user_details.email).first()
         if not user:
-            cls.log_action('Failed to update user "{}". User not found'.format(user_details.email), info)
+            cls.log_action(
+                'Failed to update user "{}". User not found'.format(user_details.email),
+                info,
+            )
             return GraphQLError('User "{}" not found'.format(user_details.email))
         if user_details.is_admin:
             user.is_admin = user_details.is_admin
@@ -801,13 +1102,17 @@ class UpdateUser(CustomMutation):
         try:
             user.save()
         except ValidationError as excep:
-            cls.log_action('Failed to update user "{}". {}'.format(user_details.email, excep), info)
+            cls.log_action(
+                'Failed to update user "{}". {}'.format(user_details.email, excep), info
+            )
             return GraphQLError(excep)
         cls.log_action('User "{}" updated.'.format(user_details.email), info)
         return user
 
+
 class CreateCompanyInput(graphene.InputObjectType):
     name = graphene.NonNull(graphene.String)
+
 
 class CreateCompany(CustomMutation):
     class Arguments:
@@ -822,13 +1127,18 @@ class CreateCompany(CustomMutation):
         try:
             company.save()
         except (ValidationError, NotUniqueError) as excep:
-            cls.log_action('Failed to create company "{}". {}'.format(company_details.name, excep), info)
+            cls.log_action(
+                'Failed to create company "{}". {}'.format(company_details.name, excep),
+                info,
+            )
             return GraphQLError(excep)
         cls.log_action('Company "{}" created'.format(company.name), info)
         return company
 
+
 class DeleteCompanyInput(graphene.InputObjectType):
     name = graphene.NonNull(graphene.String)
+
 
 class DeleteCompany(CustomMutation):
     class Arguments:
@@ -840,15 +1150,22 @@ class DeleteCompany(CustomMutation):
     def mutate(cls, root, info, company_details):
         company = ExternalCompanyModel.objects(name=company_details.name).first()
         if not company:
-            cls.log_action('Failed to delete company "{}". Company not found'.format(company_details.name), info)
+            cls.log_action(
+                'Failed to delete company "{}". Company not found'.format(
+                    company_details.name
+                ),
+                info,
+            )
             return GraphQLError('Company "{}" not found'.format(company_details.name))
         cid = company.id
         company.delete()
         cls.log_action('Company "{}" deleted'.format(company_details.name), info)
         return cid
 
+
 class DeletePlanParseFailedMessageInput(graphene.InputObjectType):
     mid = graphene.NonNull(graphene.String)
+
 
 class DeletePlanParseFailedMessage(CustomMutation):
     class Arguments:
@@ -860,16 +1177,23 @@ class DeletePlanParseFailedMessage(CustomMutation):
     def mutate(cls, root, info, message_details):
         message = PlanParseFailedMessageModel.objects(id=message_details.mid).first()
         if not message:
-            cls.log_action('Failed to delete parse failed message "{}". Message not found'.format(message_details.mid), info)
+            cls.log_action(
+                'Failed to delete parse failed message "{}". Message not found'.format(
+                    message_details.mid
+                ),
+                info,
+            )
             return GraphQLError('Message "{}" not found'.format(message_details.mid))
         mid = message.id
         message.delete()
         cls.log_action('Message "{}" deleted'.format(message_details.mid), info)
         return mid
 
+
 class CreatePlanParseFailedMessageInput(graphene.InputObjectType):
     plans = graphene.NonNull(graphene.List(graphene.NonNull(graphene.String)))
     message = graphene.NonNull(graphene.String)
+
 
 class CreatePlanParseFailedMessage(CustomMutation):
     class Arguments:
@@ -888,16 +1212,21 @@ class CreatePlanParseFailedMessage(CustomMutation):
         try:
             failed_plan.save()
         except (ValidationError, NotUniqueError) as excep:
-            cls.log_action('Failed to create error message "{}". {}'.format(failed_plan.id, excep), info)
+            cls.log_action(
+                'Failed to create error message "{}". {}'.format(failed_plan.id, excep),
+                info,
+            )
             return GraphQLError(excep)
         cls.log_action('Error message "{}" created'.format(failed_plan.id), info)
         return failed_plan
+
 
 class CreateControllerModelInput(graphene.InputObjectType):
     company = graphene.NonNull(graphene.String)
     model = graphene.NonNull(graphene.String)
     firmware_version = graphene.String()
     checksum = graphene.String()
+
 
 class CreateControllerModel(CustomMutation):
     class Arguments:
@@ -909,8 +1238,15 @@ class CreateControllerModel(CustomMutation):
     def mutate(cls, root, info, controller_details):
         company = ExternalCompanyModel.objects(name=controller_details.company).first()
         if not company:
-            cls.log_action('Failed to create model "{}". Company not found'.format(controller_details.model), info)
-            return GraphQLError('Company "{}" not found'.format(controller_details.company))
+            cls.log_action(
+                'Failed to create model "{}". Company not found'.format(
+                    controller_details.model
+                ),
+                info,
+            )
+            return GraphQLError(
+                'Company "{}" not found'.format(controller_details.company)
+            )
         model = ControllerModelModel()
         model.company = company
         model.model = controller_details.model
@@ -919,15 +1255,22 @@ class CreateControllerModel(CustomMutation):
         try:
             model.save()
         except (ValidationError, NotUniqueError) as excep:
-            cls.log_action('Failed to create model "{}". {}'.format(controller_details.model, excep), info)
+            cls.log_action(
+                'Failed to create model "{}". {}'.format(
+                    controller_details.model, excep
+                ),
+                info,
+            )
             return GraphQLError(excep)
         cls.log_action('Model "{}" created'.format(controller_details.model), info)
         return model
+
 
 class UpdateControllerModelInput(graphene.InputObjectType):
     cid = graphene.NonNull(graphene.String)
     firmware_version = graphene.String()
     checksum = graphene.String()
+
 
 class UpdateControllerModel(CustomMutation):
     class Arguments:
@@ -939,7 +1282,12 @@ class UpdateControllerModel(CustomMutation):
     def mutate(cls, root, info, controller_details):
         model = ControllerModelModel.objects(id=controller_details.cid).first()
         if not model:
-            cls.log_action('Failed to update model "{}". Model not found'.format(controller_details.cid), info)
+            cls.log_action(
+                'Failed to update model "{}". Model not found'.format(
+                    controller_details.cid
+                ),
+                info,
+            )
             return GraphQLError('Model "{}" not found'.format(controller_details.cid))
         if controller_details.checksum:
             model.checksum = controller_details.checksum
@@ -948,10 +1296,14 @@ class UpdateControllerModel(CustomMutation):
         try:
             model.save()
         except ValidationError as excep:
-            cls.log_action('Failed to update model "{}". {}'.format(controller_details.cid, excep), info)
+            cls.log_action(
+                'Failed to update model "{}". {}'.format(controller_details.cid, excep),
+                info,
+            )
             return GraphQLError(excep)
         cls.log_action('Model "{}" updated.'.format(controller_details.cid), info)
         return model
+
 
 class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
@@ -971,13 +1323,16 @@ class Mutation(graphene.ObjectType):
     reject_project = RejectProject.Field()
     update_project = UpdateProject.Field()
 
+
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
+
 
 class GraphQLLogFilter(logging.Filter):
     def filter(self, record):
-        if 'graphql.error.located_error.GraphQLLocatedError:' in record.msg:
+        if "graphql.error.located_error.GraphQLLocatedError:" in record.msg:
             return False
         return True
 
+
 # Disable graphene logging
-logging.getLogger('graphql.execution.utils').addFilter(GraphQLLogFilter())
+logging.getLogger("graphql.execution.utils").addFilter(GraphQLLogFilter())
