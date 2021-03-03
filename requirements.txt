@@ -51,3 +51,7 @@ lazy-object-proxy==1.5.*
 promise==2.3
 typing-extensions==3.7.4.3
 fastapi-jwt-auth==0.5.0
+pathspec<1,>=0.6
+click>=7.1.2
+typed-ast>=1.4.0
+black==20.8b1
