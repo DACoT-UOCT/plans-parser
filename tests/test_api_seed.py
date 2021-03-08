@@ -7,7 +7,7 @@ class TestAPISeed(unittest.TestCase):
 
     def test_runtime_seed(self):
         seed = APISeed(
-            'http://127.0.0.1/api/v2/',
+            'http://127.0.0.1:8081/graphql',
             'tests/cmodels.csv',
             'tests/juncs.csv',
             'tests/scheds.json',
@@ -18,7 +18,7 @@ class TestAPISeed(unittest.TestCase):
 
     def test_runtime_seed_missing_credentials(self):
         seed = APISeed(
-            'http://127.0.0.1/api/v2/',
+            'http://127.0.0.1:8081/graphql',
             'tests/cmodels.csv',
             'tests/juncs.csv',
             'tests/scheds.json',
