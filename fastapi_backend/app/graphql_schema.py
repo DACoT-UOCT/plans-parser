@@ -28,6 +28,7 @@ from dacot_models import JunctionPlan as JunctionPlanModel
 from dacot_models import JunctionPlanPhaseValue as JunctionPlanPhaseValueModel
 from dacot_models import JunctionPlanIntergreenValue as JunctionPlanIntergreenValueModel
 from dacot_models import PlanParseFailedMessage as PlanParseFailedMessageModel
+from dacot_models import APIKeyUsers as APIKeyUsersModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
 
@@ -179,6 +180,23 @@ class CustomMutation(graphene.Mutation):
         mime = magic.from_buffer(b64bytes[0:2048], mime=True)
         return b64bytes, mime
 
+class QueryRootUtils:
+    def log_action(self, message, graphql_info):
+        op = str(graphql_info.operation)
+        current_user = self.get_current_user()
+        if current_user:
+            user_email = current_user.email
+        else:
+            user_email = 'unknown'
+        log = ActionsLogModel(
+            user=user_email, context=op, action=message, origin="GraphQL API"
+        )
+        log.save()
+
+    def get_current_user(self):
+        # Returns the currently logged user
+        # TODO: FIXME: For now, we return the same user for all requests
+        return UserModel.objects(email="seed@dacot.uoct.cl").first()
 
 class Query(graphene.ObjectType):
     users = graphene.List(User)
@@ -223,8 +241,15 @@ class Query(graphene.ObjectType):
 
     def resolve_login_api_key(self, info, key, secret):
         authorize = info.context["request"].state.authorize
-        token = authorize.create_access_token(subject=key)
-        return token
+        utils = QueryRootUtils()
+        user = APIKeyUsersModel.objects(key=key, secret=secret).first()
+        if user:
+            token = authorize.create_access_token(subject=key)
+            utils.log_action('APIKeyUser {} logged in'.format(key), info)
+            return token
+        else:
+            utils.log_action('Invalid credentials for APIKeyUser {}'.format(key), info)
+            return GraphQLError('Invalid credentials for APIKeyUser {}'.format(key))
 
     def resolve_version(self, info, oid, vid):
         version = (

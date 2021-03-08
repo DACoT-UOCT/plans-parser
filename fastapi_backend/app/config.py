@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     mail_config: ConnectionConfig = None
     mail_creation_recipients: List[str] = set()
     authjwt_secret_key: str
-
+    apikey_users_file: str = '/app/fake_users.json'
 
 settings = Settings()
 

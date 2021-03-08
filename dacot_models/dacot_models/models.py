@@ -258,3 +258,8 @@ class PlanParseFailedMessage(Document):
     date = DateTimeField(default=datetime.now, required=True)
     plans = ListField(StringField(), required=True)
     comment = EmbeddedDocumentField(Comment, required=True)
+
+class APIKeyUsers(Document):
+    meta = {"collection": "APIKeyUsers"}
+    key = StringField(required=True, unique=True)
+    secret = StringField(required=True)

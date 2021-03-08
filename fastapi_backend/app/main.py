@@ -2,11 +2,14 @@ from .config import get_settings
 from mongoengine import connect
 from .custom_graphql_app import CustomGraphQLApp
 from .graphql_schema import dacot_schema
+from .db_init import DBInit
 from fastapi import FastAPI, Request, Depends
 from starlette.datastructures import URL
 from fastapi_jwt_auth import AuthJWT
 
 connect(host=get_settings().mongo_uri)
+db_init = DBInit(get_settings().apikey_users_file)
+db_init.init()
 
 api_description = """
 API del proyecto Datos Abiertos para el Control de Tránsito
