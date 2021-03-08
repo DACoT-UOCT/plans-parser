@@ -157,8 +157,12 @@ class CustomMutation(graphene.Mutation):
     def log_action(cls, message, graphql_info):
         op = str(graphql_info.operation)
         current_user = cls.get_current_user()
+        if current_user:
+            user_email = current_user.email
+        else:
+            user_email = 'unknown'
         log = ActionsLogModel(
-            user=current_user.email, context=op, action=message, origin="GraphQL API"
+            user=user_email, context=op, action=message, origin="GraphQL API"
         )
         log.save()
 

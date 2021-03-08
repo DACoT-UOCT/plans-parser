@@ -1,6 +1,6 @@
 from .config import get_settings
 from mongoengine import connect
-from starlette.graphql import GraphQLApp
+from .custom_graphql_app import CustomGraphQLApp
 from .graphql_schema import dacot_schema
 from fastapi import FastAPI, Request, Depends
 from starlette.datastructures import URL
@@ -24,7 +24,7 @@ def get_config():
     return get_settings()
 
 
-graphql_app = GraphQLApp(schema=dacot_schema)
+graphql_app = CustomGraphQLApp(schema=dacot_schema)
 
 
 @app.get("/")
