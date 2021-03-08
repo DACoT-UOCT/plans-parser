@@ -1,6 +1,8 @@
 import re
 import csv
 import json
+from gql import gql, Client
+from gql.transport.aiohttp import AIOHTTPTransport
 
 class APISeed:
     def __init__(self, api_url, file_ctrl_models, file_junctions, file_schedules, file_communes):
@@ -8,7 +10,16 @@ class APISeed:
         self.__api = None
 
     def __setup_api_client(self):
-        return True
+        transport = AIOHTTPTransport(url=self.__seed_params['backend_url'])
+        self.__api = Client(transport=transport, fetch_schema_from_transport=True)
+        self.__login_api()
+
+    def __login_api(self):
+        res = self.__api.execute(gql('query {{ loginApiKey(key: "{}", secret: "{}") }}'.format(
+            self.__api_key,
+            self.__secret_key
+        )))
+        self.__api_token = res['loginApiKey']
 
     def __read_ctrl_models(self, infile):
         models = []
@@ -76,7 +87,8 @@ class APISeed:
 
     def __drop_old_data(self):
         #TODO: POST to /magic_drop
-        pass
+        print()
+        print(self.__api_token)
 
     def runtime_seed(self):
         if not self.__api:
@@ -86,4 +98,4 @@ class APISeed:
     def set_api_credentials(self, key, secret_key):
         self.__api_key = key
         self.__secret_key = secret_key
-        self.__api = self.__setup_api_client()
+        self.__setup_api_client()
