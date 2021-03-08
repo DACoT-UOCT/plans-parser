@@ -13,7 +13,7 @@ class TestAPISeed(unittest.TestCase):
             'tests/scheds.json',
             'tests/communes_reg_metrop.json'
         )
-        seed.set_api_credentials('key', 'secret')
+        seed.set_api_credentials('xs4MD75', '0SQ_t[cu+6')
         seed.runtime_seed()
 
     def test_runtime_seed_missing_credentials(self):
