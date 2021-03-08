@@ -7,6 +7,6 @@ COPY dacot_models /dacot_models
 RUN cd /dacot_models && python -m pip install .
 COPY fastapi_backend/app /app
 COPY run-api.sh /run-api.sh
-EXPOSE 8080
+EXPOSE 8081
 WORKDIR /
 ENTRYPOINT /bin/bash /run-api.sh
