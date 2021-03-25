@@ -89,10 +89,21 @@ class APISeed:
         res = self.__api.execute(gql('query { fullSchemaDrop }'))
         return res['fullSchemaDrop']
 
+    def __create_company(self, company_name):
+        query = '''
+            mutation {{
+                createCompany(companyDetails: {{
+                    name: "{}"
+                }}) {{ id }}
+            }}
+        '''.format(company_name)
+        self.__api.execute(gql(query))
+
     def __create_users(self):
         print()
         for company in self.__seed_params['users']:
             company_name = company['name']
+            self.__create_company(company_name)
             for user in company['users']:
                 query = '''
                 mutation {{
