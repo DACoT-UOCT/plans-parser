@@ -1,6 +1,7 @@
 import re
 import csv
 import json
+import datetime
 from gql import gql, Client
 from gql.transport.aiohttp import AIOHTTPTransport
 
@@ -131,7 +132,21 @@ class APISeed:
 
     def __create_controller_models(self):
         for model in self.__seed_params['ctrl_models']:
-            print(model)
+            company = model[0].strip().upper()
+            model_name = model[1].strip().upper()
+            fw_ver = model[2]
+            checksum = model[3]
+            query = """
+                mutation {{
+                    createController(controllerDetails: {{
+                        company: "{}",
+                        model: "{}",
+                        firmwareVersion: "{}",
+                        checksum: "{}"
+                    }}) {{ id }}
+                }}
+            """.format(company, model_name, fw_ver, checksum)
+            self.__api.execute(gql(query))
 
     def runtime_seed(self):
         if not self.__api:
