@@ -91,7 +91,7 @@ class APISeed:
 
     def __create_users(self):
         print()
-        for company, users in self.__seed_params['users']:
+        for company, users in self.__seed_params['users'].values():
             for user in users:
                 query = '''
                 mutation {{
