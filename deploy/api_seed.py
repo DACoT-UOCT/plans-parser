@@ -242,12 +242,12 @@ class APISeed:
             commune_code = existing_communes.get(otu['common']['commune'], 0)
             company = otu['common']['maintainer']
             model = (otu['common']['model_company'], otu['common']['model'], 'Desconocido', 'Desconocido')
-            if model not in created_partial_models:
-                self.__create_single_controller_model(model)
-                created_partial_models.add(model)
             if company not in existing_companies:
                 self.__create_company(company)
                 existing_companies.add(company)
+            if model not in created_partial_models:
+                self.__create_single_controller_model(model)
+                created_partial_models.add(model)
             query_junctions_section = self.__build_junctions_section(otu['juncs'])
             print(query_junctions_section)
             query = '''
