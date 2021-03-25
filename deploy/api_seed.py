@@ -270,7 +270,7 @@ class APISeed:
                             }}
                         }}
                         observation: "Created in Seed Script"
-                    }}) {{ oid junctions {{ jid }} }}
+                    }}) {{ oid otu {{ junctions {{ jid }} }} }}
                 }}
             '''.format(
                 otu['common']['oid'], commune_code, company, query_junctions_section,
