@@ -165,6 +165,7 @@ class APISeed:
             self.__api.execute(gql(query))
 
     def __create_single_controller_model(self, model):
+        print(model)
         company = model[0].strip().upper()
         model_name = model[1].strip().upper()
         fw_ver = model[2]
