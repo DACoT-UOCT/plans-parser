@@ -134,7 +134,7 @@ class APISeed:
         query = 'query { companies { name } }'
         res = self.__api.execute(gql(query))
         ret = set()
-        for company in res['data']['companies']:
+        for company in res['companies']:
             ret.add(company['name'])
         return ret
 
