@@ -244,6 +244,7 @@ class Query(graphene.ObjectType):
         UserModel.drop_collection()
         ExternalCompanyModel.drop_collection()
         logger.warning('FullSchemaDrop Done')
+        return True
 
     def resolve_check_otu_exists(self, info, oid):
         proj = ProjectModel.objects(oid=oid).only("id").first()
