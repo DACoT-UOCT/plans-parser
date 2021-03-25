@@ -160,6 +160,14 @@ class APISeed:
                 existing_companies.add(company)
             self.__api.execute(gql(query))
 
+    def __build_projects(self):
+        for junc in self.__seed_params['junctions']:
+            print(junc)
+
+    def __build_schedules(self):
+        for sched in self.__seed_params['schedules']:
+            print(sched)
+
     def runtime_seed(self):
         if not self.__api:
             raise RuntimeError('You have to call set_api_credentials first')
@@ -168,6 +176,8 @@ class APISeed:
         self.__create_users()
         self.__create_comunes()
         self.__create_controller_models()
+        self.__build_projects()
+        self.__build_schedules()
 
     def set_api_credentials(self, key, secret_key):
         self.__api_key = key

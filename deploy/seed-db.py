@@ -1,101 +1,3 @@
-def build_csv_index_item(line, ip_pattern):
-    d = {}
-    if line[6] and line[7]:
-        d["commune"] = line[6].strip().upper()
-        d["maintainer"] = line[7].strip().upper()
-    if line[4] and line[5]:
-        d["address_reference"] = "{} - {}".format(
-            line[4].strip().upper(), line[6].strip().upper()
-        )
-    if line[8] and line[9]:
-        d["otu_model"] = line[8].strip().upper()
-        d["otu_company"] = line[9].strip().upper()
-    if line[10] and line[11]:
-        try:
-            lat = float(line[10].replace(",", "."))
-            lon = float(line[11].replace(",", "."))
-            if not (-90 < lat < 90 and -180 < lon < 180):
-                raise ValueError()
-        except ValueError:
-            lat = 0.0
-            lon = 0.0
-        d["latitude"] = lat
-        d["longitude"] = lon
-    if ip_pattern.match(line[14]):
-        d["ip_address"] = line[14]
-    if line[0]:
-        d["sales_id"] = int(line[0])
-    return d
-
-def extract_company_for_commune(index_csv):
-    d = {}
-    for v in index_csv.values():
-        if "commune" in v and "maintainer" in v:
-            k = (v["commune"], v["maintainer"])
-            if k not in d:
-                d[k] = 0
-            d[k] += 1
-    l = []
-    for k, v in d.items():
-        l.append((k[0], k[1], v))
-    l = sorted(l, key=lambda v: v[1])
-    d = {}
-    for i in l:
-        if i[0] not in d:
-            d[i[0]] = i[1]
-    return d
-
-
-def build_external_company_collection(commune_company_dict):
-    s = set(commune_company_dict.values())
-    d = {}
-    for c in s:
-        d[c] = ExternalCompany(name=c)
-    for i in fast_validate_and_insert(d.values(), ExternalCompany):
-        d[i.name] = i
-    return d
-
-def build_controller_model_csv_item(line):
-    d = {
-        "company": line[0].strip().upper(),
-        "model": line[1].strip().upper(),
-        "fw": line[2],
-        "check": line[3],
-        "date": datetime.datetime.strptime(line[4], "%d-%m-%Y"),
-    }
-    return d
-
-def build_controller_model_collection(models_csv):
-    l = []
-    s = set()
-    for m in models_csv:
-        if (
-            m["company"] not in s
-            and not ExternalCompany.objects(name=m.get("company")).first()
-        ):
-            l.append(ExternalCompany(name=m.get("company")))
-            s.add(m.get("company"))
-    fast_validate_and_insert(l, ExternalCompany)
-    l = []
-    for m in models_csv:
-        comp = ExternalCompany.objects(name=m.get("company")).first()
-        l.append(
-            ControllerModel(
-                company=comp,
-                model=m.get("model"),
-                firmware_version=m.get("fw"),
-                checksum=m.get("check"),
-                date=m.get("date"),
-            )
-        )
-    fast_validate_and_insert(l, ControllerModel)
-
-def get_companies_dict():
-    comp = {}
-    for c in ExternalCompany.objects.all():
-        comp[c.name] = c
-    return comp
-
 def build_project_meta(csv_index):
     r = {}
     comp = get_companies_dict()
@@ -107,7 +9,6 @@ def build_project_meta(csv_index):
         m.maintainer = comp.get(v.get("maintainer"))
         r[rk] = m
     return r
-
 
 def build_otu(project_metas):
     global is_diff
@@ -122,7 +23,6 @@ def build_otu(project_metas):
     for s in l:
         d[s.oid] = s
     return d
-
 
 def build_projects(csv_index):
     global is_diff
