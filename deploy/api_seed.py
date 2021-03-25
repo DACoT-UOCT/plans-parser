@@ -91,19 +91,21 @@ class APISeed:
 
     def __create_users(self):
         print()
-        for user in self.__seed_params['users']:
-            query = '''
-            mutation {{
-                createUser(userDetails: {{
-                    isAdmin: {},
-                    fullName: "{}",
-                    email: "{}",
-                    role: "{}",
-                    area: "{}"
-                }}) {{ id }}
-            }}'''.format(user['admin'], user['full_name'], user['email'], user['role'], user['area'])
-            res = self.__api.execute(gql(query))
-            print(res)
+        for company, users in self.__seed_params['users']:
+            for user in users:
+                query = '''
+                mutation {{
+                    createUser(userDetails: {{
+                        isAdmin: {},
+                        fullName: "{}",
+                        email: "{}",
+                        role: "{}",
+                        area: "{}",
+                        company: "{}"
+                    }}) {{ id }}
+                }}'''.format(user['admin'], user['full_name'], user['email'], user['role'], user['area'], company)
+                res = self.__api.execute(gql(query))
+                print(res)
 
     def runtime_seed(self):
         if not self.__api:
