@@ -100,7 +100,6 @@ class APISeed:
         self.__api.execute(gql(query))
 
     def __create_users(self):
-        print()
         for company in self.__seed_params['users']:
             company_name = company['name']
             self.__create_company(company_name)
@@ -116,8 +115,7 @@ class APISeed:
                         company: "{}"
                     }}) {{ id }}
                 }}'''.format(str(user['admin']).lower(), user['full_name'], user['email'], user['role'], user['area'], company_name)
-                res = self.__api.execute(gql(query))
-                print(res)
+                self.__api.execute(gql(query))
 
     def runtime_seed(self):
         if not self.__api:
