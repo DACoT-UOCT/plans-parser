@@ -193,16 +193,13 @@ class APISeed:
         res = {}
         for junc in self.__seed_params['junctions'].values():
             line = junc['line']
-            print(line)
-            print(line[8])
             if not junc['oid'] in res:
                 common = {}
                 common['oid'] = junc['oid']
                 common['commune'] = line[6].strip().upper()
                 common['maintainer'] = line[7].strip().upper()
-                common['model'] = line[8],
+                common['model'] = line[8]
                 common['model_company'] = line[9].strip().upper()
-                print(common)
                 res[junc['oid']] = {
                     'common': common,
                     'juncs': []
