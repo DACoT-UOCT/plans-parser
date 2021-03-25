@@ -240,7 +240,7 @@ class APISeed:
         created_partial_models = set()
         for otu in self.__create_temp_otus():
             commune_code = existing_communes.get(otu['common']['commune'], 0)
-            company = otu['common']['company']
+            company = otu['common']['maintainer']
             model = (otu['common']['model_company'], otu['common']['model'], 'Desconocido', 'Desconocido')
             if model not in created_partial_models:
                 self.__create_single_controller_model(model)
