@@ -71,7 +71,7 @@ class APISeed:
             communes = json.load(fp)
             for commune in communes:
                 list_of_communes.append({
-                    'name': commune.get('nombre'),
+                    'name': commune.get('nombre').upper(),
                     'code': commune.get('codigo')
                 })
         return list_of_communes
@@ -160,9 +160,31 @@ class APISeed:
                 existing_companies.add(company)
             self.__api.execute(gql(query))
 
+    def __get_existing_communes(self):
+        query = 'query { communes { name code } }'
+        res = self.__api.execute(gql(query))
+        ret = {}
+        for commune in res['communes']:
+            ret[commune['name']] = commune['code']
+        return ret
+
     def __build_projects(self):
-        for junc in self.__seed_params['junctions'].items():
-            print(junc)
+        existing_communes = self.__get_existing_communes()
+        for junc in self.__seed_params['junctions'].values():
+            line = junc['line']
+            query = '''
+                mutation {{
+                    createProject(projectDetails: {{
+                        oid: "{}",
+                        metadata: {{
+                            commune: 12,
+                            maintainer: ""
+                        }},
+                        observation: "Created in Seed Script"
+                    }}) {{ oid jid }}
+                }}
+            '''.format(junc['oid'])
+            # self.__api.execute(gql(query))
 
     def __build_schedules(self):
         for sched in self.__seed_params['schedules'].items():
