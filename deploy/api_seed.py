@@ -198,7 +198,7 @@ class APISeed:
             commune_code = existing_communes.get(line[6].strip().upper(), 0)
             company = line[7].strip().upper()
             query_junctions_section = ''
-            address_reference = ''
+            address_reference = '{} - {} - {}'.format(line[4].strip().upper(), line[5].strip().upper(), line[6].strip().upper())
             model = (line[9].strip().upper(), line[8], 'Desconocido', 'Desconocido')
             if model not in created_partial_models:
                 self.__create_single_controller_model(model)
