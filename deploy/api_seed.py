@@ -161,11 +161,11 @@ class APISeed:
             self.__api.execute(gql(query))
 
     def __build_projects(self):
-        for junc in self.__seed_params['junctions']:
+        for junc in self.__seed_params['junctions'].items():
             print(junc)
 
     def __build_schedules(self):
-        for sched in self.__seed_params['schedules']:
+        for sched in self.__seed_params['schedules'].items():
             print(sched)
 
     def runtime_seed(self):
