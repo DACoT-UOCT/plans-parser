@@ -59,4 +59,6 @@ aiohttp==3.7.3
 attrs>=17.3.0
 async-timeout<4.0,>=3.0
 pyrsistent>=0.14.0
+multidict==5.1.0
+yarl==1.6.3
 gql==3.0.0a5
