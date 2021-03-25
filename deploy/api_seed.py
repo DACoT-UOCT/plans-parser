@@ -189,23 +189,67 @@ class APISeed:
             ret[commune['name']] = commune['code']
         return ret
 
+    def __create_temp_otus(self):
+        res = {}
+        for junc in self.__seed_params['junctions'].values():
+            line = junc['line']
+            if not junc['oid'] in res:
+                common = {}
+                common['oid'] = junc['oid']
+                common['commune'] = line[6].strip().upper()
+                common['maintainer'] = line[7].strip().upper()
+                common['model'] = line[8],
+                common['model_company'] = line[9].strip().upper()
+                res[junc['oid']] = {
+                    'common': common,
+                    'juncs': []
+                }
+            current_junc = {
+                'sale_id': line[0],
+                'jid': junc['jid'],
+                'address': '{} - {} - {}'.format(line[4].strip().upper(), line[5].strip().upper(), line[6].strip().upper())
+            }
+            lat = 0.0
+            lon = 0.0
+            if line[10] and line[11]:
+                try:
+                    lat = float(line[10].replace(',', '.'))
+                    lon = float(line[11].replace(',', '.'))
+                    if not (-90 < lat < 90 and -180 < lon < 180):
+                        raise ValueError()
+                except ValueError:
+                    lat = 0.0
+                    lon = 0.0
+            current_junc['lat'] = lat
+            current_junc['lon'] = lon
+            res[junc['oid']]['juncs'].append(current_junc)
+        return res.values()
+
+    def __build_junctions_section(self, juncs):
+        temp_juncs = []
+        for junc in juncs:
+            jstr = '{{ jid: "{}", metadata: {{ coordinates: [{}, {}], addressReference: "{}" }} }}'.format(
+                junc['jid'], junc['lat'], junc['lon'], junc['address']
+            )
+            temp_juncs.append(jstr)
+        return '[' + ', '.join(str(i) for i in temp_juncs) + ']'
+
     def __build_projects(self):
         existing_communes = self.__get_existing_communes()
         existing_companies = self.__get_existing_companies()
         created_partial_models = set()
-        for junc in self.__seed_params['junctions'].values():
-            line = junc['line']
-            commune_code = existing_communes.get(line[6].strip().upper(), 0)
-            company = line[7].strip().upper()
-            query_junctions_section = ''
-            address_reference = '{} - {} - {}'.format(line[4].strip().upper(), line[5].strip().upper(), line[6].strip().upper())
-            model = (line[9].strip().upper(), line[8], 'Desconocido', 'Desconocido')
+        for otu in self.__create_temp_otus():
+            commune_code = existing_communes.get(otu['common']['commune'], 0)
+            company = otu['common']['company']
+            model = (otu['common']['model_company'], otu['common']['model'], 'Desconocido', 'Desconocido')
             if model not in created_partial_models:
                 self.__create_single_controller_model(model)
                 created_partial_models.add(model)
             if company not in existing_companies:
                 self.__create_company(company)
                 existing_companies.add(company)
+            query_junctions_section = self.__build_junctions_section(otu['juncs'])
+            print(query_junctions_section)
             query = '''
                 mutation {{
                     createProject(projectDetails: {{
@@ -218,7 +262,6 @@ class APISeed:
                             junctions: {}
                         }},
                         controller: {{
-                            addressReference: "{}",
                             model: {{
                                 company: "{}",
                                 model: "{}",
@@ -230,14 +273,14 @@ class APISeed:
                     }}) {{ oid jid }}
                 }}
             '''.format(
-                junc['oid'], commune_code, company, query_junctions_section, address_reference,
+                otu['common']['oid'], commune_code, company, query_junctions_section,
                 model[0], model[1], model[2], model[3]
             )
             self.__api.execute(gql(query))
 
     def __build_schedules(self):
         for sched in self.__seed_params['schedules'].items():
-            print(sched)
+            pass
 
     def runtime_seed(self):
         if not self.__api:
@@ -248,7 +291,9 @@ class APISeed:
         self.__create_comunes()
         self.__create_controller_models()
         self.__build_projects()
+        # Accept new projects
         self.__build_schedules()
+        # Accept updates
 
     def set_api_credentials(self, key, secret_key):
         self.__api_key = key
