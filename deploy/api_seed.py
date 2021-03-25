@@ -165,7 +165,6 @@ class APISeed:
             self.__api.execute(gql(query))
 
     def __create_single_controller_model(self, model):
-        print(model)
         company = model[0].strip().upper()
         model_name = model[1].strip().upper()
         fw_ver = model[2]
@@ -201,6 +200,7 @@ class APISeed:
                 common['maintainer'] = line[7].strip().upper()
                 common['model'] = line[8],
                 common['model_company'] = line[9].strip().upper()
+                print(common)
                 res[junc['oid']] = {
                     'common': common,
                     'juncs': []
