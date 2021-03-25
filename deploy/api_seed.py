@@ -74,6 +74,10 @@ class APISeed:
                     'name': commune.get('nombre').upper(),
                     'code': commune.get('codigo')
                 })
+        list_of_communes.append({
+            'name': 'SIN ASIGNAR',
+            'code': 0
+        })
         return list_of_communes
 
     def __setup_params(self, backend, ctrl, juncs, sched, communes):
@@ -170,21 +174,27 @@ class APISeed:
 
     def __build_projects(self):
         existing_communes = self.__get_existing_communes()
+        existing_companies = self.__get_existing_companies()
         for junc in self.__seed_params['junctions'].values():
             line = junc['line']
+            commune_code = existing_communes.get(line[6].strip().upper(), 0)
+            company = line[7].strip().upper()
+            if company not in existing_companies:
+                self.__create_company(company)
+                existing_companies.add(company)
             query = '''
                 mutation {{
                     createProject(projectDetails: {{
                         oid: "{}",
                         metadata: {{
-                            commune: 12,
-                            maintainer: ""
+                            commune: {},
+                            maintainer: "{}"
                         }},
                         observation: "Created in Seed Script"
                     }}) {{ oid jid }}
                 }}
-            '''.format(junc['oid'])
-            # self.__api.execute(gql(query))
+            '''.format(junc['oid'], commune_code, company)
+            self.__api.execute(gql(query))
 
     def __build_schedules(self):
         for sched in self.__seed_params['schedules'].items():
