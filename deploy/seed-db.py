@@ -129,20 +129,6 @@ def check_should_continue():
     log.info('Input is not "yes". Aborting operations.')
     return False
 
-
-def drop_old_data():
-    global log
-    log.info("Dropping old data")
-    Commune.drop_collection()
-    PlanParseFailedMessage.drop_collection()
-    ExternalCompany.drop_collection()
-    ControllerModel.drop_collection()
-    User.drop_collection()
-    Project.drop_collection()
-    ActionsLog.drop_collection()
-    log.info("Done dropping data")
-
-
 def check_csv_line_valid(line, junc_pattern, otu_pattern):
     if (
         line[0]
@@ -184,24 +170,6 @@ def build_csv_index_item(line, ip_pattern):
         d["sales_id"] = int(line[0])
     return d
 
-
-def read_csv_data(args):
-    index = {}
-    junc_pattern = re.compile(r"J\d{6}\-\d{8}")
-    otu_pattern = re.compile(r"X\d{6}")
-    ipaddr_pattern = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
-    with open(args.index, "r", encoding="utf-8-sig") as fp:
-        reader = csv.reader(fp, delimiter=";")
-        for line in reader:
-            valid, oid, jid = check_csv_line_valid(line, junc_pattern, otu_pattern)
-            if valid:
-                key = "{}.{}".format(oid, jid)
-                index[key] = build_csv_index_item(line, ipaddr_pattern)
-                index[key]["oid"] = oid
-                index[key]["jid"] = jid
-    return index
-
-
 def extract_company_for_commune(index_csv):
     d = {}
     for v in index_csv.values():
@@ -230,17 +198,6 @@ def build_external_company_collection(commune_company_dict):
         d[i.name] = i
     return d
 
-
-def build_commune_collection(communes_json):
-    # https://apis.digital.gob.cl/dpa/regiones/13/comunas
-    l = []
-    with open(communes_json) as fp:
-        communes_list = json.load(fp)
-        for commune in communes_list:
-            l.append(Commune(name=commune.get("nombre"), code=commune.get("codigo")))
-    fast_validate_and_insert(l, Commune)
-
-
 def build_controller_model_csv_item(line):
     d = {
         "company": line[0].strip().upper(),
@@ -250,16 +207,6 @@ def build_controller_model_csv_item(line):
         "date": datetime.datetime.strptime(line[4], "%d-%m-%Y"),
     }
     return d
-
-
-def read_controller_models_csv(args):
-    l = []
-    with open(args.ctrlls_data, "r", encoding="utf-8-sig") as fp:
-        reader = csv.reader(fp, delimiter=";")
-        for line in reader:
-            l.append(build_controller_model_csv_item(line))
-    return l
-
 
 def build_controller_model_collection(models_csv):
     l = []
@@ -437,12 +384,6 @@ def build_junctions(csv_index, otus):
         od[saved.oid] = saved
     return jd, od
 
-
-def read_json_data(args):
-    with open(args.input, "r") as jsf:
-        return json.load(jsf)
-
-
 def build_junction_plans(junctions, json_data):
     for k, v in json_data.items():
         j = junctions.get(k)
@@ -494,59 +435,10 @@ def build_latest_versions():
         lstp.append(proj)
     fast_validate_and_insert_with_errors(lstp, Project)
 
-
-def rebuild(args):
-    if not check_should_continue():
-        return
-    connect(args.database, host=args.mongo)
-    drop_old_data()
-    index_csv = read_csv_data(args)
-    create_users()
-    build_commune_collection(index_csv)
-    controllers_model_csv = read_controller_models_csv(args)
-    build_controller_model_collection(controllers_model_csv)
-    otus, projects = build_projects(index_csv)
-    junctions, otus = build_junctions(index_csv, otus)
-    json_data = read_json_data(args)
-    junctions = build_junction_plans(junctions, json_data)
-    projects = build_otu_programs(otus, json_data, projects)
-    build_latest_versions()
-
-
-if __name__ == "__main__":
-    setup_logging()
-    log.info("Started seed-db script v0.2")
-    args = setup_args()
-    print(args)
-    if args.diffdb:
-        is_diff = True
-    else:
-        is_diff = False
-    if args.rebuild:
-        rebuild(args)
-    log.info("Done Seeding the remote database")
-
-
 def seed_from_interpreter(uri, db, ctrl, juncs, scheds, communes):
-    args = argparse.Namespace(
-        database=db,
-        diffdb=False,
-        extra=False,
-        ctrlls_data=ctrl,
-        index=juncs,
-        input=scheds,
-        mongo=uri,
-        rebuild=True,
-    )
-    drop_old_data()
-    index_csv = read_csv_data(args)
-    create_users()
-    build_commune_collection(communes)
-    controllers_model_csv = read_controller_models_csv(args)
     build_controller_model_collection(controllers_model_csv)
     otus, projects = build_projects(index_csv)
     junctions, otus = build_junctions(index_csv, otus)
-    json_data = read_json_data(args)
     junctions = build_junction_plans(junctions, json_data)
     projects = build_otu_programs(otus, json_data, projects)
     build_latest_versions()

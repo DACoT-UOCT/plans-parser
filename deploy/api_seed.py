@@ -87,12 +87,30 @@ class APISeed:
 
     def __drop_old_data(self):
         res = self.__api.execute(gql('query { fullSchemaDrop }'))
-        print(res)
+        return res['fullSchemaDrop']
+
+    def __create_users(self):
+        print()
+        for user in self.__seed_params['users']:
+            query = '''
+            mutation {{
+                createUser(userDetails: {{
+                    isAdmin: {},
+                    fullName: "{}",
+                    email: "{}",
+                    role: "{}",
+                    area: "{}"
+                }}) {{ id }}
+            }}'''.format(user['admin'], user['full_name'], user['email'], user['role'], user['area'])
+            res = self.__api.execute(gql(query))
+            print(res)
 
     def runtime_seed(self):
         if not self.__api:
-            raise RuntimeError('You have to call set_api_credentials first!')
-        self.__drop_old_data()
+            raise RuntimeError('You have to call set_api_credentials first')
+        if not self.__drop_old_data():
+            raise RuntimeError('Failed to drop old data from db')
+        self.__create_users()
 
     def set_api_credentials(self, key, secret_key):
         self.__api_key = key
