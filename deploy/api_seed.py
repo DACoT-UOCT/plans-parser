@@ -129,6 +129,10 @@ class APISeed:
             '''.format(commune['code'], commune['name'])
             self.__api.execute(gql(query))
 
+    def __create_controller_models(self):
+        for model in self.__seed_params['ctrl_models']:
+            print(model)
+
     def runtime_seed(self):
         if not self.__api:
             raise RuntimeError('You have to call set_api_credentials first')
@@ -136,6 +140,7 @@ class APISeed:
             raise RuntimeError('Failed to drop old data from db')
         self.__create_users()
         self.__create_comunes()
+        self.__create_controller_models()
 
     def set_api_credentials(self, key, secret_key):
         self.__api_key = key
