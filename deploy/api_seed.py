@@ -125,6 +125,7 @@ class APISeed:
                         code: {},
                         name: "{}"
                     }}) {{ code }}
+                }}
             '''.format(commune['code'], commune['name'])
             self.__api.execute(gql(query))
 
