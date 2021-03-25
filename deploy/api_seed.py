@@ -164,6 +164,23 @@ class APISeed:
                 existing_companies.add(company)
             self.__api.execute(gql(query))
 
+    def __create_single_controller_model(self, model):
+        company = model[0].strip().upper()
+        model_name = model[1].strip().upper()
+        fw_ver = model[2]
+        checksum = model[3]
+        query = '''
+            mutation {{
+                createController(controllerDetails: {{
+                    company: "{}",
+                    model: "{}",
+                    firmwareVersion: "{}",
+                    checksum: "{}"
+                }}) {{ id }}
+            }}
+        '''.format(company, model_name, fw_ver, checksum)
+        self.__api.execute(gql(query))
+
     def __get_existing_communes(self):
         query = 'query { communes { name code } }'
         res = self.__api.execute(gql(query))
@@ -175,10 +192,17 @@ class APISeed:
     def __build_projects(self):
         existing_communes = self.__get_existing_communes()
         existing_companies = self.__get_existing_companies()
+        created_partial_models = set()
         for junc in self.__seed_params['junctions'].values():
             line = junc['line']
             commune_code = existing_communes.get(line[6].strip().upper(), 0)
             company = line[7].strip().upper()
+            query_junctions_section = ''
+            address_reference = ''
+            model = (line[9].strip().upper(), line[8], 'Desconocido', 'Desconocido')
+            if model not in created_partial_models:
+                self.__create_single_controller_model(model)
+                created_partial_models.add(model)
             if company not in existing_companies:
                 self.__create_company(company)
                 existing_companies.add(company)
@@ -190,10 +214,25 @@ class APISeed:
                             commune: {},
                             maintainer: "{}"
                         }},
+                        otu: {{
+                            junctions: {}
+                        }},
+                        controller: {{
+                            addressReference: "{}",
+                            model: {{
+                                company: "{}",
+                                model: "{}",
+                                firmwareVersion: "{}",
+                                checksum: "{}"
+                            }}
+                        }}
                         observation: "Created in Seed Script"
                     }}) {{ oid jid }}
                 }}
-            '''.format(junc['oid'], commune_code, company)
+            '''.format(
+                junc['oid'], commune_code, company, query_junctions_section, address_reference,
+                model[0], model[1], model[2], model[3]
+            )
             self.__api.execute(gql(query))
 
     def __build_schedules(self):
