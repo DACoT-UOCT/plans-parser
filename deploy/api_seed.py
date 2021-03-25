@@ -194,6 +194,7 @@ class APISeed:
         for junc in self.__seed_params['junctions'].values():
             line = junc['line']
             print(line)
+            print(line[8])
             if not junc['oid'] in res:
                 common = {}
                 common['oid'] = junc['oid']
