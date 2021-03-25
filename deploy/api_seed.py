@@ -86,9 +86,8 @@ class APISeed:
         }
 
     def __drop_old_data(self):
-        #TODO: POST to /magic_drop
-        print()
-        print(self.__api_token)
+        res = self.__api.execute(gql('query {{ fullSchemaDrop }}'))
+        print(res)
 
     def runtime_seed(self):
         if not self.__api:
