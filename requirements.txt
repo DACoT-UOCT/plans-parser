@@ -55,7 +55,7 @@ pathspec<1,>=0.6
 click>=7.1.2
 typed-ast>=1.4.0
 black==20.8b1
-aiohttp==3.7.3
+aiohttp==3.7.4
 attrs>=17.3.0
 async-timeout<4.0,>=3.0
 pyrsistent>=0.14.0
