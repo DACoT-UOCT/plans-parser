@@ -117,12 +117,24 @@ class APISeed:
                 }}'''.format(str(user['admin']).lower(), user['full_name'], user['email'], user['role'], user['area'], company_name)
                 self.__api.execute(gql(query))
 
+    def __create_comunes(self):
+        for commune in self.__seed_params['communes']:
+            query = '''
+                mutation {{
+                    createCommune(communeDetails: {{
+                        code: {},
+                        name: "{}"
+                    }}) {{ code }}
+            '''.format(commune['code'], commune['name'])
+            self.__api.execute(gql(query))
+
     def runtime_seed(self):
         if not self.__api:
             raise RuntimeError('You have to call set_api_credentials first')
         if not self.__drop_old_data():
             raise RuntimeError('Failed to drop old data from db')
         self.__create_users()
+        self.__create_comunes()
 
     def set_api_credentials(self, key, secret_key):
         self.__api_key = key
