@@ -53,15 +53,15 @@ class APISeed:
 
     def __read_initial_users(self):
         role = 'Personal UOCT'
-        return {
-            'company': 'SpeeDevs',
+        return [{
+            'name': 'SpeeDevs',
             'users': [
                 {'full_name': 'DACoT DataBase Seed', 'email': 'seed@dacot.uoct.cl', 'role': role, 'area': 'TIC', 'admin': False},
                 {'full_name': 'Admin', 'email': 'admin@dacot.uoct.cl', 'role': role, 'area': 'TIC', 'admin': True},
                 {'full_name': 'Carlos Ponce', 'email': 'carlos.ponce@sansano.usm.cl', 'role': role, 'area': 'TIC', 'admin': True},
                 {'full_name': 'Sebastian Muñoz', 'email': 'sebastian.munozd@sansano.usm.cl', 'role': role, 'area': 'TIC', 'admin': True}
             ]
-        }
+        }]
 
     def __read_communes(self, infile):
         # INFO: Data was read from https://apis.digital.gob.cl/dpa/regiones/13/comunas
@@ -91,8 +91,9 @@ class APISeed:
 
     def __create_users(self):
         print()
-        for company, users in self.__seed_params['users'].items():
-            for user in users:
+        for company in self.__seed_params['users']:
+            company_name = company['name']
+            for user in company['users']:
                 query = '''
                 mutation {{
                     createUser(userDetails: {{
@@ -103,7 +104,7 @@ class APISeed:
                         area: "{}",
                         company: "{}"
                     }}) {{ id }}
-                }}'''.format(user['admin'], user['full_name'], user['email'], user['role'], user['area'], company)
+                }}'''.format(user['admin'], user['full_name'], user['email'], user['role'], user['area'], company_name)
                 res = self.__api.execute(gql(query))
                 print(res)
 
