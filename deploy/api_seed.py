@@ -130,13 +130,22 @@ class APISeed:
             '''.format(commune['code'], commune['name'])
             self.__api.execute(gql(query))
 
+    def __get_existing_companies(self):
+        query = 'query { companies { name } }'
+        res = self.__api.execute(gql(query))
+        ret = set()
+        for company in res['data']['companies']:
+            ret.add(company['name'])
+        return ret
+
     def __create_controller_models(self):
+        existing_companies = self.__get_existing_companies()
         for model in self.__seed_params['ctrl_models']:
             company = model[0].strip().upper()
             model_name = model[1].strip().upper()
             fw_ver = model[2]
             checksum = model[3]
-            query = """
+            query = '''
                 mutation {{
                     createController(controllerDetails: {{
                         company: "{}",
@@ -145,7 +154,10 @@ class APISeed:
                         checksum: "{}"
                     }}) {{ id }}
                 }}
-            """.format(company, model_name, fw_ver, checksum)
+            '''.format(company, model_name, fw_ver, checksum)
+            if company not in existing_companies:
+                self.__create_company(company)
+                existing_companies.add(company)
             self.__api.execute(gql(query))
 
     def runtime_seed(self):
