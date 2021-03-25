@@ -249,7 +249,6 @@ class APISeed:
                 self.__create_single_controller_model(model)
                 created_partial_models.add(model)
             query_junctions_section = self.__build_junctions_section(otu['juncs'])
-            print(query_junctions_section)
             query = '''
                 mutation {{
                     createProject(projectDetails: {{
@@ -279,6 +278,7 @@ class APISeed:
             self.__api.execute(gql(query))
 
     def __build_schedules(self):
+        # TODO: Add schedules
         for sched in self.__seed_params['schedules'].items():
             pass
 
@@ -291,9 +291,9 @@ class APISeed:
         self.__create_comunes()
         self.__create_controller_models()
         self.__build_projects()
-        # Accept new projects
+        # TODO: Accept new projects
         self.__build_schedules()
-        # Accept updates
+        # TODO: Accept updates
 
     def set_api_credentials(self, key, secret_key):
         self.__api_key = key
