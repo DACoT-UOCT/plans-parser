@@ -3,6 +3,7 @@ import base64
 import logging
 import graphene
 from datetime import datetime
+from fastapi.logger import logger
 from graphene_mongo import MongoengineObjectType
 from dacot_models import User as UserModel
 from dacot_models import ExternalCompany as ExternalCompanyModel
@@ -231,6 +232,18 @@ class Query(graphene.ObjectType):
         key=graphene.NonNull(graphene.String), secret=graphene.NonNull(graphene.String)
     )
     check_otu_exists = graphene.Boolean(oid=graphene.NonNull(graphene.String))
+    full_schema_drop = graphene.Boolean()
+
+    def resolve_full_schema_drop(self, info):
+        logger.warning('FullSchemaDrop Requested')
+        PlanParseFailedMessageModel.drop_collection()
+        ProjectModel.drop_collection()
+        ActionsLogModel.drop_collection()
+        ControllerModelModel.drop_collection()
+        CommuneModel.drop_collection()
+        UserModel.drop_collection()
+        ExternalCompanyModel.drop_collection()
+        logger.warning('FullSchemaDrop Done')
 
     def resolve_check_otu_exists(self, info, oid):
         proj = ProjectModel.objects(oid=oid).only("id").first()
