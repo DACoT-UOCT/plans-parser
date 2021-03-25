@@ -86,7 +86,7 @@ class APISeed:
         }
 
     def __drop_old_data(self):
-        res = self.__api.execute(gql('query {{ fullSchemaDrop }}'))
+        res = self.__api.execute(gql('query { fullSchemaDrop }'))
         print(res)
 
     def runtime_seed(self):
