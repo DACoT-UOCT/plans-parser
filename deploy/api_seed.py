@@ -104,7 +104,7 @@ class APISeed:
                         area: "{}",
                         company: "{}"
                     }}) {{ id }}
-                }}'''.format(user['admin'], user['full_name'], user['email'], user['role'], user['area'], company_name)
+                }}'''.format(str(user['admin']), user['full_name'], user['email'], user['role'], user['area'], company_name)
                 res = self.__api.execute(gql(query))
                 print(res)
 
