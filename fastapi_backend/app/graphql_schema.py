@@ -33,6 +33,21 @@ from dacot_models import APIKeyUsers as APIKeyUsersModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
 
+class Controller(MongoengineObjectType):
+    class Meta:
+        model = ProjControllerModel
+
+class HeaderItem(MongoengineObjectType):
+    class Meta:
+        model = ProjectHeaderItemModel
+
+class UPS(MongoengineObjectType):
+    class Meta:
+        model = UPSModel
+
+class Poles(MongoengineObjectType):
+    class Meta:
+        model = PolesModel
 
 class Project(MongoengineObjectType):
     class Meta:
