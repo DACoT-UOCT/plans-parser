@@ -12,8 +12,7 @@ class ExportAgent:
         self.__utc_host = env['UTC_HOST']
         self.__utc_user = env['UTC_USER']
         self.__utc_passwd = env['UTC_PASS']
-        # self.__read_plans_sleep = 120
-        self.__read_plans_sleep = 5
+        self.__read_plans_sleep = 30
 
     def run_full_session(self):
         logger.info('Starting FULL SESSION!')
@@ -36,8 +35,12 @@ class ExportAgent:
             res = executor.get_results()
             for k, v in res.items():
                 out.write('[{}] {}\n'.format(k, '=' * 40))
-                for l in v:
-                    out.write('{}\n'.format(l))
+                for possible_list in v:
+                    if type(possible_list) == list:
+                        for line in possible_list:
+                            out.write('{}\n'.format(line))
+                    else:
+                        out.write('{}\n'.format(possible_list))
         logger.info('Saving done in {}'.format(outfile))
 
     def __get_plans(self, executor):
