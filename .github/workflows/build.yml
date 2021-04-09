@@ -106,7 +106,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v1
         with:
-          file: Dockerfile.export-agent
+          dockerfile: Dockerfile.export-agent
           registry: docker.pkg.github.com
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
