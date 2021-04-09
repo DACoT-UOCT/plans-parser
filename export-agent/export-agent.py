@@ -24,13 +24,20 @@ class ExportAgent:
         logger.debug('Using the following full-session execution plan: {}'.format(executor.history()))
         logger.info('=== STARTING SESSION EXECUTION ===')
         executor.run(debug=True)
-        self.__write_results('utc_sys_exports/dacot-export-agent')
+        self.__write_results(executor, 'utc_sys_exports/dacot-export-agent')
         logger.info('Full session done')
 
-    def __write_results(self, output_prefix):
+    def __write_results(self, executor, output_prefix):
         now = datetime.now()
         outfile = './{}_{}.sys_txt'.format(output_prefix, now.isoformat())
         logger.info('Saving TCE execution result to {}'.format(outfile))
+        with open(outfile, 'w') as out:
+            res = executor.get_results()
+            for k, v in res:
+                out.write('{}\n'.format('=' * 30))
+                out.write('{}\n'.format(k))
+                out.write('{}\n'.format('=' * 30))
+        logger.info('Saving done in {}'.format(outfile))
 
     def __get_plans(self, executor):
         logger.info('Building get-plans procedure')
