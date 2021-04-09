@@ -1,0 +1,8 @@
+FROM python:3.9.4-alpine3.13
+RUN python -m pip install --upgrade pip
+COPY export-agent/requirements.txt requirements.txt
+RUN python -m pip install -r requirements.txt
+COPY export-agent /export-agent
+COPY run-export-agent.sh /export-agent/run-export-agent.sh
+WORKDIR /export-agent
+ENTRYPOINT /bin/sh /export-agent/run-export-agent.sh

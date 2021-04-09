@@ -17,7 +17,7 @@ class TelnetCommandExecutor:
 
     def __log_print(self, msg):
         if self.__logger:
-            self.__logger.info(msg)
+            self.__logger.debug('TelnetCommandExecutor: {}'.format(msg))
         else:
             print(msg)
 
@@ -81,30 +81,18 @@ class TelnetCommandExecutor:
 
     def run(self, debug=False):
         if debug:
-            self.__log_print(
-                "=== Starting telnet session to {}:{} with a timeout of {}s === ".format(
-                    self.__target_host, self.__target_port, self.__conn_timeout
-                )
-            )
-        with telnetlib.Telnet(
-            self.__target_host, self.__target_port, self.__conn_timeout
-        ) as tn_client:
+            self.__log_print("=== Starting telnet session to {}:{} with a timeout of {}s === ".format(self.__target_host, self.__target_port, self.__conn_timeout))
+        with telnetlib.Telnet(self.__target_host, self.__target_port, self.__conn_timeout) as tn_client:
             while not self.__commands.empty():
                 cmd = self.__commands.get()
                 if debug:
-                    self.__log_print(
-                        "Executing command {} -> {}".format(cmd[0], cmd[1])
-                    )
+                    self.__log_print("Executing command {} -> {}".format(cmd[0], cmd[1]))
                 if "read" in cmd[0]:
                     if not self.__current_command in self.__reads_outputs:
                         self.__reads_outputs[self.__current_command] = []
                     output, size = cmd[1](telnet=tn_client)
                     if debug:
-                        self.__log_print(
-                            "Adding output of size {} bytes to command {}".format(
-                                size, self.__current_command
-                            )
-                        )
+                        self.__log_print("Adding output of size {} bytes to command {}".format(size, self.__current_command))
                     self.__reads_outputs[self.__current_command].append(output)
                 elif "sleep" == cmd[0]:
                     cmd[1](telnet=tn_client)
@@ -112,8 +100,4 @@ class TelnetCommandExecutor:
                     self.__current_command = cmd[0]
                     cmd[1](telnet=tn_client)
         if debug:
-            self.__log_print(
-                "=== End of telnet session to {}:{} === ".format(
-                    self.__target_host, self.__target_port
-                )
-            )
+            self.__log_print("=== End of telnet session to {}:{} === ".format(self.__target_host, self.__target_port))
