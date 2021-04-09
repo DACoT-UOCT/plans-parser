@@ -17,7 +17,7 @@ class TelnetCommandExecutor:
 
     def __log_print(self, msg):
         if self.__logger:
-            self.__logger.debug('TelnetCommandExecutor: {}'.format(msg))
+            self.__logger.debug(msg)
         else:
             print(msg)
 
