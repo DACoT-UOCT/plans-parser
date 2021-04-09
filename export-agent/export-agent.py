@@ -35,9 +35,9 @@ class ExportAgent:
         with open(outfile, 'w') as out:
             res = executor.get_results()
             for k, v in res.items():
-                out.write('{}\n'.format('=' * 30))
-                out.write('{}\n'.format(k))
-                out.write('{}\n'.format('=' * 30))
+                out.write('[{}] {}\n'.format(k, '=' * 40))
+                for l in v:
+                    out.write('{}\n'.format(l))
         logger.info('Saving done in {}'.format(outfile))
 
     def __get_plans(self, executor):
