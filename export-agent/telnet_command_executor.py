@@ -102,10 +102,13 @@ class TelnetCommandExecutor:
             self.__log_print("=== Starting telnet session to {}:{} with a timeout of {}s === ".format(self.__target_host, self.__target_port, self.__conn_timeout))
         with telnetlib.Telnet(self.__target_host, self.__target_port, self.__conn_timeout) as tn_client:
             tn_client.set_option_negotiation_callback(self.__set_max_window_size)
+            plan_size = self.__commands.qsize()
+            current = 0
             while not self.__commands.empty():
+                current += 1
                 cmd = self.__commands.get()
                 if debug:
-                    self.__log_print("Executing command {} -> {}".format(cmd[0], cmd[1]))
+                    self.__log_print("[{:05.2f}%] Executing command {} -> {}".format(100 * current / plan_size, cmd[0], cmd[1]))
                 if "read" in cmd[0]:
                     if not self.__current_command in self.__reads_outputs:
                         self.__reads_outputs[self.__current_command] = []
