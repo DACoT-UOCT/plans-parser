@@ -1,8 +1,9 @@
 import sys
 import time
 import queue
+import struct
 import telnetlib
-
+from telnetlib import DO, DONT, IAC, WILL, WONT, NAWS, SB, SE
 
 class TelnetCommandExecutor:
     def __init__(self, host, port=23, connection_timeout=40, logger=None):
@@ -79,10 +80,23 @@ class TelnetCommandExecutor:
         self.__command_history.clear()
         self.__commands.queue.clear()
 
+    def __set_max_window_size(self, tsocket, command, option):
+        # See https://stackoverflow.com/questions/38288887/python-telnetlib-read-until-returns-cut-off-string
+        if option == NAWS:
+            width = struct.pack('H', 65000)
+            height = struct.pack('H', 5000)
+            tsocket.send(IAC + WILL + NAWS)
+            tsocket.send(IAC + SB + NAWS + width + height + IAC + SE)
+        elif command in (DO, DONT):
+            tsocket.send(IAC + WONT + option)
+        elif command in (WILL, WONT):
+            tsocket.send(IAC + DONT + option)
+
     def run(self, debug=False):
         if debug:
             self.__log_print("=== Starting telnet session to {}:{} with a timeout of {}s === ".format(self.__target_host, self.__target_port, self.__conn_timeout))
         with telnetlib.Telnet(self.__target_host, self.__target_port, self.__conn_timeout) as tn_client:
+            tn_client.set_option_negotiation_callback(self.__set_max_window_size)
             while not self.__commands.empty():
                 cmd = self.__commands.get()
                 if debug:
