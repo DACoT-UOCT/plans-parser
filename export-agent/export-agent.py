@@ -1,6 +1,7 @@
 import re
 import os
 import sys
+import pyte
 from loguru import logger
 from datetime import datetime
 from telnet_command_executor import TelnetCommandExecutor as TCE
@@ -26,7 +27,7 @@ class ExportAgent:
         p1outfile = self.__phase1(executor)
         juncs = self.__phase2(p1outfile)
         self.__phase3(juncs, executor)
-        # self.__phase2('../../dacot-export-agent_2021-04-10T02:55:35.978012.sys_txt')
+        #self.__phase4('../../dacot-export-agent_seeds_test')
         logger.info('Full session done')
 
     def __phase1(self, executor):
@@ -93,6 +94,19 @@ class ExportAgent:
         executor.run(debug=True)
         self.__write_results(executor, 'utc_sys_exports/dacot-export-agent', mode='a')
         logger.info('=== PHASE 3 SESSION DONE ===')
+
+    def __phase4(self, infile):
+        screen = pyte.Screen(100, 100)
+        #stream = pyte.ByteStream(screen)
+        stream = pyte.Stream(screen)
+        with open(infile, 'r') as input_data:
+            for idx, line in enumerate(input_data):
+                #logger.debug(bytes(line, 'utf-8'))
+                stream.feed(line)
+                if idx == 100:
+                    break
+        for l in screen.display:
+            print(l)
 
     def __get_programs(self, executor):
         logger.info('Building get-programs procedure')
