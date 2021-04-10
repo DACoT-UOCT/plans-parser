@@ -42,6 +42,15 @@ class ExportAgent:
     def __phase2(self, infile):
         logger.info('=== STARTING PHASE 2 SESSION EXECUTION ===')
         with open(infile, 'r') as input_data:
+            auth_ok = False
+            for line in input_data:
+                if 'Successfully logged in!' in line:
+                    auth_ok = True
+                if '[get-plans-wildcard]' in line:
+                    if not auth_ok:
+                        raise ValueError('Invalid export file, could not login to UTC')
+                    else:
+                        break
             for line in input_data:
                 clean_line = self.__re_ansi_escape.sub('', line).strip()
                 if 'End of Plan Timings' in clean_line:
