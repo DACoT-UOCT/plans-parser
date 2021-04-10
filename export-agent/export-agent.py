@@ -74,8 +74,8 @@ class ExportAgent:
         logger.info('Getting UPPER_TIMINGS and SEED data for {} Junctions'.format(count))
         for idx, junc in enumerate(juncs):
             idx = idx + 1
-            if idx % prog:
-                logger.debug('[{:02.2f}] We are at {}'.format(idx / count, junc))
+            if idx % prog == 0:
+                logger.debug('[{:02.2f}] We are at {}'.format(100 * idx / count, junc))
         logger.info('=== PHASE 3 SESSION DONE ===')
 
     def __get_programs(self, executor):
