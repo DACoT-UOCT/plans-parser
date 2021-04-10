@@ -14,6 +14,7 @@ class ExportAgent:
         self.__utc_user = env['UTC_USER']
         self.__utc_passwd = env['UTC_PASS']
         self.__read_remote_sleep = 30
+        self.__read_seed_sleep = 1
         self.__execution_date = datetime.now()
         self.__re_ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n")
         logger.warning('Using a {}s sleep call to wait for buffers from remote'.format(self.__read_remote_sleep))
@@ -36,7 +37,7 @@ class ExportAgent:
         logger.debug('Using the following phase 1 execution plan: {}'.format(executor.history()))
         logger.info('=== STARTING PHASE 1 SESSION EXECUTION ===')
         executor.run(debug=True)
-        outfile = self.__write_results(executor, 'utc_sys_exports/dacot-export-agent-phase1')
+        outfile = self.__write_results(executor, 'utc_sys_exports/dacot-export-agent')
         logger.info('=== PHASE 1 SESSION DONE ===')
         return outfile
 
@@ -78,16 +79,17 @@ class ExportAgent:
             idx = idx + 1
             if idx % prog == 0:
                 logger.debug('[{:05d.2f}%] We are at {}'.format(100 * idx / count, junc))
-                # break
+                break
             executor.command('get-seed-{}'.format(junc), 'SEED {}'.format(junc))
             executor.exit_interactive_command()
-            executor.sleep(1) #TODO: Use a constant
+            executor.sleep(self.__read_seed_sleep)
             executor.command('get-timings-{}'.format(junc), 'SEED {} UPPER_TIMINGS'.format(junc))
             executor.exit_interactive_command()
-            executor.sleep(1) #TODO: Use a constant
-            break
+            executor.sleep(self.__read_seed_sleep)
         self.__logout_sys(executor)
         logger.debug('Using the following phase 3 execution plan: {}'.format(executor.history()))
+        executor.run(debug=True)
+        self.__write_results(executor, 'utc_sys_exports/dacot-export-agent', mode='a')
         logger.info('=== PHASE 3 SESSION DONE ===')
 
     def __get_programs(self, executor):
@@ -98,10 +100,10 @@ class ExportAgent:
             executor.read_lines(encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
         logger.debug('Get-Programs built')
 
-    def __write_results(self, executor, output_prefix):
+    def __write_results(self, executor, output_prefix, mode='w'):
         outfile = './{}_{}.sys_txt'.format(output_prefix, self.__execution_date.isoformat())
         logger.info('Saving TCE execution result to {}'.format(outfile))
-        with open(outfile, 'w') as out:
+        with open(outfile, mode) as out:
             res = executor.get_results()
             for k, v in res.items():
                 out.write('[{}] {}\n'.format(k, '=' * 40))
