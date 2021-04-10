@@ -14,8 +14,8 @@ class ExportAgent:
         self.__utc_host = env['UTC_HOST']
         self.__utc_user = env['UTC_USER']
         self.__utc_passwd = env['UTC_PASS']
-        self.__read_remote_sleep = 0 # 30
-        self.__read_seed_sleep = 0 # 1
+        self.__read_remote_sleep = 30
+        self.__read_seed_sleep = 1
         self.__execution_date = datetime.now()
         self.__re_ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n")
         logger.warning('Using a {}s sleep call to wait for buffers from remote'.format(self.__read_remote_sleep))
