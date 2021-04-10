@@ -27,7 +27,8 @@ class ExportAgent:
         p1outfile = self.__phase1(executor)
         juncs = self.__phase2(p1outfile)
         self.__phase3(juncs, executor)
-        #self.__phase4('../../dacot-export-agent_seeds_test')
+        # self.__phase4('../../dacot-export-agent_2021-04-10T19:45:29.226290.sys_txt')
+        self.__phase4(p1outfile)
         logger.info('Full session done')
 
     def __phase1(self, executor):
@@ -96,17 +97,32 @@ class ExportAgent:
         logger.info('=== PHASE 3 SESSION DONE ===')
 
     def __phase4(self, infile):
-        screen = pyte.Screen(100, 100)
-        #stream = pyte.ByteStream(screen)
+        screen = pyte.Screen(80, 25)
         stream = pyte.Stream(screen)
+        next_token = '[get-seed'
         with open(infile, 'r') as input_data:
-            for idx, line in enumerate(input_data):
-                #logger.debug(bytes(line, 'utf-8'))
-                stream.feed(line)
-                if idx == 100:
+            lines = input_data.readlines()
+            seed_start_pos = 0
+            for idx, line in enumerate(lines):
+                if next_token in line:
+                    next_token = '[get-timings'
+                    seed_start_pos = idx
                     break
-        for l in screen.display:
-            print(l)
+            for line in lines[seed_start_pos:]:
+                if next_token in line:
+                    next_token = self.__swap_seed_tokens(next_token)
+                    current_screen = '\n'.join(screen.display)
+                    print(current_screen)
+                    print('*' * 80)
+                    screen.reset()
+                stream.feed(line)
+
+    def __swap_seed_tokens(self, token):
+        if 'seed' in token:
+            next_token = '[get-timings'
+        else:
+            next_token = '[get-seed'
+        return next_token
 
     def __get_programs(self, executor):
         logger.info('Building get-programs procedure')
@@ -122,7 +138,7 @@ class ExportAgent:
         with open(outfile, mode) as out:
             res = executor.get_results()
             for k, v in res.items():
-                out.write('[{}] {}\n'.format(k, '=' * 40))
+                out.write('[{}] {}\n'.format(k, '=' * 5))
                 for possible_list in v:
                     if type(possible_list) == list:
                         for line in possible_list:
