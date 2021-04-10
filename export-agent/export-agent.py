@@ -24,7 +24,7 @@ class ExportAgent:
         logger.debug('Using TCE={}'.format(executor))
         p1outfile = self.__phase1(executor)
         juncs = self.__phase2(p1outfile)
-        self.__phase3(juncs)
+        self.__phase3(juncs, executor)
         # self.__phase2('../../dacot-export-agent_2021-04-10T02:55:35.978012.sys_txt')
         logger.info('Full session done')
 
@@ -67,15 +67,27 @@ class ExportAgent:
         logger.info('=== PHASE 2 SESSION DONE ===')
         return all_junctions
 
-    def __phase3(self, juncs):
+    def __phase3(self, juncs, executor):
         logger.info('=== STARTING PHASE 3 SESSION EXECUTION ===')
         count = len(juncs)
         prog = int(count / 20)
-        logger.info('Getting UPPER_TIMINGS and SEED data for {} Junctions'.format(count))
+        logger.info('Building UPPER_TIMINGS and SEED data commands for {} Junctions'.format(count))
+        executor.reset()
+        self.__login_sys(executor)
         for idx, junc in enumerate(juncs):
             idx = idx + 1
             if idx % prog == 0:
-                logger.debug('[{:02.2f}] We are at {}'.format(100 * idx / count, junc))
+                logger.debug('[{:05d.2f}%] We are at {}'.format(100 * idx / count, junc))
+                # break
+            executor.command('get-seed-{}'.format(junc), 'SEED {}'.format(junc))
+            executor.exit_interactive_command()
+            executor.sleep(1) #TODO: Use a constant
+            executor.command('get-timings-{}'.format(junc), 'SEED {} UPPER_TIMINGS'.format(junc))
+            executor.exit_interactive_command()
+            executor.sleep(1) #TODO: Use a constant
+            break
+        self.__logout_sys(executor)
+        logger.debug('Using the following phase 3 execution plan: {}'.format(executor.history()))
         logger.info('=== PHASE 3 SESSION DONE ===')
 
     def __get_programs(self, executor):

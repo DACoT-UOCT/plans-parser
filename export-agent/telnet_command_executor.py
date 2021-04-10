@@ -27,6 +27,9 @@ class TelnetCommandExecutor:
         item = (identifier, lambda **kwargs: self.__command_impl(command, **kwargs))
         self.__commands.put(item)
 
+    def exit_interactive_command(self):
+        self.command('exit-interactive', '-')
+
     def sleep(self, seconds):
         item = ("sleep", lambda **kwargs: time.sleep(seconds))
         self.__commands.put(item)
@@ -76,6 +79,8 @@ class TelnetCommandExecutor:
         return out, sys.getsizeof(out)
 
     def reset(self):
+        if self.__logger:
+            self.__logger.warning('reset() called! -> INTERNAL STATE OF TelnetCommandExecutor has been DELETED!')
         self.__reads_outputs.clear()
         self.__command_history.clear()
         self.__commands.queue.clear()
