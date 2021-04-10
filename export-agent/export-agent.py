@@ -78,7 +78,7 @@ class ExportAgent:
         for idx, junc in enumerate(juncs):
             idx = idx + 1
             if idx % prog == 0:
-                logger.debug('[{:05d.2f}%] We are at {}'.format(100 * idx / count, junc))
+                logger.debug('[{:05.2f}%] We are at {}'.format(100 * idx / count, junc))
                 break
             executor.command('get-seed-{}'.format(junc), 'SEED {}'.format(junc))
             executor.exit_interactive_command()
