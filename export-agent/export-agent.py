@@ -63,7 +63,6 @@ class ExportAgent:
                 if clean_line:
                     junc = clean_line[0:20].split()[2]
                     all_junctions.add(junc)
-                    logger.debug(bytes(clean_line, 'utf-8'))
         logger.debug('Parsed {} lines, got {} unique JIDs'.format(count, len(all_junctions)))
         logger.info('=== PHASE 2 SESSION DONE ===')
         return all_junctions
