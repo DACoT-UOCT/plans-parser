@@ -79,16 +79,17 @@ class ExportAgent:
         self.__login_sys(executor)
         for idx, junc in enumerate(juncs):
             idx = idx + 1
+            if idx == 10:
+                break
             if idx % prog == 0:
                 logger.debug('[{:05.2f}%] We are at {}'.format(100 * idx / count, junc))
-                break
             executor.command('get-seed-{}'.format(junc), 'SEED {}'.format(junc))
             executor.sleep(self.__read_seed_sleep)
-            executor.read_lines(encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
+            executor.read_lines(encoding="iso-8859-1")#, line_ending=b"\x1b8\x1b7")
             executor.exit_interactive_command()
             executor.command('get-timings-{}'.format(junc), 'SEED {} UPPER_TIMINGS'.format(junc))
             executor.sleep(self.__read_seed_sleep)
-            executor.read_lines(encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
+            executor.read_lines(encoding="iso-8859-1")#, line_ending=b"\x1b8\x1b7")
             executor.exit_interactive_command()
         self.__logout_sys(executor)
         logger.debug('Using the following phase 3 execution plan: {}'.format(executor.history()))
