@@ -1,3 +1,4 @@
+import re
 import os
 import sys
 from loguru import logger
@@ -13,21 +14,44 @@ class ExportAgent:
         self.__utc_user = env['UTC_USER']
         self.__utc_passwd = env['UTC_PASS']
         self.__read_remote_sleep = 30
+        self.__execution_date = datetime.now()
+        self.__re_ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n")
         logger.warning('Using a {}s sleep call to wait for buffers from remote'.format(self.__read_remote_sleep))
 
     def run_full_session(self):
         logger.info('Starting FULL SESSION!')
         executor = TCE(host=self.__utc_host, logger=logger)
         logger.debug('Using TCE={}'.format(executor))
+        p1outfile = self.__phase1(executor)
+        self.__phase2(p1outfile)
+        # self.__phase2('../../dacot-export-agent_2021-04-10T02:55:35.978012.sys_txt')
+        logger.info('Full session done')
+
+    def __phase1(self, executor):
         self.__login_sys(executor)
         self.__get_plans(executor)
         self.__get_programs(executor)
         self.__logout_sys(executor)
-        logger.debug('Using the following full-session execution plan: {}'.format(executor.history()))
-        logger.info('=== STARTING SESSION EXECUTION ===')
+        logger.debug('Using the following phase 1 execution plan: {}'.format(executor.history()))
+        logger.info('=== STARTING PHASE 1 SESSION EXECUTION ===')
         executor.run(debug=True)
-        self.__write_results(executor, 'utc_sys_exports/dacot-export-agent')
-        logger.info('Full session done')
+        outfile = self.__write_results(executor, 'utc_sys_exports/dacot-export-agent-phase1')
+        logger.info('=== PHASE 1 SESSION DONE ===')
+        return outfile
+
+    def __phase2(self, infile):
+        logger.info('=== STARTING PHASE 2 SESSION EXECUTION ===')
+        with open(infile, 'r') as input_data:
+            for line in input_data:
+                clean_line = self.__re_ansi_escape.sub('', line).strip()
+                if 'End of Plan Timings' in clean_line:
+                    break
+                if clean_line:
+                    logger.debug(bytes(clean_line, 'utf-8'))
+        logger.info('=== PHASE 2 SESSION DONE ===')
+
+    def __phase3(self):
+        pass
 
     def __get_programs(self, executor):
         logger.info('Building get-programs procedure')
@@ -38,8 +62,7 @@ class ExportAgent:
         logger.debug('Get-Programs built')
 
     def __write_results(self, executor, output_prefix):
-        now = datetime.now()
-        outfile = './{}_{}.sys_txt'.format(output_prefix, now.isoformat())
+        outfile = './{}_{}.sys_txt'.format(output_prefix, self.__execution_date.isoformat())
         logger.info('Saving TCE execution result to {}'.format(outfile))
         with open(outfile, 'w') as out:
             res = executor.get_results()
@@ -52,6 +75,7 @@ class ExportAgent:
                     else:
                         out.write('{}\n'.format(possible_list))
         logger.info('Saving done in {}'.format(outfile))
+        return outfile
 
     def __get_plans(self, executor):
         logger.info('Building get-plans procedure')
