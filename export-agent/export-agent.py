@@ -23,7 +23,8 @@ class ExportAgent:
         executor = TCE(host=self.__utc_host, logger=logger)
         logger.debug('Using TCE={}'.format(executor))
         p1outfile = self.__phase1(executor)
-        self.__phase2(p1outfile)
+        juncs = self.__phase2(p1outfile)
+        self.__phase3(juncs)
         # self.__phase2('../../dacot-export-agent_2021-04-10T02:55:35.978012.sys_txt')
         logger.info('Full session done')
 
@@ -41,9 +42,12 @@ class ExportAgent:
 
     def __phase2(self, infile):
         logger.info('=== STARTING PHASE 2 SESSION EXECUTION ===')
+        all_junctions = set()
+        count = 0
         with open(infile, 'r') as input_data:
             auth_ok = False
             for line in input_data:
+                count += 1
                 if 'Successfully logged in!' in line:
                     auth_ok = True
                 if '[get-plans-wildcard]' in line:
@@ -52,15 +56,28 @@ class ExportAgent:
                     else:
                         break
             for line in input_data:
+                count += 1
                 clean_line = self.__re_ansi_escape.sub('', line).strip()
                 if 'End of Plan Timings' in clean_line:
                     break
                 if clean_line:
+                    junc = clean_line[0:20].split()[2]
+                    all_junctions.add(junc)
                     logger.debug(bytes(clean_line, 'utf-8'))
+        logger.debug('Parsed {} lines, got {} unique JIDs'.format(count, len(all_junctions)))
         logger.info('=== PHASE 2 SESSION DONE ===')
+        return all_junctions
 
-    def __phase3(self):
-        pass
+    def __phase3(self, juncs):
+        logger.info('=== STARTING PHASE 3 SESSION EXECUTION ===')
+        count = len(juncs)
+        prog = int(count / 20)
+        logger.info('Getting UPPER_TIMINGS and SEED data for {} Junctions'.format(count))
+        for idx, junc in enumerate(juncs):
+            idx = idx + 1
+            if idx % prog:
+                logger.debug('[{:02.2f}] We are at {}'.format(idx / count, junc))
+        logger.info('=== PHASE 3 SESSION DONE ===')
 
     def __get_programs(self, executor):
         logger.info('Building get-programs procedure')
