@@ -18,17 +18,17 @@ class ExportAgent:
         self.__read_seed_sleep = 0.35
         self.__execution_date = datetime.now()
         self.__re_ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n")
+        self.__re_ctrl_type = re.compile(r'^.*Controller Type\s+:\s\[(.*)\]\s*$')
         logger.warning('Using a {}s sleep call to wait for buffers from remote'.format(self.__read_remote_sleep))
 
     def run_full_session(self):
         logger.info('Starting FULL SESSION!')
         executor = TCE(host=self.__utc_host, logger=logger)
         logger.debug('Using TCE={}'.format(executor))
-        self.__get_seed_data(executor, 'J001111')
-        #p1outfile = self.__phase1(executor)
-        #juncs = self.__phase2(p1outfile)
-        #self.__phase3(juncs, executor)
-        #self.__phase4(p1outfile)
+        p1outfile = self.__phase1(executor)
+        juncs = self.__phase2(p1outfile)
+        self.__phase3(juncs, executor)
+        self.__phase4(p1outfile)
         logger.info('Full session done')
 
     def __phase1(self, executor):
@@ -81,47 +81,36 @@ class ExportAgent:
             idx = idx + 1
             if idx % prog == 0:
                 logger.debug('[{:05.2f}%] We are at {}'.format(100 * idx / count, junc))
-            executor.command('get-seed', 'SEED {}'.format(junc))
-            executor.sleep(self.__read_seed_sleep)
-            executor.exit_interactive_command(cmd_name='get-seed-{}'.format(junc))
-            executor.sleep(self.__read_seed_sleep)
-            executor.read_until('JUNCTION')
-            executor.command('get-timings-{}'.format(junc), 'SEED {} UPPER_TIMINGS'.format(junc))
-            executor.sleep(self.__read_seed_sleep)
-            executor.read_until('JUNCTION')
-            executor.exit_interactive_command()
-            break
+                break
+            self.__get_seed_data(executor, junc)
         self.__logout_sys(executor)
         logger.debug('Using the following phase 3 execution plan: {}'.format(executor.history()))
         executor.run(debug=True)
         self.__write_results(executor, 'utc_sys_exports/dacot-export-agent', mode='a')
         logger.info('=== PHASE 3 SESSION DONE ===')
 
-    def __get_seed_data(self, executor, junction):
-        self.__login_sys(executor)
-        for junc in ['J001111', 'J001331', 'J001121', 'J001122']:
-            executor.command('get-seed-{}'.format(junc), 'SEED {}'.format(junc))
-            executor.sleep(self.__read_seed_sleep)
-            executor.read_until_min_bytes(2000, encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
-            executor.exit_interactive_command()
-            executor.command('get-timings-{}'.format(junc), 'SEED {} UPPER_TIMINGS'.format(junc))
-            executor.sleep(self.__read_seed_sleep)
-            executor.read_until_min_bytes(2000, encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
-            executor.exit_interactive_command()
-        self.__logout_sys(executor)
-        executor.run(debug=True)
-        out = self.__write_results(executor, 'utc_sys_exports/dacot-export-agent', mode='w')
-        self.__phase4(out)
+    def __get_seed_data(self, executor, junc):
+        executor.command('get-seed-{}'.format(junc), 'SEED {}'.format(junc))
+        executor.sleep(self.__read_seed_sleep)
+        executor.read_until_min_bytes(2000, encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
+        executor.exit_interactive_command()
+        executor.command('get-timings-{}'.format(junc), 'SEED {} UPPER_TIMINGS'.format(junc))
+        executor.sleep(self.__read_seed_sleep)
+        executor.read_until_min_bytes(2000, encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
+        executor.exit_interactive_command()
 
     def __phase4(self, infile):
         screen = pyte.Screen(80, 25)
         stream = pyte.Stream(screen)
+        results = {}
         next_token = '[get-seed'
         with open(infile, 'r') as input_data:
             lines = input_data.readlines()
             seed_start_pos = 0
+            currenct_junc = ''
             for idx, line in enumerate(lines):
                 if next_token in line:
+                    current_junc = line.split('-')[2].split(']')[0]
                     next_token = '[get-timings'
                     seed_start_pos = idx
                     break
@@ -129,13 +118,18 @@ class ExportAgent:
                 if next_token in line:
                     next_token = self.__swap_seed_tokens(next_token)
                     current_screen = '\n'.join(screen.display)
-                    print(current_screen)
-                    print('*' * 80)
+                    current_junc = line.split('-')[2].split(']')[0]
                     screen.reset()
+                    results[current_junc] = self.__extract_data_from_screen(current_screen, next_token)
                 stream.feed(line)
             current_screen = '\n'.join(screen.display)
-            print(current_screen)
-            print('*' * 80)
+            # TODO: ExtractData
+
+    def __extract_data_from_screen(self, screen, token):
+        if 'seed' in token:
+            ctrl_match = self.__re_ctrl_type.match(screen)
+            if ctrl_match:
+                return ctrl_match.group(1)
 
     def __swap_seed_tokens(self, token):
         if 'seed' in token:
