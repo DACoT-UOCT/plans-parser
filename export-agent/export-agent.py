@@ -24,10 +24,10 @@ class ExportAgent:
         logger.info('Starting FULL SESSION!')
         executor = TCE(host=self.__utc_host, logger=logger)
         logger.debug('Using TCE={}'.format(executor))
-        p1outfile = self.__phase1(executor)
+        #p1outfile = self.__phase1(executor)
+        p1outfile = '/export-agent/utc_sys_exports/dacot-export-agent_2021-04-09T02:26:26.024479.sys_txt'
         juncs = self.__phase2(p1outfile)
         self.__phase3(juncs, executor)
-        # self.__phase4('../../dacot-export-agent_2021-04-10T19:45:29.226290.sys_txt')
         self.__phase4(p1outfile)
         logger.info('Full session done')
 
@@ -79,18 +79,17 @@ class ExportAgent:
         self.__login_sys(executor)
         for idx, junc in enumerate(juncs):
             idx = idx + 1
-            if idx == 10:
-                break
             if idx % prog == 0:
                 logger.debug('[{:05.2f}%] We are at {}'.format(100 * idx / count, junc))
             executor.command('get-seed-{}'.format(junc), 'SEED {}'.format(junc))
             executor.sleep(self.__read_seed_sleep)
-            executor.read_lines(encoding="iso-8859-1")#, line_ending=b"\x1b8\x1b7")
+            executor.read_until('JUNCTION')
             executor.exit_interactive_command()
             executor.command('get-timings-{}'.format(junc), 'SEED {} UPPER_TIMINGS'.format(junc))
             executor.sleep(self.__read_seed_sleep)
-            executor.read_lines(encoding="iso-8859-1")#, line_ending=b"\x1b8\x1b7")
+            executor.read_until('JUNCTION')
             executor.exit_interactive_command()
+            break
         self.__logout_sys(executor)
         logger.debug('Using the following phase 3 execution plan: {}'.format(executor.history()))
         executor.run(debug=True)
