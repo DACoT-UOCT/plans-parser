@@ -24,8 +24,7 @@ class ExportAgent:
         logger.info('Starting FULL SESSION!')
         executor = TCE(host=self.__utc_host, logger=logger)
         logger.debug('Using TCE={}'.format(executor))
-        #p1outfile = self.__phase1(executor)
-        p1outfile = '/export-agent/utc_sys_exports/dacot-export-agent_2021-04-09T02:26:26.024479.sys_txt'
+        p1outfile = self.__phase1(executor)
         juncs = self.__phase2(p1outfile)
         self.__phase3(juncs, executor)
         self.__phase4(p1outfile)
