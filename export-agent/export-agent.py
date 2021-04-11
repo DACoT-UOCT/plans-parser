@@ -18,17 +18,18 @@ class ExportAgent:
         self.__read_seed_sleep = 0.35
         self.__execution_date = datetime.now()
         self.__re_ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n")
-        self.__re_ctrl_type = re.compile(r'^.*Controller Type\s+:\s\[(.*)\]\s*$')
+        self.__re_ctrl_type = re.compile(r'Controller Type\s+:\s\[(?P<ctrl_type>.*)\]')
         logger.warning('Using a {}s sleep call to wait for buffers from remote'.format(self.__read_remote_sleep))
 
     def run_full_session(self):
         logger.info('Starting FULL SESSION!')
         executor = TCE(host=self.__utc_host, logger=logger)
         logger.debug('Using TCE={}'.format(executor))
-        p1outfile = self.__phase1(executor)
-        juncs = self.__phase2(p1outfile)
-        self.__phase3(juncs, executor)
-        self.__phase4(p1outfile)
+        # p1outfile = self.__phase1(executor)
+        # juncs = self.__phase2(p1outfile)
+        # self.__phase3(juncs, executor)
+        # self.__phase4(p1outfile)
+        self.__phase4('../../DACOT_EXPORT_FULL_OK')
         logger.info('Full session done')
 
     def __phase1(self, executor):
@@ -100,6 +101,7 @@ class ExportAgent:
         executor.exit_interactive_command()
 
     def __phase4(self, infile):
+        logger.info('=== STARTING PHASE 4 SESSION EXECUTION ===')
         screen = pyte.Screen(80, 25)
         stream = pyte.Stream(screen)
         results = {}
@@ -107,7 +109,7 @@ class ExportAgent:
         with open(infile, 'r') as input_data:
             lines = input_data.readlines()
             seed_start_pos = 0
-            currenct_junc = ''
+            current_junc = ''
             for idx, line in enumerate(lines):
                 if next_token in line:
                     current_junc = line.split('-')[2].split(']')[0]
@@ -120,16 +122,20 @@ class ExportAgent:
                     current_screen = '\n'.join(screen.display)
                     current_junc = line.split('-')[2].split(']')[0]
                     screen.reset()
-                    results[current_junc] = self.__extract_data_from_screen(current_screen, next_token)
+                    results[current_junc] = self.__extract_data_from_screen(current_screen, next_token, current_junc)
                 stream.feed(line)
             current_screen = '\n'.join(screen.display)
             # TODO: ExtractData
+        logger.debug(results)
+        logger.info('=== PHASE 4 SESSION DONE ===')
 
-    def __extract_data_from_screen(self, screen, token):
+    def __extract_data_from_screen(self, screen, token, junc):
         if 'seed' in token:
-            ctrl_match = self.__re_ctrl_type.match(screen)
-            if ctrl_match:
-                return ctrl_match.group(1)
+            ctrl_match = list(self.__re_ctrl_type.finditer(screen, re.MULTILINE))
+            if len(ctrl_match) != 1:
+                logger.warning('Failed to find ControllerType for {}'.format(junc))
+                return None
+            return ctrl_match[0].group('ctrl_type').strip()
 
     def __swap_seed_tokens(self, token):
         if 'seed' in token:
