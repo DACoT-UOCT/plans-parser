@@ -107,7 +107,7 @@ class ExportAgent:
         executor.read_lines(encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
         self.__logout_sys(executor)
         executor.run(debug=True)
-        self.__write_results(executor, 'utc_sys_exports/dacot-export-agent', mode='2')
+        self.__write_results(executor, 'utc_sys_exports/dacot-export-agent', mode='w')
 
     def __phase4(self, infile):
         screen = pyte.Screen(80, 25)
