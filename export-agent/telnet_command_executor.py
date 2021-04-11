@@ -28,7 +28,7 @@ class TelnetCommandExecutor:
         self.__commands.put(item)
 
     def exit_interactive_command(self, cmd_name='exit-interactive'):
-        self.command(cmd_name, '-')
+        self.command(cmd_name, '-\n\n')
 
     def sleep(self, seconds):
         item = ("sleep", lambda **kwargs: time.sleep(seconds))
