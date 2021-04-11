@@ -107,7 +107,8 @@ class ExportAgent:
         executor.read_lines(encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
         self.__logout_sys(executor)
         executor.run(debug=True)
-        self.__write_results(executor, 'utc_sys_exports/dacot-export-agent', mode='w')
+        out = self.__write_results(executor, 'utc_sys_exports/dacot-export-agent', mode='w')
+        self.__phase4(out)
 
     def __phase4(self, infile):
         screen = pyte.Screen(80, 25)
@@ -129,6 +130,8 @@ class ExportAgent:
                     print('*' * 80)
                     screen.reset()
                 stream.feed(line)
+            current_screen = '\n'.join(screen.display)
+            print(current_screen)
 
     def __swap_seed_tokens(self, token):
         if 'seed' in token:
