@@ -2,6 +2,7 @@ import re
 import os
 import sys
 import pyte
+import pandas as pd
 from loguru import logger
 from datetime import datetime
 from telnet_command_executor import TelnetCommandExecutor as TCE
@@ -19,6 +20,7 @@ class ExportAgent:
         self.__execution_date = datetime.now()
         self.__re_ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n")
         self.__re_ctrl_type = re.compile(r'Controller Type\s+:\s\[(?P<ctrl_type>.*)\]')
+        self.__re_intergreens_table = re.compile(r'\s(?P<phase_name>[A-Z])\s+(?P<is_demand>N|Y)\s+(?P<min_time>\d+)\s+(?P<max_time>\d+)\s+(?P<intergreens>((X|\d+)\s+)+(X|\d+))')
         logger.warning('Using a {}s sleep call to wait for buffers from remote'.format(self.__read_remote_sleep))
 
     def run_full_session(self):
@@ -29,7 +31,7 @@ class ExportAgent:
         # juncs = self.__phase2(p1outfile)
         # self.__phase3(juncs, executor)
         # self.__phase4(p1outfile)
-        self.__phase4('../../DACOT_EXPORT_FULL_OK')
+        partial_results = self.__phase4('../../DACOT_EXPORT_FULL_OK')
         logger.info('Full session done')
 
     def __phase1(self, executor):
@@ -82,7 +84,7 @@ class ExportAgent:
             idx = idx + 1
             if idx % prog == 0:
                 logger.debug('[{:05.2f}%] We are at {}'.format(100 * idx / count, junc))
-                break
+                break # TODO: FIXME: Remove this in last version
             self.__get_seed_data(executor, junc)
         self.__logout_sys(executor)
         logger.debug('Using the following phase 3 execution plan: {}'.format(executor.history()))
@@ -120,22 +122,47 @@ class ExportAgent:
                 if next_token in line:
                     next_token = self.__swap_seed_tokens(next_token)
                     current_screen = '\n'.join(screen.display)
-                    current_junc = line.split('-')[2].split(']')[0]
+                    if not current_junc in results:
+                        results[current_junc] = {
+                            'ctrl_type': None,
+                            'intergreens': None,
+                            'plans': None,
+                            'program': None
+                        }
+                    self.__extract_data_from_screen(current_screen, next_token, current_junc, results)
                     screen.reset()
-                    results[current_junc] = self.__extract_data_from_screen(current_screen, next_token, current_junc)
+                    current_junc = line.split('-')[2].split(']')[0]
                 stream.feed(line)
             current_screen = '\n'.join(screen.display)
-            # TODO: ExtractData
-        logger.debug(results)
+            self.__extract_data_from_screen(current_screen, next_token, current_junc, results)
+            screen.reset()
         logger.info('=== PHASE 4 SESSION DONE ===')
+        return results
 
-    def __extract_data_from_screen(self, screen, token, junc):
+    def __extract_data_from_screen(self, screen, token, junc, results):
         if 'seed' in token:
             ctrl_match = list(self.__re_ctrl_type.finditer(screen, re.MULTILINE))
             if len(ctrl_match) != 1:
                 logger.warning('Failed to find ControllerType for {}'.format(junc))
-                return None
-            return ctrl_match[0].group('ctrl_type').strip()
+                return
+            results[junc]['ctrl_type'] = ctrl_match[0].group('ctrl_type').strip()
+        elif 'timings' in token:
+            rows_match = list(self.__re_intergreens_table.finditer(screen, re.MULTILINE))
+            if len(rows_match) == 0:
+                logger.warning('Failed to get IntergreensData for {}'.format(junc))
+                return
+            table = []
+            names = []
+            for row in rows_match:
+                inter_values = row.group('intergreens')
+                names.append(row.group('phase_name'))
+                trow = [row.group('phase_name'), row.group('is_demand'), row.group('min_time'), row.group('max_time')]
+                trow.extend(inter_values.split())
+                table.append(trow)
+            column_names = ['Phase', 'IsDemand', 'MinTime', 'MaxTime']
+            column_names.extend(names)
+            df = pd.DataFrame(table, columns=column_names)
+            results[junc]['intergreens'] = df
 
     def __swap_seed_tokens(self, token):
         if 'seed' in token:
