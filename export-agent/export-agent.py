@@ -103,7 +103,10 @@ class ExportAgent:
         executor.command('get-seed', 'SEED {}'.format(junc))
         executor.sleep(self.__read_seed_sleep)
         executor.exit_interactive_command(cmd_name='get-seed-{}'.format(junc))
-        # executor.read_until('-')
+        executor.read_lines(encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
+        executor.command('get-timings', 'SEED {} UPPER_TIMINGS'.format(junc))
+        executor.sleep(self.__read_seed_sleep)
+        executor.exit_interactive_command(cmd_name='get-timings-{}'.format(junc))
         executor.read_lines(encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
         self.__logout_sys(executor)
         executor.run(debug=True)
@@ -132,6 +135,7 @@ class ExportAgent:
                 stream.feed(line)
             current_screen = '\n'.join(screen.display)
             print(current_screen)
+            print('*' * 80)
 
     def __swap_seed_tokens(self, token):
         if 'seed' in token:
