@@ -24,10 +24,11 @@ class ExportAgent:
         logger.info('Starting FULL SESSION!')
         executor = TCE(host=self.__utc_host, logger=logger)
         logger.debug('Using TCE={}'.format(executor))
-        p1outfile = self.__phase1(executor)
-        juncs = self.__phase2(p1outfile)
-        self.__phase3(juncs, executor)
-        self.__phase4(p1outfile)
+        self.__get_seed_data(executor, 'J001111')
+        #p1outfile = self.__phase1(executor)
+        #juncs = self.__phase2(p1outfile)
+        #self.__phase3(juncs, executor)
+        #self.__phase4(p1outfile)
         logger.info('Full session done')
 
     def __phase1(self, executor):
@@ -80,10 +81,11 @@ class ExportAgent:
             idx = idx + 1
             if idx % prog == 0:
                 logger.debug('[{:05.2f}%] We are at {}'.format(100 * idx / count, junc))
-            executor.command('get-seed-{}'.format(junc), 'SEED {}'.format(junc))
+            executor.command('get-seed', 'SEED {}'.format(junc))
+            executor.sleep(self.__read_seed_sleep)
+            executor.exit_interactive_command(cmd_name='get-seed-{}'.format(junc))
             executor.sleep(self.__read_seed_sleep)
             executor.read_until('JUNCTION')
-            executor.exit_interactive_command()
             executor.command('get-timings-{}'.format(junc), 'SEED {} UPPER_TIMINGS'.format(junc))
             executor.sleep(self.__read_seed_sleep)
             executor.read_until('JUNCTION')
@@ -94,6 +96,18 @@ class ExportAgent:
         executor.run(debug=True)
         self.__write_results(executor, 'utc_sys_exports/dacot-export-agent', mode='a')
         logger.info('=== PHASE 3 SESSION DONE ===')
+
+    def __get_seed_data(self, executor, junction):
+        junc = junction
+        self.__login_sys(executor)
+        executor.command('get-seed', 'SEED {}'.format(junc))
+        executor.sleep(self.__read_seed_sleep)
+        executor.exit_interactive_command(cmd_name='get-seed-{}'.format(junc))
+        # executor.read_until('-')
+        executor.read_lines(encoding="iso-8859-1", line_ending=b"\x1b8\x1b7")
+        self.__logout_sys(executor)
+        executor.run(debug=True)
+        self.__write_results(executor, 'utc_sys_exports/dacot-export-agent', mode='2')
 
     def __phase4(self, infile):
         screen = pyte.Screen(80, 25)
