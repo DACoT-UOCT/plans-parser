@@ -23,6 +23,8 @@ class ExportAgent:
         self.__re_intergreens_table = re.compile(r'\s(?P<phase_name>[A-Z])\s+(?P<is_demand>N|Y)\s+(?P<min_time>\d+)\s+(?P<max_time>\d+)\s+(?P<intergreens>((X|\d+)\s+)+(X|\d+))')
         self.__re_plan = re.compile(r'^Plan\s+(?P<id>\d+)\s(?P<junction>J\d{6}).*(?P<cycle>CY\d{3})\s(?P<phases>[A-Z0-9\s,!\*]+)$')
         self.__re_extract_phases = re.compile(r"\s[A-Z]\s\d+")
+        self.__re_program_hour = re.compile(r"(?P<hour>\d{2}:\d{2}:\d{2}).*$")
+        self.__re_program = re.compile(r"(?P<hour>(\d{2}:\d{2}:\d{2})?)(\d{3})?\s+PLAN\s+(?P<junction>[J|A]\d{6})\s+(?P<plan>(\d+|[A-Z]{1,2}))\s+TIMETABLE$")
         logger.warning('Using a {}s sleep call to wait for buffers from remote'.format(self.__read_remote_sleep))
 
     def run_full_session(self):
@@ -34,7 +36,8 @@ class ExportAgent:
         # self.__phase3(juncs, executor)
         # self.__phase4(p1outfile)
         partial_results = self.__phase4('../../DACOT_EXPORT_FULL_OK')
-        final_results = self.__phase5('../../DACOT_EXPORT_FULL_OK', partial_results)
+        # partial_results = self.__phase5('../../DACOT_EXPORT_FULL_OK', partial_results)
+        final_results = self.__phase6('../../DACOT_EXPORT_FULL_OK', partial_results)
         logger.info('Full session done')
 
     def __phase1(self, executor):
@@ -161,6 +164,41 @@ class ExportAgent:
                     else:
                         failed_plans.append(clean_line)
         logger.info('=== PHASE 5 SESSION DONE ===')
+
+    def __phase6(self, infile, results):
+        logger.info('=== STARTING PHASE 6 SESSION EXECUTION ===')
+        failed_programs = []
+        parsed_programs = []
+        with open(infile, 'r') as input_data:
+            lines = input_data.readlines()
+            program_start = 0
+            for idx, line in enumerate(lines):
+                if 'End of Plan Timings' in line:
+                    program_start = idx + 1
+                    break
+            current_table = -1
+            current_hour = ''
+            for line in lines[program_start:]:
+                clean_line = self.__re_ansi_escape.sub('', line).strip()
+                if clean_line:
+                    if '[end-session]' in clean_line:
+                        break
+                    if 'Timetable' in clean_line and 'Title:-' in clean_line:
+                        current_table = int(re.match(r'.*Timetable\s(\d+).*', clean_line).group(1))
+                    match_hour_line = self.__re_program_hour.match(clean_line)
+                    if match_hour_line:
+                        current_hour = match_hour_line.group("hour")[:-3]
+                    match = self.__re_program.match(clean_line)
+                    if match:
+                        if ':' in match.group('hour'):
+                            current_hour = match.group("hour")[:-3]
+                        parsed_programs.append((current_table, current_hour, match.group('junction'), match.group('plan')))
+                    else:
+                        failed_programs.append(clean_line)
+        logger.info('=== PHASE 6 SESSION DONE ===')
+
+    def __expand_wildcards(self, plans):
+        pass
 
     def __build_single_plan(self, match, results):
         plan_id = match.group('id')
