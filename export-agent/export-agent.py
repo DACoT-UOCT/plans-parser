@@ -36,8 +36,8 @@ class ExportAgent:
         # self.__phase3(juncs, executor)
         # self.__phase4(p1outfile)
         partial_results = self.__phase4('../../DACOT_EXPORT_FULL_OK')
-        # partial_results = self.__phase5('../../DACOT_EXPORT_FULL_OK', partial_results)
-        final_results = self.__phase6('../../DACOT_EXPORT_FULL_OK', partial_results)
+        self.__phase5('../../DACOT_EXPORT_FULL_OK', partial_results)
+        self.__phase6('../../DACOT_EXPORT_FULL_OK', partial_results)
         logger.info('Full session done')
 
     def __phase1(self, executor):
@@ -151,7 +151,7 @@ class ExportAgent:
 
     def __phase5(self, infile, results):
         logger.info('=== STARTING PHASE 5 SESSION EXECUTION ===')
-        failed_plans = []
+        failed_plans = [] # FIXME: Send to backend
         with open(infile, 'r') as input_data:
             for line in input_data:
                 clean_line = self.__re_ansi_escape.sub('', line).strip()
@@ -167,7 +167,7 @@ class ExportAgent:
 
     def __phase6(self, infile, results):
         logger.info('=== STARTING PHASE 6 SESSION EXECUTION ===')
-        failed_programs = []
+        failed_programs = [] # FIXME: Send to backend
         parsed_programs = []
         with open(infile, 'r') as input_data:
             lines = input_data.readlines()
@@ -195,10 +195,36 @@ class ExportAgent:
                         parsed_programs.append((current_table, current_hour, match.group('junction'), match.group('plan')))
                     else:
                         failed_programs.append(clean_line)
+        self.__expand_wildcards(parsed_programs, results)
         logger.info('=== PHASE 6 SESSION DONE ===')
 
-    def __expand_wildcards(self, plans):
-        pass
+    def __expand_wildcards(self, programs, results):
+        for p in programs:
+            if p[2][0] == 'A':
+                for possible in self.__wildcard_generator(p[2]):
+                    if possible in results:
+                        new_prog = (p[0], p[1], possible, p[3])
+                        results[possible]['program'].append(new_prog)
+            else:
+                if not p[2] in results:
+                    results[p[2]] = {
+                        'ctrl_type': None,
+                        'intergreens': None,
+                        'plans': [],
+                        'program': []
+                    }
+                    logger.warning('{} not in results. Creating entry.'.format(p[2])) # FIXME: Send to backend
+                results[p[2]]['program'].append(p)
+
+    def __wildcard_generator(self, wildcard):
+        pattern = wildcard.rstrip("0")[1:]
+        lendiff = 6 - len(pattern)
+        limit = 10 ** lendiff
+        n = 0
+        formatstr = "J{}{:0" + str(lendiff) + "d}"
+        while n < limit:
+            yield formatstr.format(pattern, n)
+            n += 1
 
     def __build_single_plan(self, match, results):
         plan_id = match.group('id')
@@ -208,7 +234,7 @@ class ExportAgent:
         phases = []
         for x in self.__re_extract_phases.findall(for_re):
             name, start = x.strip().split()
-            phases.append((str(ord(x) - 64), str(int(start))))
+            phases.append((str(ord(name) - 64), str(int(start))))
         cycle_int = int(cycle.split('CY')[1])
         item = (plan_id, cycle_int, phases)
         if junc not in results:
@@ -218,7 +244,7 @@ class ExportAgent:
                 'plans': [],
                 'program': []
             }
-            logger.warning('{} not in results. Creating entry.'.format(junc))
+            logger.warning('{} not in results. Creating entry.'.format(junc)) # FIXME: Send to backend
         results[junc]['plans'].append(item)
 
     def __extract_data_from_screen(self, screen, token, junc, results):
@@ -226,13 +252,13 @@ class ExportAgent:
             ctrl_match = list(self.__re_ctrl_type.finditer(screen, re.MULTILINE))
             if len(ctrl_match) != 1:
                 logger.warning('Failed to find ControllerType for {}'.format(junc))
-                return
+                return # FIXME: Send to backend
             results[junc]['ctrl_type'] = ctrl_match[0].group('ctrl_type').strip()
         elif 'timings' in token:
             rows_match = list(self.__re_intergreens_table.finditer(screen, re.MULTILINE))
             if len(rows_match) == 0:
                 logger.warning('Failed to get IntergreensData for {}'.format(junc))
-                return
+                return # FIXME: Send to backend
             table = []
             names = []
             for row in rows_match:
