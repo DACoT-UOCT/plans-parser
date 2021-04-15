@@ -35,10 +35,17 @@ class ExportAgent:
         # juncs = self.__phase2(p1outfile)
         # self.__phase3(juncs, executor)
         # self.__phase4(p1outfile)
-        partial_results = self.__phase4('../../DACOT_EXPORT_FULL_OK')
-        self.__phase5('../../DACOT_EXPORT_FULL_OK', partial_results)
-        self.__phase6('../../DACOT_EXPORT_FULL_OK', partial_results)
+        results = self.__phase4('../../DACOT_EXPORT_FULL_OK')
+        self.__phase5('../../DACOT_EXPORT_FULL_OK', results)
+        self.__phase6('../../DACOT_EXPORT_FULL_OK', results)
+        self.__upload_results(results)
         logger.info('Full session done')
+
+    def __upload_results(self, results):
+        for k, v in results.items():
+            print(k)
+            print(v)
+            break
 
     def __phase1(self, executor):
         self.__login_sys(executor)
@@ -203,7 +210,7 @@ class ExportAgent:
             if p[2][0] == 'A':
                 for possible in self.__wildcard_generator(p[2]):
                     if possible in results:
-                        new_prog = (p[0], p[1], possible, p[3])
+                        new_prog = (p[0], p[1], p[3])
                         results[possible]['program'].append(new_prog)
             else:
                 if not p[2] in results:
@@ -214,7 +221,8 @@ class ExportAgent:
                         'program': []
                     }
                     logger.warning('{} not in results. Creating entry.'.format(p[2])) # FIXME: Send to backend
-                results[p[2]]['program'].append(p)
+                new_prog = (p[0], p[1], p[3])
+                results[p[2]]['program'].append(new_prog)
 
     def __wildcard_generator(self, wildcard):
         pattern = wildcard.rstrip("0")[1:]
