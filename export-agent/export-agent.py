@@ -205,7 +205,10 @@ class ExportAgent:
         junc = match.group('junction')
         cycle = match.group('cycle')
         for_re = ' ' + match.group("phases")
-        phases = [tuple(x.strip().split()) for x in self.__re_extract_phases.findall(for_re)]
+        phases = []
+        for x in self.__re_extract_phases.findall(for_re):
+            name, start = x.strip().split()
+            phases.append((str(ord(x) - 64), str(int(start))))
         cycle_int = int(cycle.split('CY')[1])
         item = (plan_id, cycle_int, phases)
         if junc not in results:
