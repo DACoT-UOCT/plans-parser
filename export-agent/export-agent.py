@@ -21,6 +21,8 @@ class ExportAgent:
         self.__re_ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n")
         self.__re_ctrl_type = re.compile(r'Controller Type\s+:\s\[(?P<ctrl_type>.*)\]')
         self.__re_intergreens_table = re.compile(r'\s(?P<phase_name>[A-Z])\s+(?P<is_demand>N|Y)\s+(?P<min_time>\d+)\s+(?P<max_time>\d+)\s+(?P<intergreens>((X|\d+)\s+)+(X|\d+))')
+        self.__re_plan = re.compile(r'^Plan\s+(?P<id>\d+)\s(?P<junction>J\d{6}).*(?P<cycle>CY\d{3})\s(?P<phases>[A-Z0-9\s,!\*]+)$')
+        self.__re_extract_phases = re.compile(r"\s[A-Z]\s\d+")
         logger.warning('Using a {}s sleep call to wait for buffers from remote'.format(self.__read_remote_sleep))
 
     def run_full_session(self):
@@ -32,6 +34,7 @@ class ExportAgent:
         # self.__phase3(juncs, executor)
         # self.__phase4(p1outfile)
         partial_results = self.__phase4('../../DACOT_EXPORT_FULL_OK')
+        final_results = self.__phase5('../../DACOT_EXPORT_FULL_OK', partial_results)
         logger.info('Full session done')
 
     def __phase1(self, executor):
@@ -118,7 +121,9 @@ class ExportAgent:
                     next_token = '[get-timings'
                     seed_start_pos = idx
                     break
-            for line in lines[seed_start_pos:]:
+            count = len(lines) - seed_start_pos
+            step = count / 20
+            for idx, line in enumerate(lines[seed_start_pos:]):
                 if next_token in line:
                     next_token = self.__swap_seed_tokens(next_token)
                     current_screen = '\n'.join(screen.display)
@@ -126,18 +131,54 @@ class ExportAgent:
                         results[current_junc] = {
                             'ctrl_type': None,
                             'intergreens': None,
-                            'plans': None,
-                            'program': None
+                            'plans': [],
+                            'program': []
                         }
                     self.__extract_data_from_screen(current_screen, next_token, current_junc, results)
                     screen.reset()
                     current_junc = line.split('-')[2].split(']')[0]
+                if idx % step == 0:
+                    logger.debug('[{:05.2f}%] We are at {}'.format(100 * idx / count, current_junc))
                 stream.feed(line)
             current_screen = '\n'.join(screen.display)
             self.__extract_data_from_screen(current_screen, next_token, current_junc, results)
             screen.reset()
         logger.info('=== PHASE 4 SESSION DONE ===')
         return results
+
+    def __phase5(self, infile, results):
+        logger.info('=== STARTING PHASE 5 SESSION EXECUTION ===')
+        failed_plans = []
+        with open(infile, 'r') as input_data:
+            for line in input_data:
+                clean_line = self.__re_ansi_escape.sub('', line).strip()
+                if clean_line:
+                    if 'End of Plan Timings' in clean_line:
+                        break
+                    match = self.__re_plan.match(clean_line)
+                    if match:
+                        self.__build_single_plan(match, results)
+                    else:
+                        failed_plans.append(clean_line)
+        logger.info('=== PHASE 5 SESSION DONE ===')
+
+    def __build_single_plan(self, match, results):
+        plan_id = match.group('id')
+        junc = match.group('junction')
+        cycle = match.group('cycle')
+        for_re = ' ' + match.group("phases")
+        phases = [tuple(x.strip().split()) for x in self.__re_extract_phases.findall(for_re)]
+        cycle_int = int(cycle.split('CY')[1])
+        item = (plan_id, cycle_int, phases)
+        if junc not in results:
+            results[junc] = {
+                'ctrl_type': None,
+                'intergreens': None,
+                'plans': [],
+                'program': []
+            }
+            logger.warning('{} not in results. Creating entry.'.format(junc))
+        results[junc]['plans'].append(item)
 
     def __extract_data_from_screen(self, screen, token, junc, results):
         if 'seed' in token:
