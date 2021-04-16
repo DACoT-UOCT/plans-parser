@@ -4,17 +4,21 @@ import sys
 import pyte
 import pandas as pd
 from loguru import logger
+import dacot_models as dm
 from datetime import datetime
+from gql import gql, Client
+from gql.transport.aiohttp import AIOHTTPTransport
 from telnet_command_executor import TelnetCommandExecutor as TCE
 
 class ExportAgent:
     def __init__(self):
         env = os.environ
-        if not ('UTC_HOST' in env and 'UTC_USER' in env and 'UTC_PASS' in env):
+        if not ('UTC_HOST' in env and 'UTC_USER' in env and 'UTC_PASS' in env and 'BACKEND_URL' in env):
             raise RuntimeError('Missing variables')
         self.__utc_host = env['UTC_HOST']
         self.__utc_user = env['UTC_USER']
         self.__utc_passwd = env['UTC_PASS']
+        self.__backend = env['BACKEND_URL']
         self.__read_remote_sleep = 30
         self.__read_seed_sleep = 0.35
         self.__execution_date = datetime.now()
@@ -26,7 +30,10 @@ class ExportAgent:
         self.__re_extract_sequence = re.compile(r'Cyclic Check Sequence\s+:\s\[(?P<sequence>[A-Z]+)')
         self.__re_program_hour = re.compile(r"(?P<hour>\d{2}:\d{2}:\d{2}).*$")
         self.__re_program = re.compile(r"(?P<hour>(\d{2}:\d{2}:\d{2})?)(\d{3})?\s+PLAN\s+(?P<junction>[J|A]\d{6})\s+(?P<plan>(\d+|[A-Z]{1,2}))\s+TIMETABLE$")
+        transport = AIOHTTPTransport(url=self.__backend)
+        self.__api = Client(transport=transport, fetch_schema_from_transport=True)
         logger.warning('Using a {}s sleep call to wait for buffers from remote'.format(self.__read_remote_sleep))
+        logger.info('Using {} as API Endpoint'.format(self.__backend))
 
     def run_full_session(self):
         logger.info('Starting FULL SESSION!')
@@ -36,17 +43,137 @@ class ExportAgent:
         # juncs = self.__phase2(p1outfile)
         # self.__phase3(juncs, executor)
         # self.__phase4(p1outfile)
-        results = self.__phase4('../../DACOT_EXPORT_FULL_OK')
-        self.__phase5('../../DACOT_EXPORT_FULL_OK', results)
-        self.__phase6('../../DACOT_EXPORT_FULL_OK', results)
-        self.__upload_results(results)
+        p1outfile = '../../DACOT_EXPORT_FULL_OK'
+        results = self.__phase4(p1outfile)
+        self.__phase5(p1outfile, results)
+        self.__phase6(p1outfile, results)
+        models = self.__build_models(results)
+        self.__upload_models(models)
         logger.info('Full session done')
 
-    def __upload_results(self, results):
-        for k, v in results.items():
+    def __upload_models(self, models):
+        # TODO: Optimization: maybe in parallel
+        programs, sequences, inter, plan = models
+        for k, v in programs.items():
             print(k)
-            print(v)
+            bd_proj = self.__get_project(k)
+            if not bd_proj:
+                self.__create_project(k, models)
             break
+
+    def __create_project(self, k, models):
+        print('Creating project {}'.format(k))
+        juncs = {}
+
+        qry = gql("""
+        mutation newProject($oid: String!) {
+            createProject(projectDetails: {
+                oid: $oid,
+                metadata: {
+                    maintainer: "SpeeDevs",
+                    commune: 0
+                },
+                controller: {
+                    addressReference: "",
+                    gps: false,
+                    model: {
+                        company: "SpeeDevs",
+                        model: "Default",
+                        firmwareVersion: "Missing Value",
+                        checksum: "Missing Value"
+                    }
+                },
+                otu: {
+                    junctions: [
+                        {
+                            jid: "J001111", #FIXME: THIS
+                            metadata: {
+                                coordinates: [0, 0],
+                                addressReference: ""
+                            }
+                        }
+                    ]
+                },
+                observation: "Created from DACoTExportAgent"
+            }) { oid }
+        }
+        """)
+        params = {'oid': k}
+        result = self.__api.execute(qry, variable_values=params)
+        print(result)
+
+    def __get_project(self, k):
+        qry = """
+        query {
+            project(oid: "OUT_ID_K", status: "PRODUCTION") {
+                otu {
+                    programs {
+                        day time plan
+                    } sequences {
+                        seqid
+                    } junctions {
+                        jid plans {
+                            plid systemStart {
+                                phid value
+                            }
+                        }
+                    } intergreens
+                }
+            }
+        }
+        """
+        qry = qry.replace('OTU_ID_K', k)
+        res = self.__api.execute(gql(qry))
+        return res['project']
+
+    def __build_models(self, results):
+        table_id_to_day = {
+            1: 'L',
+            2: 'S',
+            3: 'D'
+        }
+        programs = {}
+        sequences = {}
+        plan = {}
+        inter = {}
+        for k, v in results.items():
+            oid = 'X{}0'.format(k[1:-1])
+            plans = []
+            for p in v['plans']:
+                start = []
+                for s in p[2]:
+                    val = dm.JunctionPlanPhaseValue(phid=s[0], value=s[1])
+                    val.validate()
+                    start.append(val)
+                newp = dm.JunctionPlan(plid=p[0], cycle=p[1], system_start=start)
+                newp.validate()
+                plans.append(newp)
+            plan[k] = plans
+            if oid not in programs and v['program']:
+                progs = []
+                for p in v['program']:
+                    newp = dm.OTUProgramItem(day=table_id_to_day[p[0]], time=p[1], plan=p[2])
+                    newp.validate()
+                    progs.append(newp)
+                programs[oid] = progs
+            if oid not in sequences and v['sequence']:
+                seqs = []
+                for seq in v['sequence']:
+                    news = dm.OTUSequenceItem(seqid=seq)
+                    news.validate()
+                    seqs.append(news)
+                sequences[oid] = seqs
+            inters = []
+            if isinstance(v['intergreens'], pd.DataFrame):
+                inter_cols = v['intergreens'].columns[3:]
+                for i in inter_cols:
+                    for j in inter_cols:
+                        if i != j:
+                            newi = dm.OTUIntergreenValue(phfrom=i, phto=j, value=v['intergreens'][i][j])
+                            newi.validate()
+                            inters.append(newi)
+            inter[k] = inters
+        return programs, sequences, inter, plan
 
     def __phase1(self, executor):
         self.__login_sys(executor)
@@ -282,6 +409,7 @@ class ExportAgent:
             column_names = ['Phase', 'IsDemand', 'MinTime', 'MaxTime']
             column_names.extend(names)
             df = pd.DataFrame(table, columns=column_names)
+            df = df.set_index('Phase')
             results[junc]['intergreens'] = df
 
     def __swap_seed_tokens(self, token):

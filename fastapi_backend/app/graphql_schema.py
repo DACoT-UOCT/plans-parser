@@ -15,6 +15,7 @@ from dacot_models import Controller as ProjControllerModel
 from dacot_models import ControllerModel as ControllerModelModel
 from dacot_models import OTU as OTUModel
 from dacot_models import OTUMeta as OTUMetaModel
+from dacot_models import OTUIntergreenValue as OTUIntergreenValueModel
 from dacot_models import OTUProgramItem as OTUProgramItemModel
 from dacot_models import OTUSequenceItem as OTUSequenceItemModel
 from dacot_models import OTUPhasesItem as OTUPhasesItemModel
@@ -32,6 +33,10 @@ from dacot_models import PlanParseFailedMessage as PlanParseFailedMessageModel
 from dacot_models import APIKeyUsers as APIKeyUsersModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
+
+class OTUIntergreenValue(MongoengineObjectType):
+    class Meta:
+        model = OTUIntergreenValueModel
 
 class Controller(MongoengineObjectType):
     class Meta:

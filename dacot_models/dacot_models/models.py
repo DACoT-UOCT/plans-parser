@@ -25,6 +25,10 @@ class JunctionPlanIntergreenValue(EmbeddedDocument):
     phto = IntField(min_value=1, required=True)
     value = IntField(min_value=0, required=True)
 
+class OTUIntergreenValue(EmbeddedDocument):
+    phfrom = StringField(required=True)
+    phto = StringField(required=True)
+    value = StringField(required=True)
 
 class JunctionPlanPhaseValue(EmbeddedDocument):
     phid = StringField(regex=r"^\d{1,4}!?$", required=True)
@@ -203,7 +207,7 @@ class OTUPhasesItem(EmbeddedDocument):
 
 class OTUSequenceItem(EmbeddedDocument):
     seqid = IntField(min_value=1, required=True)
-    phases = EmbeddedDocumentListField(OTUPhasesItem, required=True)
+    phases = EmbeddedDocumentListField(OTUPhasesItem)
 
 
 class OTUMeta(EmbeddedDocument):
@@ -215,13 +219,12 @@ class OTUMeta(EmbeddedDocument):
     link_type = StringField(choices=["Digital", "Analogo"])
     link_owner = StringField(choices=["Propio", "Compartido"])
 
-
 class OTU(EmbeddedDocument):
     oid = StringField(regex=r"X\d{5}0", min_length=7, max_length=7, required=True)
     metadata = EmbeddedDocumentField(OTUMeta)
     programs = EmbeddedDocumentListField(OTUProgramItem)
     sequences = EmbeddedDocumentListField(OTUSequenceItem)
-    intergreens = ListField(IntField(min_value=0))
+    intergreens = EmbeddedDocumentListField(OTUIntergreenValue)
     junctions = EmbeddedDocumentListField(Junction, required=True)
 
 
