@@ -256,7 +256,11 @@ class ExportAgent:
             if len(sequence_match) != 1:
                 logger.warning('Failed to find Sequence for {}'.format(junc)) # FIXME: Send to backend
             else:
-                results[junc]['sequence'] = sequence_match[0].group('sequence').strip()
+                seqstr = sequence_match[0].group('sequence').strip()
+                seq = []
+                for pid in seqstr:
+                    seq.append(str(ord(pid) - 64))
+                results[junc]['sequence'] = seq
             ctrl_match = list(self.__re_ctrl_type.finditer(screen, re.MULTILINE))
             if len(ctrl_match) != 1:
                 logger.warning('Failed to find ControllerType for {}'.format(junc))
