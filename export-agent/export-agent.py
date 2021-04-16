@@ -23,6 +23,7 @@ class ExportAgent:
         self.__re_intergreens_table = re.compile(r'\s(?P<phase_name>[A-Z])\s+(?P<is_demand>N|Y)\s+(?P<min_time>\d+)\s+(?P<max_time>\d+)\s+(?P<intergreens>((X|\d+)\s+)+(X|\d+))')
         self.__re_plan = re.compile(r'^Plan\s+(?P<id>\d+)\s(?P<junction>J\d{6}).*(?P<cycle>CY\d{3})\s(?P<phases>[A-Z0-9\s,!\*]+)$')
         self.__re_extract_phases = re.compile(r"\s[A-Z]\s\d+")
+        self.__re_extract_sequence = re.compile(r'Cyclic Check Sequence\s+:\s\[(?P<sequence>[A-Z]+)')
         self.__re_program_hour = re.compile(r"(?P<hour>\d{2}:\d{2}:\d{2}).*$")
         self.__re_program = re.compile(r"(?P<hour>(\d{2}:\d{2}:\d{2})?)(\d{3})?\s+PLAN\s+(?P<junction>[J|A]\d{6})\s+(?P<plan>(\d+|[A-Z]{1,2}))\s+TIMETABLE$")
         logger.warning('Using a {}s sleep call to wait for buffers from remote'.format(self.__read_remote_sleep))
@@ -138,12 +139,7 @@ class ExportAgent:
                     next_token = self.__swap_seed_tokens(next_token)
                     current_screen = '\n'.join(screen.display)
                     if not current_junc in results:
-                        results[current_junc] = {
-                            'ctrl_type': None,
-                            'intergreens': None,
-                            'plans': [],
-                            'program': []
-                        }
+                        results[current_junc] = self.__create_entry()
                     self.__extract_data_from_screen(current_screen, next_token, current_junc, results)
                     screen.reset()
                     current_junc = line.split('-')[2].split(']')[0]
@@ -214,12 +210,7 @@ class ExportAgent:
                         results[possible]['program'].append(new_prog)
             else:
                 if not p[2] in results:
-                    results[p[2]] = {
-                        'ctrl_type': None,
-                        'intergreens': None,
-                        'plans': [],
-                        'program': []
-                    }
+                    results[p[2]] = self.__create_entry()
                     logger.warning('{} not in results. Creating entry.'.format(p[2])) # FIXME: Send to backend
                 new_prog = (p[0], p[1], p[3])
                 results[p[2]]['program'].append(new_prog)
@@ -234,6 +225,15 @@ class ExportAgent:
             yield formatstr.format(pattern, n)
             n += 1
 
+    def __create_entry(self):
+        return {
+            'ctrl_type': None,
+            'intergreens': None,
+            'plans': [],
+            'program': [],
+            'sequence': None
+        }
+
     def __build_single_plan(self, match, results):
         plan_id = match.group('id')
         junc = match.group('junction')
@@ -246,17 +246,17 @@ class ExportAgent:
         cycle_int = int(cycle.split('CY')[1])
         item = (plan_id, cycle_int, phases)
         if junc not in results:
-            results[junc] = {
-                'ctrl_type': None,
-                'intergreens': None,
-                'plans': [],
-                'program': []
-            }
+            results[junc] = self.__create_entry()
             logger.warning('{} not in results. Creating entry.'.format(junc)) # FIXME: Send to backend
         results[junc]['plans'].append(item)
 
     def __extract_data_from_screen(self, screen, token, junc, results):
         if 'seed' in token:
+            sequence_match = list(self.__re_extract_sequence.finditer(screen, re.MULTILINE))
+            if len(sequence_match) != 1:
+                logger.warning('Failed to find Sequence for {}'.format(junc)) # FIXME: Send to backend
+            else:
+                results[junc]['sequence'] = sequence_match[0].group('sequence').strip()
             ctrl_match = list(self.__re_ctrl_type.finditer(screen, re.MULTILINE))
             if len(ctrl_match) != 1:
                 logger.warning('Failed to find ControllerType for {}'.format(junc))
