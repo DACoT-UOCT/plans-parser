@@ -63,3 +63,7 @@ multidict==5.1.0
 yarl==1.6.3
 gql==3.0.0a5
 gql-query-builder==0.1.5
+pandas==1.0.5
+python-dateutil>=2.6.1
+pytz>=2017.2
+numpy>=1.13.3
