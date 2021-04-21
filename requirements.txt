@@ -62,3 +62,4 @@ pyrsistent>=0.14.0
 multidict==5.1.0
 yarl==1.6.3
 gql==3.0.0a5
+gql-query-builder==0.1.5

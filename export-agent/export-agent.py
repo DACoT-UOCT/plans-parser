@@ -7,6 +7,7 @@ from loguru import logger
 import dacot_models as dm
 from datetime import datetime
 from gql import gql, Client
+from gql_query_builder import GqlQuery
 from gql.transport.aiohttp import AIOHTTPTransport
 from telnet_command_executor import TelnetCommandExecutor as TCE
 
@@ -39,11 +40,11 @@ class ExportAgent:
         logger.info('Starting FULL SESSION!')
         executor = TCE(host=self.__utc_host, logger=logger)
         logger.debug('Using TCE={}'.format(executor))
-        # p1outfile = self.__phase1(executor)
-        # juncs = self.__phase2(p1outfile)
-        # self.__phase3(juncs, executor)
-        # self.__phase4(p1outfile)
-        p1outfile = '../../DACOT_EXPORT_FULL_OK'
+        p1outfile = self.__phase1(executor)
+        juncs = self.__phase2(p1outfile)
+        self.__phase3(juncs, executor)
+        self.__phase4(p1outfile)
+        # p1outfile = '../../DACOT_EXPORT_FULL_OK'
         results = self.__phase4(p1outfile)
         self.__phase5(p1outfile, results)
         self.__phase6(p1outfile, results)
@@ -55,54 +56,47 @@ class ExportAgent:
         # TODO: Optimization: maybe in parallel
         programs, sequences, inter, plan = models
         for k, v in programs.items():
-            print(k)
             bd_proj = self.__get_project(k)
             if not bd_proj:
                 self.__create_project(k, models)
-            break
+
+    def __generate_junc_ids(self, oid):
+        base = 'J{}'.format(oid[1:-1])
+        for i in range(1, 10):
+            yield base + str(i)
 
     def __create_project(self, k, models):
-        print('Creating project {}'.format(k))
-        juncs = {}
-
-        qry = gql("""
-        mutation newProject($oid: String!) {
-            createProject(projectDetails: {
-                oid: $oid,
-                metadata: {
-                    maintainer: "SpeeDevs",
-                    commune: 0
-                },
-                controller: {
-                    addressReference: "",
-                    gps: false,
-                    model: {
-                        company: "SpeeDevs",
-                        model: "Default",
-                        firmwareVersion: "Missing Value",
-                        checksum: "Missing Value"
-                    }
-                },
-                otu: {
-                    junctions: [
-                        {
-                            jid: "J001111", #FIXME: THIS
-                            metadata: {
-                                coordinates: [0, 0],
-                                addressReference: ""
-                            }
-                        }
-                    ]
-                },
-                observation: "Created from DACoTExportAgent"
-            }) { oid }
-        }
-        """)
-        params = {'oid': k}
-        result = self.__api.execute(qry, variable_values=params)
-        print(result)
+        logger.info('Creating project {}'.format(k))
+        current_oid = '"{}"'.format(k)
+        metadata = GqlQuery().fields(['maintainer: "SpeeDevs"', 'commune: 0']).query('', alias='metadata').generate()
+        model = GqlQuery().fields(['company: "SpeeDevs"', 'model: "Default"', 'firmwareVersion: "Missing Value"', 'checksum: "Missing Value"']).query('', alias='model').generate()
+        controller = GqlQuery().fields([model, 'gps: false', 'addressReference: ""']).query('', alias='controller').generate()
+        default_junc_meta = GqlQuery().fields(['coordinates: [0, 0]', 'addressReference: ""']).query('', alias='metadata').generate()
+        junctions = []
+        for juncid in self.__generate_junc_ids(k):
+            if juncid in models[3]:
+                junc = GqlQuery().fields(['jid: "{}"'.format(juncid), default_junc_meta]).generate()
+                junctions.append(junc)
+            else:
+                break
+        otu = GqlQuery().fields(['junctions: {}'.format(junctions).replace("'{", '{').replace("}'", '}')]).query('', alias='otu').generate()
+        details = GqlQuery().fields([
+            'oid: {}'.format(current_oid),
+            metadata,
+            otu,
+            controller,
+            'observation: "Created from DACoTExportAgent"'
+        ]).generate()
+        mutation = GqlQuery().query('createProject', input={'projectDetails': details}).operation('mutation').fields(['oid']).generate()
+        try:
+            self.__api.execute(gql(mutation))
+            logger.debug('Project {} created in NEW status'.format(k))
+        except Exception as ex:
+            logger.error('Failed to create project for {}. Cause: {}'.format(k, ex)) # FIXME: Send to backend
 
     def __get_project(self, k):
+        logger.debug('Getting data for {} in PRODUCTION status'.format(k))
+        # TODO: Create query using GqlQuery().query().generate()
         qry = """
         query {
             project(oid: "OUT_ID_K", status: "PRODUCTION") {
@@ -225,7 +219,7 @@ class ExportAgent:
             idx = idx + 1
             if idx % prog == 0:
                 logger.debug('[{:05.2f}%] We are at {}'.format(100 * idx / count, junc))
-                break # TODO: FIXME: Remove this in last version
+                break # TODO: FIXME: Remove this in final version
             self.__get_seed_data(executor, junc)
         self.__logout_sys(executor)
         logger.debug('Using the following phase 3 execution plan: {}'.format(executor.history()))
