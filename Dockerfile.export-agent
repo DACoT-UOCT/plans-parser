@@ -1,4 +1,4 @@
-FROM python:3.9.4-alpine3.13
+FROM amancevice/pandas:1.2.4-alpine
 RUN apk update && apk add python3-dev gcc libc-dev
 RUN python -m pip install --upgrade pip
 COPY export-agent/requirements.txt requirements.txt
