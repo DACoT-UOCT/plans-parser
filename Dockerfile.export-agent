@@ -3,6 +3,8 @@ RUN apk update && apk add python3-dev gcc libc-dev
 RUN python -m pip install --upgrade pip
 COPY export-agent/requirements.txt requirements.txt
 RUN python -m pip install -r requirements.txt
+COPY dacot_models /dacot_models
+RUN cd /dacot_models && python -m pip install .
 COPY export-agent /export-agent
 COPY run-export-agent.sh /export-agent/run-export-agent.sh
 WORKDIR /export-agent
