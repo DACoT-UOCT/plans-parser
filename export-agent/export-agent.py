@@ -92,6 +92,7 @@ class ExportAgent:
             self.__api.execute(gql(mutation))
             logger.debug('Project {} created in NEW status'.format(k))
         except Exception as ex:
+            # TODO: Check for E11000 code (duplicate can be ignored)
             logger.error('Failed to create project for {}. Cause: {}'.format(k, ex)) # FIXME: Send to backend
 
     def __get_project(self, k):

@@ -1,4 +1,5 @@
 FROM python:3.9.4-alpine3.13
+RUN apk update && apk add python3-dev gcc libc-dev
 RUN python -m pip install --upgrade pip
 COPY export-agent/requirements.txt requirements.txt
 RUN python -m pip install -r requirements.txt
