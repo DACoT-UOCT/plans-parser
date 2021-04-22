@@ -56,8 +56,8 @@ class ExportAgent:
         # TODO: Optimization: maybe in parallel
         programs, sequences, inter, plan = models
         for k, v in programs.items():
-            bd_proj = self.__get_project(k)
-            if not bd_proj:
+            state = self.__get_project(k)
+            if state == 0:
                 self.__create_project(k, models)
 
     def __generate_junc_ids(self, oid):
@@ -96,30 +96,21 @@ class ExportAgent:
             logger.error('Failed to create project for {}. Cause: {}'.format(k, ex)) # FIXME: Send to backend
 
     def __get_project(self, k):
+        # 0 = Create NEW
+        # 1 = Update NEW
+        # 2 = Update PRODUCTION
         logger.debug('Getting data for {} in PRODUCTION status'.format(k))
-        # TODO: Create query using GqlQuery().query().generate()
-        qry = """
-        query {
-            project(oid: "OUT_ID_K", status: "PRODUCTION") {
-                otu {
-                    programs {
-                        day time plan
-                    } sequences {
-                        seqid
-                    } junctions {
-                        jid plans {
-                            plid systemStart {
-                                phid value
-                            }
-                        }
-                    } intergreens
-                }
-            }
-        }
-        """
-        qry = qry.replace('OTU_ID_K', k)
+        qry = GqlQuery().fields(['id']).query('project', input={'oid': '"{}"'.format(k), 'status': '"PRODUCTION"'}).operation('query')
         res = self.__api.execute(gql(qry))
-        return res['project']
+        if res['data']['project']:
+            return 2
+        else:
+            qry = GqlQuery().fields(['id']).query('project', input={'oid': '"{}"'.format(k), 'status': '"NEW"'}).operation('query')
+            res = self.__api.execute(gql(qry))
+            if res['data']['project']:
+                return 1
+            else:
+                return 0
 
     def __build_models(self, results):
         table_id_to_day = {
