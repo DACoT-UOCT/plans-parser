@@ -100,13 +100,13 @@ class ExportAgent:
         # 1 = Update NEW
         # 2 = Update PRODUCTION
         logger.debug('Getting data for {} in PRODUCTION status'.format(k))
-        qry = GqlQuery().fields(['id']).query('project', input={'oid': '"{}"'.format(k), 'status': '"PRODUCTION"'}).operation('query')
+        qry = GqlQuery().fields(['id']).query('project', input={'oid': '"{}"'.format(k), 'status': '"PRODUCTION"'}).operation('query').generate()
         res = self.__api.execute(gql(qry))
         if res['data']['project']:
             return 2
         else:
             logger.debug('Getting data for {} in NEW status'.format(k))
-            qry = GqlQuery().fields(['id']).query('project', input={'oid': '"{}"'.format(k), 'status': '"NEW"'}).operation('query')
+            qry = GqlQuery().fields(['id']).query('project', input={'oid': '"{}"'.format(k), 'status': '"NEW"'}).operation('query').generate()
             res = self.__api.execute(gql(qry))
             if res['data']['project']:
                 return 1
