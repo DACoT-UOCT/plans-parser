@@ -441,6 +441,9 @@ class OTUProgramInput(graphene.InputObjectType):
     time = graphene.NonNull(graphene.String)
     plan = graphene.NonNull(graphene.String)
 
+class OTUStagesItemInput(graphene.InputObjectType):
+    sid = graphene.NonNull(graphene.String)
+    type = graphene.NonNull(graphene.String)
 
 class JunctionMetadataInput(graphene.InputObjectType):
     coordinates = graphene.NonNull(graphene.List(graphene.NonNull(graphene.Float)))
@@ -456,7 +459,7 @@ class ProjectOTUInput(graphene.InputObjectType):
     metadata = OTUMetadataInput()
     junctions = graphene.NonNull(graphene.List(graphene.NonNull(ProjectJunctionInput)))
     program = OTUProgramInput()
-    stages = graphene.List(OTUStagesItem)
+    stages = graphene.List(OTUStagesItemInput)
 
 
 class CreateProjectInput(graphene.InputObjectType):
