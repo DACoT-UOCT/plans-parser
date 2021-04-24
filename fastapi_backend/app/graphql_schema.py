@@ -436,11 +436,22 @@ class JunctionMetadataInput(graphene.InputObjectType):
     coordinates = graphene.NonNull(graphene.List(graphene.NonNull(graphene.Float)))
     address_reference = graphene.NonNull(graphene.String)
 
+class JunctionPlanPhaseValueInput(graphene.InputObjectType):
+    phid = graphene.NonNull(graphene.Int)
+    value = graphene.NonNull(graphene.Int)
+
+
+class JunctionPlanInput(graphene.InputObjectType):
+    plid = graphene.NonNull(graphene.Int)
+    cycle = graphene.NonNull(graphene.Int)
+    system_start = graphene.NonNull(graphene.List(graphene.NonNull(JunctionPlanPhaseValueInput)))
+
 
 class ProjectJunctionInput(graphene.InputObjectType):
     jid = graphene.NonNull(graphene.String)
     metadata = graphene.NonNull(JunctionMetadataInput)
     sequence = graphene.List(JunctionPhasesSequenceInput)
+    plans = graphene.List(JunctionPlanInput)
 
 
 class ProjectOTUInput(graphene.InputObjectType):
