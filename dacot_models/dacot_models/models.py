@@ -199,17 +199,6 @@ class OTUStagesItem(EmbeddedDocument):
         required=True,
     )
 
-
-class OTUPhasesItem(EmbeddedDocument):
-    phid = IntField(min_value=1, required=True)
-    stages = EmbeddedDocumentListField(OTUStagesItem, required=True)
-
-
-class OTUSequenceItem(EmbeddedDocument):
-    seqid = IntField(min_value=1, required=True)
-    phases = EmbeddedDocumentListField(OTUPhasesItem)
-
-
 class OTUMeta(EmbeddedDocument):
     serial = StringField()
     ip_address = StringField()
@@ -223,7 +212,7 @@ class OTU(EmbeddedDocument):
     oid = StringField(regex=r"X\d{5}0", min_length=7, max_length=7, required=True)
     metadata = EmbeddedDocumentField(OTUMeta)
     programs = EmbeddedDocumentListField(OTUProgramItem)
-    sequences = EmbeddedDocumentListField(OTUSequenceItem)
+    sequence = EmbeddedDocumentListField(OTUStagesItem)
     intergreens = EmbeddedDocumentListField(OTUIntergreenValue)
     junctions = EmbeddedDocumentListField(Junction, required=True)
 
