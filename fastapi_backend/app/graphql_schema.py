@@ -610,6 +610,21 @@ class CreateProject(CustomMutation):
                     db_seq.type = seq.type
                     junc_seqs.append(db_seq)
                 otu_junc.sequence = junc_seqs
+            if junc.plans:
+                junc_plans = []
+                for plan in junc.plans:
+                    db_plan = JunctionPlanModel()
+                    db_plan.plid = plan.plid
+                    db_plan.cycle = plan.cycle
+                    system_starts = []
+                    for start in plan.system_start:
+                        new_start = JunctionPlanPhaseValueModel()
+                        new_start.phid = start.phid
+                        new_start.value = start.value
+                        system_starts.append(new_start)
+                    db_plan.system_start = system_starts
+                    junc_plans.append(db_plan)
+                otu_junc.plans = junc_plans
             junctions.append(otu_junc)
         if otuin.program:
             db_progs = []
