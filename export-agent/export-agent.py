@@ -93,9 +93,20 @@ class ExportAgent:
         junctions = []
         for juncid in self.__generate_junc_ids(k):
             if juncid in plans:
-                junc = GqlQuery().fields(['jid: "{}"'.format(juncid), default_junc_meta]).generate()
-                junctions.append(junc)
-        otu = GqlQuery().fields(['junctions: {}'.format(junctions).replace("'{", '{').replace("}'", '}')]).query('', alias='otu').generate()
+                pass
+            jseqs = []
+            if juncid in sequences:
+                for seq_model in sequences[juncid]:
+                    seq = GqlQuery().fields(['pid: "{}"'.format(seq_model.stid), 'type: "{}"'.format(seq_model.type)]).generate()
+                    jseqs.append(seq)
+                    logger.debug(seq)
+            junc = GqlQuery().fields(['jid: "{}"'.format(juncid), default_junc_meta]).generate()
+            junctions.append(junc)
+        otu = GqlQuery().fields([
+            'junctions: {}'.format(junctions).replace("'{", '{').replace("}'", '}'),
+            # 'stages: {}'.format(seqs).replace("'{", '{').replace("}'", '}')
+        ]).query('', alias='otu').generate()
+        logger.debug(otu)
         details = GqlQuery().fields([
             'oid: {}'.format(current_oid),
             metadata,
@@ -108,8 +119,7 @@ class ExportAgent:
             self.__api.execute(gql(mutation))
             logger.debug('Project {} created in NEW status'.format(k))
         except Exception as ex:
-            # TODO: Check for E11000 code (duplicate can be ignored)
-            logger.error('Failed to create project for {}. Cause: {}'.format(k, ex)) # FIXME: Send to backend
+            logger.error('Failed to create project for {}. Cause: {}'.format(k, ex))
 
     def __get_project(self, k):
         # 0 = Create NEW
@@ -159,13 +169,13 @@ class ExportAgent:
                     newp.validate()
                     progs.append(newp)
                 programs[oid] = progs
-            if oid not in sequences and v['sequence']:
-                seqs = []
+            seqs = []
+            if v['sequence']:
                 for seq in v['sequence']:
-                    news = dm.OTUStagesItem(stid=seq, type='No Configurada')
+                    news = dm.JunctionPhaseSequenceItem(stid=seq, type='No Configurada')
                     news.validate()
                     seqs.append(news)
-                sequences[oid] = seqs
+            sequences[k] = seqs
             inters = []
             if isinstance(v['intergreens'], pd.DataFrame):
                 inter_cols = v['intergreens'].columns[3:]
@@ -286,7 +296,6 @@ class ExportAgent:
 
     def __phase5(self, infile, results):
         logger.info('=== STARTING PHASE 5 SESSION EXECUTION ===')
-        failed_plans = [] # FIXME: Send to backend
         with open(infile, 'r') as input_data:
             for line in input_data:
                 clean_line = self.__re_ansi_escape.sub('', line).strip()
@@ -297,12 +306,11 @@ class ExportAgent:
                     if match:
                         self.__build_single_plan(match, results)
                     else:
-                        failed_plans.append(clean_line)
+                        logger.error("Failed to parse plans line: {}".format(clean_line))
         logger.info('=== PHASE 5 SESSION DONE ===')
 
     def __phase6(self, infile, results):
         logger.info('=== STARTING PHASE 6 SESSION EXECUTION ===')
-        failed_programs = [] # FIXME: Send to backend
         parsed_programs = []
         with open(infile, 'r') as input_data:
             lines = input_data.readlines()
@@ -329,7 +337,7 @@ class ExportAgent:
                             current_hour = match.group("hour")[:-3]
                         parsed_programs.append((current_table, current_hour, match.group('junction'), match.group('plan')))
                     else:
-                        failed_programs.append(clean_line)
+                        logger.error("Failed to parse programs line: {}".format(clean_line))
         self.__expand_wildcards(parsed_programs, results)
         logger.info('=== PHASE 6 SESSION DONE ===')
 
@@ -343,7 +351,7 @@ class ExportAgent:
             else:
                 if not p[2] in results:
                     results[p[2]] = self.__create_entry()
-                    logger.warning('{} not in results. Creating entry.'.format(p[2])) # FIXME: Send to backend
+                    logger.error('{} not in results from SEED command. Creating entry.'.format(p[2]))
                 new_prog = (p[0], p[1], p[3])
                 results[p[2]]['program'].append(new_prog)
 
@@ -379,30 +387,29 @@ class ExportAgent:
         item = (plan_id, cycle_int, phases)
         if junc not in results:
             results[junc] = self.__create_entry()
-            logger.warning('{} not in results. Creating entry.'.format(junc)) # FIXME: Send to backend
+            logger.error('{} not in results. Creating entry.'.format(junc))
         results[junc]['plans'].append(item)
 
     def __extract_data_from_screen(self, screen, token, junc, results):
         if 'seed' in token:
             sequence_match = list(self.__re_extract_sequence.finditer(screen, re.MULTILINE))
             if len(sequence_match) != 1:
-                logger.warning('Failed to find Sequence for {}'.format(junc)) # FIXME: Send to backend
+                logger.error('Failed to find Sequence for {}'.format(junc))
             else:
                 seqstr = sequence_match[0].group('sequence').strip()
                 seq = []
                 for pid in seqstr:
-                    seq.append(pid)
+                    seq.append(str(ord(pid) - 64))
                 results[junc]['sequence'] = seq
             ctrl_match = list(self.__re_ctrl_type.finditer(screen, re.MULTILINE))
             if len(ctrl_match) != 1:
-                logger.warning('Failed to find ControllerType for {}'.format(junc))
-                return # FIXME: Send to backend
-            results[junc]['ctrl_type'] = ctrl_match[0].group('ctrl_type').strip()
+                logger.error('Failed to find ControllerType for {}'.format(junc))
+            else:
+                results[junc]['ctrl_type'] = ctrl_match[0].group('ctrl_type').strip()
         elif 'timings' in token:
             rows_match = list(self.__re_intergreens_table.finditer(screen, re.MULTILINE))
             if len(rows_match) == 0:
-                logger.warning('Failed to get IntergreensData for {}'.format(junc))
-                return # FIXME: Send to backend
+                logger.error('Failed to get IntergreensData for {}'.format(junc))
             table = []
             names = []
             for row in rows_match:

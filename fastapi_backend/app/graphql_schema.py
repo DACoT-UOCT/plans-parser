@@ -17,7 +17,6 @@ from dacot_models import OTU as OTUModel
 from dacot_models import OTUMeta as OTUMetaModel
 from dacot_models import OTUIntergreenValue as OTUIntergreenValueModel
 from dacot_models import OTUProgramItem as OTUProgramItemModel
-from dacot_models import OTUStagesItem as OTUStagesItemModel
 from dacot_models import HeaderItem as ProjectHeaderItemModel
 from dacot_models import UPS as UPSModel
 from dacot_models import Poles as PolesModel
@@ -85,12 +84,6 @@ class JunctionPlanIntergreenValue(MongoengineObjectType):
 class Junction(MongoengineObjectType):
     class Meta:
         model = JunctionModel
-
-
-class OTUStagesItem(MongoengineObjectType):
-    class Meta:
-        model = OTUStagesItemModel
-
 
 class Comment(MongoengineObjectType):
     class Meta:
@@ -429,8 +422,8 @@ class OTUProgramInput(graphene.InputObjectType):
     time = graphene.NonNull(graphene.String)
     plan = graphene.NonNull(graphene.String)
 
-class OTUStagesItemInput(graphene.InputObjectType):
-    sid = graphene.NonNull(graphene.String)
+class JunctionPhasesSequenceInput(graphene.InputObjectType):
+    pid = graphene.NonNull(graphene.String)
     type = graphene.NonNull(graphene.String)
 
 class JunctionMetadataInput(graphene.InputObjectType):
@@ -441,13 +434,13 @@ class JunctionMetadataInput(graphene.InputObjectType):
 class ProjectJunctionInput(graphene.InputObjectType):
     jid = graphene.NonNull(graphene.String)
     metadata = graphene.NonNull(JunctionMetadataInput)
+    sequence = graphene.List(JunctionPhasesSequenceInput)
 
 
 class ProjectOTUInput(graphene.InputObjectType):
     metadata = OTUMetadataInput()
     junctions = graphene.NonNull(graphene.List(graphene.NonNull(ProjectJunctionInput)))
     program = OTUProgramInput()
-    stages = graphene.List(OTUStagesItemInput)
 
 
 class CreateProjectInput(graphene.InputObjectType):
@@ -591,6 +584,8 @@ class CreateProject(CustomMutation):
                 junc.metadata.coordinates[1],
             )
             otu_junc.metadata = junc_meta
+            for ph in junc.sequence:
+                logger.warning(ph)
             junctions.append(otu_junc)
         otu.junctions = junctions
         return otu

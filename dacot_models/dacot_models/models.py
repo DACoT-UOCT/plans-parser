@@ -38,21 +38,13 @@ class JunctionPlanPhaseValue(EmbeddedDocument):
 class JunctionPlan(EmbeddedDocument):
     plid = IntField(min_value=1, required=True)
     cycle = IntField(min_value=1, required=True)
-    # TODO: Make all of this fields requiered
-    phase_start = EmbeddedDocumentListField(JunctionPlanPhaseValue)  # , required=True)
-    vehicle_intergreen = EmbeddedDocumentListField(
-        JunctionPlanIntergreenValue
-    )  # , required=True)
-    green_start = EmbeddedDocumentListField(JunctionPlanPhaseValue)  # , required=True)
-    vehicle_green = EmbeddedDocumentListField(
-        JunctionPlanPhaseValue
-    )  # , required=True)
-    pedestrian_green = EmbeddedDocumentListField(
-        JunctionPlanPhaseValue
-    )  # , required=True)
-    pedestrian_intergreen = EmbeddedDocumentListField(
-        JunctionPlanIntergreenValue
-    )  # , required=True)
+    # TODO: Make all of this fields required
+    phase_start = EmbeddedDocumentListField(JunctionPlanPhaseValue)
+    vehicle_intergreen = EmbeddedDocumentListField(JunctionPlanIntergreenValue)
+    green_start = EmbeddedDocumentListField(JunctionPlanPhaseValue)
+    vehicle_green = EmbeddedDocumentListField(JunctionPlanPhaseValue)
+    pedestrian_green = EmbeddedDocumentListField(JunctionPlanPhaseValue)
+    pedestrian_intergreen = EmbeddedDocumentListField(JunctionPlanIntergreenValue)
     system_start = EmbeddedDocumentListField(JunctionPlanPhaseValue, required=True)
 
 
@@ -62,11 +54,18 @@ class JunctionMeta(EmbeddedDocument):
     address_reference = StringField()
 
 
+class JunctionPhaseSequenceItem(EmbeddedDocument):
+    phid = StringField(regex=r"^\d{1,4}!?$", required=True)
+    type = StringField(
+        choices=["Vehicular", "Peatonal", "Flecha Verde", "Ciclista", "No Configurada"],
+        required=True,
+    )
+
 class Junction(EmbeddedDocument):
     jid = StringField(regex=r"J\d{6}", min_length=7, max_length=7, required=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan)
-
+    sequence = EmbeddedDocumentListField(JunctionPhaseSequenceItem)
 
 class ExternalCompany(Document):
     meta = {"collection": "ExternalCompany"}
@@ -191,13 +190,6 @@ class OTUProgramItem(EmbeddedDocument):
     plan = StringField(max_length=2, required=True)
 
 
-class OTUStagesItem(EmbeddedDocument):
-    stid = StringField(regex=r"[A-Z]", max_length=1, required=True)
-    type = StringField(
-        choices=["Vehicular", "Peatonal", "Flecha Verde", "Ciclista", "No Configurada"],
-        required=True,
-    )
-
 class OTUMeta(EmbeddedDocument):
     serial = StringField()
     ip_address = StringField()
@@ -211,7 +203,6 @@ class OTU(EmbeddedDocument):
     oid = StringField(regex=r"X\d{5}0", min_length=7, max_length=7, required=True)
     metadata = EmbeddedDocumentField(OTUMeta)
     programs = EmbeddedDocumentListField(OTUProgramItem)
-    sequence = EmbeddedDocumentListField(OTUStagesItem)
     intergreens = EmbeddedDocumentListField(OTUIntergreenValue)
     junctions = EmbeddedDocumentListField(Junction, required=True)
 
