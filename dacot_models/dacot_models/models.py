@@ -56,6 +56,7 @@ class JunctionMeta(EmbeddedDocument):
 
 class JunctionPhaseSequenceItem(EmbeddedDocument):
     phid = StringField(regex=r"^\d{1,4}!?$", required=True)
+    phid_system = StringField(regex=r"^[A-Z]$", required=True)
     type = StringField(
         choices=["Vehicular", "Peatonal", "Flecha Verde", "Ciclista", "No Configurada"],
         required=True,

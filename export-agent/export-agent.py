@@ -96,7 +96,11 @@ class ExportAgent:
                 jseqs = []
                 if juncid in sequences:
                     for seq_model in sequences[juncid]:
-                        seq = GqlQuery().fields(['phid: "{}"'.format(seq_model.phid), 'type: "{}"'.format(seq_model.type)]).generate()
+                        seq = GqlQuery().fields([
+                            'phid: "{}"'.format(seq_model.phid),
+                            'phid_system: "{}"'.format(seq_model.phid_system),
+                            'type: "{}"'.format(seq_model.type)
+                        ]).generate()
                         jseqs.append(seq)
                 # TODO: Add plans
                 junc = GqlQuery().fields([
@@ -174,7 +178,7 @@ class ExportAgent:
             seqs = []
             if v['sequence']:
                 for seq in v['sequence']:
-                    news = dm.JunctionPhaseSequenceItem(phid=seq, type='No Configurada')
+                    news = dm.JunctionPhaseSequenceItem(phid_system=seq, phid=str(ord(seq) - 64), type='No Configurada')
                     news.validate()
                     seqs.append(news)
             sequences[k] = seqs
@@ -401,7 +405,7 @@ class ExportAgent:
                 seqstr = sequence_match[0].group('sequence').strip()
                 seq = []
                 for pid in seqstr:
-                    seq.append(str(ord(pid) - 64))
+                    seq.append(pid)
                 results[junc]['sequence'] = seq
             ctrl_match = list(self.__re_ctrl_type.finditer(screen, re.MULTILINE))
             if len(ctrl_match) != 1:

@@ -429,6 +429,7 @@ class OTUProgramInput(graphene.InputObjectType):
 
 class JunctionPhasesSequenceInput(graphene.InputObjectType):
     phid = graphene.NonNull(graphene.String)
+    phid_system = graphene.NonNull(graphene.String)
     type = graphene.NonNull(graphene.String)
 
 class JunctionMetadataInput(graphene.InputObjectType):
@@ -593,6 +594,7 @@ class CreateProject(CustomMutation):
             for seq in junc.sequence:
                 db_seq = JunctionPhaseSequenceItemModel()
                 db_seq.phid = seq.phid
+                db_seq.phid_system = seq.phid_system
                 db_seq.type = seq.type
                 junc_seqs.append(db_seq)
             otu_junc.sequence = junc_seqs
