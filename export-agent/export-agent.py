@@ -93,18 +93,20 @@ class ExportAgent:
         junctions = []
         for juncid in self.__generate_junc_ids(k):
             if juncid in plans:
-                pass
-            jseqs = []
-            if juncid in sequences:
-                for seq_model in sequences[juncid]:
-                    seq = GqlQuery().fields(['pid: "{}"'.format(seq_model.stid), 'type: "{}"'.format(seq_model.type)]).generate()
-                    jseqs.append(seq)
-                    logger.debug(seq)
-            junc = GqlQuery().fields(['jid: "{}"'.format(juncid), default_junc_meta]).generate()
-            junctions.append(junc)
+                jseqs = []
+                if juncid in sequences:
+                    for seq_model in sequences[juncid]:
+                        seq = GqlQuery().fields(['phid: "{}"'.format(seq_model.phid), 'type: "{}"'.format(seq_model.type)]).generate()
+                        jseqs.append(seq)
+                # TODO: Add plans
+                junc = GqlQuery().fields([
+                    'jid: "{}"'.format(juncid),
+                    'sequence: {}'.format(jseqs).replace("'{", '{').replace("}'", '}'),
+                    default_junc_meta
+                ]).generate()
+                junctions.append(junc)
         otu = GqlQuery().fields([
-            'junctions: {}'.format(junctions).replace("'{", '{').replace("}'", '}'),
-            # 'stages: {}'.format(seqs).replace("'{", '{').replace("}'", '}')
+            'junctions: {}'.format(junctions).replace("'{", '{').replace("}'", '}')
         ]).query('', alias='otu').generate()
         logger.debug(otu)
         details = GqlQuery().fields([
@@ -172,7 +174,7 @@ class ExportAgent:
             seqs = []
             if v['sequence']:
                 for seq in v['sequence']:
-                    news = dm.JunctionPhaseSequenceItem(stid=seq, type='No Configurada')
+                    news = dm.JunctionPhaseSequenceItem(phid=seq, type='No Configurada')
                     news.validate()
                     seqs.append(news)
             sequences[k] = seqs

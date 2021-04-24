@@ -26,6 +26,7 @@ from dacot_models import JunctionMeta as JunctionMetaModel
 from dacot_models import JunctionPlan as JunctionPlanModel
 from dacot_models import JunctionPlanPhaseValue as JunctionPlanPhaseValueModel
 from dacot_models import JunctionPlanIntergreenValue as JunctionPlanIntergreenValueModel
+from dacot_models import JunctionPhaseSequenceItem as JunctionPhaseSequenceItemModel
 from dacot_models import PlanParseFailedMessage as PlanParseFailedMessageModel
 from dacot_models import APIKeyUsers as APIKeyUsersModel
 from mongoengine import ValidationError, NotUniqueError
@@ -34,6 +35,10 @@ from graphql import GraphQLError
 class OTUIntergreenValue(MongoengineObjectType):
     class Meta:
         model = OTUIntergreenValueModel
+
+class JunctionPhaseSequenceItem(MongoengineObjectType):
+    class Meta:
+        model = JunctionPhaseSequenceItemModel
 
 class Controller(MongoengineObjectType):
     class Meta:
@@ -423,7 +428,7 @@ class OTUProgramInput(graphene.InputObjectType):
     plan = graphene.NonNull(graphene.String)
 
 class JunctionPhasesSequenceInput(graphene.InputObjectType):
-    pid = graphene.NonNull(graphene.String)
+    phid = graphene.NonNull(graphene.String)
     type = graphene.NonNull(graphene.String)
 
 class JunctionMetadataInput(graphene.InputObjectType):
@@ -584,8 +589,13 @@ class CreateProject(CustomMutation):
                 junc.metadata.coordinates[1],
             )
             otu_junc.metadata = junc_meta
-            for ph in junc.sequence:
-                logger.warning(ph)
+            junc_seqs = []
+            for seq in junc.sequence:
+                db_seq = JunctionPhaseSequenceItemModel()
+                db_seq.phid = seq.phid
+                db_seq.type = seq.type
+                junc_seqs.append(db_seq)
+            otu_junc.sequence = junc_seqs
             junctions.append(otu_junc)
         otu.junctions = junctions
         return otu
