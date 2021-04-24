@@ -55,7 +55,7 @@ class APISeed:
     def __read_initial_users(self):
         role = 'Personal UOCT'
         return [{
-            'name': 'SpeeDevs',
+            'name': 'SPEEDEVS',
             'users': [
                 {'full_name': 'DACoT DataBase Seed', 'email': 'seed@dacot.uoct.cl', 'role': role, 'area': 'TIC', 'admin': False},
                 {'full_name': 'Admin', 'email': 'admin@dacot.uoct.cl', 'role': role, 'area': 'TIC', 'admin': True},
@@ -290,9 +290,9 @@ class APISeed:
         self.__create_users()
         self.__create_comunes()
         self.__create_controller_models()
-        self.__build_projects()
+        # self.__build_projects()
         # TODO: Accept new projects
-        self.__build_schedules()
+        # self.__build_schedules()
         # TODO: Accept updates
 
     def set_api_credentials(self, key, secret_key):
