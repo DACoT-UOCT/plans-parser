@@ -102,10 +102,25 @@ class ExportAgent:
                             'type: "{}"'.format(seq_model.type)
                         ]).generate()
                         jseqs.append(seq)
-                # TODO: Add plans
+                qry_junc_plans = []
+                for plan in plans[juncid]:
+                    starts = []
+                    for phase in plan.system_start:
+                        new_start = GqlQuery().fields([
+                            'phid: {}'.format(phase.phid),
+                            'value: {}'.format(phase.value)
+                        ]).generate()
+                        starts.append(new_start)
+                    new_plan = GqlQuery().fields([
+                        'plid: {}'.format(plan.plid),
+                        'cycle: {}'.format(plan.cycle),
+                        'systemStart: {}'.format(starts).replace("'{", '{').replace("}'", '}')
+                    ]).generate()
+                    qry_junc_plans.append(new_plan)
                 junc = GqlQuery().fields([
                     'jid: "{}"'.format(juncid),
                     'sequence: {}'.format(jseqs).replace("'{", '{').replace("}'", '}'),
+                    'plans: {}'.format(qry_junc_plans).replace("'{", '{').replace("}'", '}'),
                     default_junc_meta
                 ]).generate()
                 junctions.append(junc)
@@ -122,7 +137,6 @@ class ExportAgent:
             'junctions: {}'.format(junctions).replace("'{", '{').replace("}'", '}'),
             'program: {}'.format(qry_otu_prog).replace("'{", '{').replace("}'", '}')
         ]).query('', alias='otu').generate()
-        logger.debug(otu)
         details = GqlQuery().fields([
             'oid: {}'.format(current_oid),
             metadata,
