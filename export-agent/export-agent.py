@@ -11,6 +11,8 @@ from gql_query_builder import GqlQuery
 from gql.transport.aiohttp import AIOHTTPTransport
 from telnet_command_executor import TelnetCommandExecutor as TCE
 
+# TODO: FIXME: An easy way to upload errors is logging to a file with loguru and then processing that file for a placeholder
+
 class ExportAgent:
     def __init__(self):
         env = os.environ
@@ -40,11 +42,11 @@ class ExportAgent:
         logger.info('Starting FULL SESSION!')
         executor = TCE(host=self.__utc_host, logger=logger)
         logger.debug('Using TCE={}'.format(executor))
-        p1outfile = self.__phase1(executor)
-        juncs = self.__phase2(p1outfile)
-        self.__phase3(juncs, executor)
-        self.__phase4(p1outfile)
-        # p1outfile = '../../DACOT_EXPORT_FULL_OK'
+        #p1outfile = self.__phase1(executor)
+        #juncs = self.__phase2(p1outfile)
+        #self.__phase3(juncs, executor)
+        #self.__phase4(p1outfile)
+        p1outfile = '../../DACOT_EXPORT_FULL_OK'
         results = self.__phase4(p1outfile)
         self.__phase5(p1outfile, results)
         self.__phase6(p1outfile, results)
@@ -54,11 +56,26 @@ class ExportAgent:
 
     def __upload_models(self, models):
         # TODO: Optimization: maybe in parallel
+        # TODO: Add coordinates to junctions from external source
         programs, sequences, inter, plan = models
+        count = 0
         for k, v in programs.items():
+            count = count + 1
+            if count == 3:
+                break
             state = self.__get_project(k)
             if state == 0:
                 self.__create_project(k, models)
+            elif state == 1:
+                logger.info('Project {} exists in NEW status, ignoring'.format(k))
+            elif state == 2:
+                self.__update_production_model(k, models)
+            else:
+                logger.error('Unknown state for project {}'.format(k))
+
+    def __update_production_model(self, oid, models):
+        programs, sequences, inter, plans = models
+        pass
 
     def __generate_junc_ids(self, oid):
         base = 'J{}'.format(oid[1:-1])
@@ -66,6 +83,7 @@ class ExportAgent:
             yield base + str(i)
 
     def __create_project(self, k, models):
+        programs, sequences, inter, plans = models
         logger.info('Creating project {}'.format(k))
         current_oid = '"{}"'.format(k)
         metadata = GqlQuery().fields(['maintainer: "SpeeDevs"', 'commune: 0']).query('', alias='metadata').generate()
@@ -74,11 +92,9 @@ class ExportAgent:
         default_junc_meta = GqlQuery().fields(['coordinates: [0, 0]', 'addressReference: ""']).query('', alias='metadata').generate()
         junctions = []
         for juncid in self.__generate_junc_ids(k):
-            if juncid in models[3]:
+            if juncid in plans:
                 junc = GqlQuery().fields(['jid: "{}"'.format(juncid), default_junc_meta]).generate()
                 junctions.append(junc)
-            else:
-                break
         otu = GqlQuery().fields(['junctions: {}'.format(junctions).replace("'{", '{').replace("}'", '}')]).query('', alias='otu').generate()
         details = GqlQuery().fields([
             'oid: {}'.format(current_oid),
@@ -146,7 +162,7 @@ class ExportAgent:
             if oid not in sequences and v['sequence']:
                 seqs = []
                 for seq in v['sequence']:
-                    news = dm.OTUSequenceItem(seqid=seq)
+                    news = dm.OTUStagesItem(stid=seq, type='No Configurada')
                     news.validate()
                     seqs.append(news)
                 sequences[oid] = seqs
@@ -210,6 +226,8 @@ class ExportAgent:
         self.__login_sys(executor)
         for idx, junc in enumerate(juncs):
             idx = idx + 1
+            if idx == 3:
+                break # TODO: FIXME: Remove this in final version
             if idx % prog == 0:
                 logger.debug('[{:05.2f}%] We are at {}'.format(100 * idx / count, junc))
                 break # TODO: FIXME: Remove this in final version
@@ -373,7 +391,7 @@ class ExportAgent:
                 seqstr = sequence_match[0].group('sequence').strip()
                 seq = []
                 for pid in seqstr:
-                    seq.append(str(ord(pid) - 64))
+                    seq.append(pid)
                 results[junc]['sequence'] = seq
             ctrl_match = list(self.__re_ctrl_type.finditer(screen, re.MULTILINE))
             if len(ctrl_match) != 1:
