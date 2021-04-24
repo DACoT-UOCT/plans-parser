@@ -98,7 +98,7 @@ class ExportAgent:
                     for seq_model in sequences[juncid]:
                         seq = GqlQuery().fields([
                             'phid: "{}"'.format(seq_model.phid),
-                            'phid_system: "{}"'.format(seq_model.phid_system),
+                            'phidSystem: "{}"'.format(seq_model.phid_system),
                             'type: "{}"'.format(seq_model.type)
                         ]).generate()
                         jseqs.append(seq)
