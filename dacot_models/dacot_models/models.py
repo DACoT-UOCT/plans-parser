@@ -31,9 +31,8 @@ class OTUIntergreenValue(EmbeddedDocument):
     value = StringField(required=True)
 
 class JunctionPlanPhaseValue(EmbeddedDocument):
-    phid = StringField(regex=r"^\d{1,4}!?$", required=True)
+    phid = IntField(min_value=1, required=True)
     value = IntField(min_value=0, required=True)
-
 
 class JunctionPlan(EmbeddedDocument):
     plid = IntField(min_value=1, required=True)
