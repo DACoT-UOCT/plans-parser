@@ -86,8 +86,8 @@ class ExportAgent:
         programs, sequences, inter, plans = models
         logger.info('Creating project {}'.format(k))
         current_oid = '"{}"'.format(k)
-        metadata = GqlQuery().fields(['maintainer: "SpeeDevs"', 'commune: 0']).query('', alias='metadata').generate()
-        model = GqlQuery().fields(['company: "SpeeDevs"', 'model: "Default"', 'firmwareVersion: "Missing Value"', 'checksum: "Missing Value"']).query('', alias='model').generate()
+        metadata = GqlQuery().fields(['maintainer: "SPEEDEVS"', 'commune: 0']).query('', alias='metadata').generate()
+        model = GqlQuery().fields(['company: "SPEEDEVS"', 'model: "DEFAULT"', 'firmwareVersion: "Missing Value"', 'checksum: "Missing Value"']).query('', alias='model').generate()
         controller = GqlQuery().fields([model, 'gps: false', 'addressReference: ""']).query('', alias='controller').generate()
         default_junc_meta = GqlQuery().fields(['coordinates: [0, 0]', 'addressReference: ""']).query('', alias='metadata').generate()
         junctions = []
