@@ -1,3 +1,4 @@
+.idea/*
 deploy/mongo-data/
 .log
 .json
