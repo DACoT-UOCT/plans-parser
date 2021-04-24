@@ -446,7 +446,7 @@ class ProjectJunctionInput(graphene.InputObjectType):
 class ProjectOTUInput(graphene.InputObjectType):
     metadata = OTUMetadataInput()
     junctions = graphene.NonNull(graphene.List(graphene.NonNull(ProjectJunctionInput)))
-    program = OTUProgramInput()
+    program = graphene.List(OTUProgramInput)
 
 
 class CreateProjectInput(graphene.InputObjectType):
@@ -590,15 +590,25 @@ class CreateProject(CustomMutation):
                 junc.metadata.coordinates[1],
             )
             otu_junc.metadata = junc_meta
-            junc_seqs = []
-            for seq in junc.sequence:
-                db_seq = JunctionPhaseSequenceItemModel()
-                db_seq.phid = seq.phid
-                db_seq.phid_system = seq.phid_system
-                db_seq.type = seq.type
-                junc_seqs.append(db_seq)
-            otu_junc.sequence = junc_seqs
+            if junc.sequence:
+                junc_seqs = []
+                for seq in junc.sequence:
+                    db_seq = JunctionPhaseSequenceItemModel()
+                    db_seq.phid = seq.phid
+                    db_seq.phid_system = seq.phid_system
+                    db_seq.type = seq.type
+                    junc_seqs.append(db_seq)
+                otu_junc.sequence = junc_seqs
             junctions.append(otu_junc)
+        if otuin.program:
+            db_progs = []
+            for prog in otuin.program:
+                new_prog = OTUProgramItemModel()
+                new_prog.day = prog.day
+                new_prog.time = prog.time
+                new_prog.plan = prog.plan
+                db_progs.append(new_prog)
+            otu.programs = db_progs
         otu.junctions = junctions
         return otu
 
