@@ -109,8 +109,18 @@ class ExportAgent:
                     default_junc_meta
                 ]).generate()
                 junctions.append(junc)
+        qry_otu_prog = []
+        otu_program = programs[k]
+        for prog in otu_program:
+            new_prog = GqlQuery().fields([
+                'day: "{}"'.format(prog.day),
+                'time: "{}"'.format(prog.time),
+                'plan: "{}"'.format(prog.plan)
+            ]).generate()
+            qry_otu_prog.append(new_prog)
         otu = GqlQuery().fields([
-            'junctions: {}'.format(junctions).replace("'{", '{').replace("}'", '}')
+            'junctions: {}'.format(junctions).replace("'{", '{').replace("}'", '}'),
+            'program: {}'.format(qry_otu_prog).replace("'{", '{').replace("}'", '}')
         ]).query('', alias='otu').generate()
         logger.debug(otu)
         details = GqlQuery().fields([
