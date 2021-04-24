@@ -17,8 +17,6 @@ from dacot_models import OTU as OTUModel
 from dacot_models import OTUMeta as OTUMetaModel
 from dacot_models import OTUIntergreenValue as OTUIntergreenValueModel
 from dacot_models import OTUProgramItem as OTUProgramItemModel
-from dacot_models import OTUSequenceItem as OTUSequenceItemModel
-from dacot_models import OTUPhasesItem as OTUPhasesItemModel
 from dacot_models import OTUStagesItem as OTUStagesItemModel
 from dacot_models import HeaderItem as ProjectHeaderItemModel
 from dacot_models import UPS as UPSModel
@@ -92,16 +90,6 @@ class Junction(MongoengineObjectType):
 class OTUStagesItem(MongoengineObjectType):
     class Meta:
         model = OTUStagesItemModel
-
-
-class OTUPhasesItem(MongoengineObjectType):
-    class Meta:
-        model = OTUPhasesItemModel
-
-
-class OTUSequenceItem(MongoengineObjectType):
-    class Meta:
-        model = OTUSequenceItemModel
 
 
 class Comment(MongoengineObjectType):
@@ -562,9 +550,7 @@ class CreateProject(CustomMutation):
                 info,
             )
             return GraphQLError('Commune "{}" not found'.format(metain.commune))
-        meta.commune = (
-            commune.name
-        )  # TODO: FIXME: This should be a reference! Update model
+        meta.commune = commune
         meta = cls.build_metadata_options(meta, metain)
         return cls.build_metadata_files(meta, metain, oid, info)
 

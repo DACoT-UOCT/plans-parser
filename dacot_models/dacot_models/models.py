@@ -158,7 +158,6 @@ class ProjectMeta(EmbeddedDocument):
     installation_company = ReferenceField(ExternalCompany)
     maintainer = ReferenceField(ExternalCompany)
     commune = ReferenceField(Commune)
-    commune = StringField()
     img = FileField()
     pdf_data = FileField()
     pedestrian_demand = BooleanField()
