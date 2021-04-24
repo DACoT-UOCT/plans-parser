@@ -306,13 +306,11 @@ class Query(graphene.ObjectType):
             .all()
         )
         for ver in project_versions:
-            result.append(
-                PartialVersionInfo(
-                    vid=ver.metadata.version,
-                    date=ver.metadata.status_date,
-                    comment=ver.observation,
-                )
-            )
+            vinfo = PartialVersionInfo()
+            vinfo.vid = ver.metadata.version
+            vinfo.date = ver.metadata.status_date
+            vinfo.comment = ver.observation
+            result.append(vinfo)
         return result
 
     def resolve_projects(self, info, status):
@@ -457,6 +455,8 @@ class ProjectJunctionInput(graphene.InputObjectType):
 class ProjectOTUInput(graphene.InputObjectType):
     metadata = OTUMetadataInput()
     junctions = graphene.NonNull(graphene.List(graphene.NonNull(ProjectJunctionInput)))
+    program = OTUProgramInput()
+    stages = graphene.List(OTUStagesItem)
 
 
 class CreateProjectInput(graphene.InputObjectType):
@@ -727,7 +727,7 @@ class CreateProject(CustomMutation):
             cls.log_action(
                 'Failed to create project "{}". {}'.format(proj.oid, excep), info
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         cls.log_action('Project "{}" created.'.format(proj.oid), info)
         # TODO: Send notification emails
         return proj
@@ -754,7 +754,7 @@ class UpdateProject(CreateProject):
                 ),
                 info,
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         return update_input
 
 
@@ -807,7 +807,7 @@ class DeleteProject(CustomMutation):
                 ),
                 info,
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         return project_details.oid
 
 
@@ -874,7 +874,7 @@ class AcceptProject(CustomMutation):
                     ),
                     info,
                 )
-                return GraphQLError(excep)
+                return GraphQLError(str(excep))
             cls.log_action(
                 'Update for project "{}" ACCEPTED'.format(project_details.oid), info
             )
@@ -890,7 +890,7 @@ class AcceptProject(CustomMutation):
                     ),
                     info,
                 )
-                return GraphQLError(excep)
+                return GraphQLError(str(excep))
             cls.log_action(
                 'New project "{}" ACCEPTED'.format(project_details.oid), info
             )
@@ -940,7 +940,7 @@ class RejectProject(CustomMutation):
                 ),
                 info,
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         cls.log_action('Project "{}" rejected'.format(project_details.oid), info)
         return project_details.oid
 
@@ -997,7 +997,7 @@ class CreateCommune(CustomMutation):
             cls.log_action(
                 'Failed to create commune "{}". {}'.format(commune.name, excep), info
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         cls.log_action('Commune "{}" created.'.format(commune.name), info)
         return commune
 
@@ -1059,7 +1059,7 @@ class UpdateCommune(CustomMutation):
             cls.log_action(
                 'Failed to update commune "{}". {}'.format(commune.name, excep), info
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         cls.log_action('Commune "{}" updated.'.format(commune.name), info)
         return commune
 
@@ -1107,7 +1107,7 @@ class CreateUser(CustomMutation):
             cls.log_action(
                 'Failed to create user "{}". {}'.format(user.email, excep), info
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         cls.log_action('User "{}" created'.format(user.email), info)
         return user
 
@@ -1168,7 +1168,7 @@ class UpdateUser(CustomMutation):
             cls.log_action(
                 'Failed to update user "{}". {}'.format(user_details.email, excep), info
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         cls.log_action('User "{}" updated.'.format(user_details.email), info)
         return user
 
@@ -1194,7 +1194,7 @@ class CreateCompany(CustomMutation):
                 'Failed to create company "{}". {}'.format(company_details.name, excep),
                 info,
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         cls.log_action('Company "{}" created'.format(company.name), info)
         return company
 
@@ -1279,7 +1279,7 @@ class CreatePlanParseFailedMessage(CustomMutation):
                 'Failed to create error message "{}". {}'.format(failed_plan.id, excep),
                 info,
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         cls.log_action('Error message "{}" created'.format(failed_plan.id), info)
         return failed_plan
 
@@ -1324,7 +1324,7 @@ class CreateControllerModel(CustomMutation):
                 ),
                 info,
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         cls.log_action('Model "{}" created'.format(controller_details.model), info)
         return model
 
@@ -1363,7 +1363,7 @@ class UpdateControllerModel(CustomMutation):
                 'Failed to update model "{}". {}'.format(controller_details.cid, excep),
                 info,
             )
-            return GraphQLError(excep)
+            return GraphQLError(str(excep))
         cls.log_action('Model "{}" updated.'.format(controller_details.cid), info)
         return model
 
