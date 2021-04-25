@@ -15,7 +15,6 @@ from dacot_models import Controller as ProjControllerModel
 from dacot_models import ControllerModel as ControllerModelModel
 from dacot_models import OTU as OTUModel
 from dacot_models import OTUMeta as OTUMetaModel
-from dacot_models import OTUIntergreenValue as OTUIntergreenValueModel
 from dacot_models import OTUProgramItem as OTUProgramItemModel
 from dacot_models import HeaderItem as ProjectHeaderItemModel
 from dacot_models import UPS as UPSModel
@@ -36,10 +35,6 @@ from graphql import GraphQLError
 class JunctionIntergreenValue(MongoengineObjectType):
     class Meta:
         model = JunctionIntergreenValueModel
-
-class OTUIntergreenValue(MongoengineObjectType):
-    class Meta:
-        model = OTUIntergreenValueModel
 
 class JunctionPhaseSequenceItem(MongoengineObjectType):
     class Meta:
