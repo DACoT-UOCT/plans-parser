@@ -42,11 +42,11 @@ class ExportAgent:
         logger.info('Starting FULL SESSION!')
         executor = TCE(host=self.__utc_host, logger=logger)
         logger.debug('Using TCE={}'.format(executor))
-        #p1outfile = self.__phase1(executor)
-        #juncs = self.__phase2(p1outfile)
-        #self.__phase3(juncs, executor)
-        #self.__phase4(p1outfile)
-        p1outfile = '../../DACOT_EXPORT_FULL_OK'
+        p1outfile = self.__phase1(executor)
+        juncs = self.__phase2(p1outfile)
+        self.__phase3(juncs, executor)
+        self.__phase4(p1outfile)
+        # p1outfile = '../../DACOT_EXPORT_FULL_OK'
         results = self.__phase4(p1outfile)
         self.__phase5(p1outfile, results)
         self.__phase6(p1outfile, results)
