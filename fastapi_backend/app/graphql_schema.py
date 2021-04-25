@@ -27,10 +27,15 @@ from dacot_models import JunctionPlan as JunctionPlanModel
 from dacot_models import JunctionPlanPhaseValue as JunctionPlanPhaseValueModel
 from dacot_models import JunctionPlanIntergreenValue as JunctionPlanIntergreenValueModel
 from dacot_models import JunctionPhaseSequenceItem as JunctionPhaseSequenceItemModel
+from dacot_models import JunctionIntergreenValue as JunctionIntergreenValueModel
 from dacot_models import PlanParseFailedMessage as PlanParseFailedMessageModel
 from dacot_models import APIKeyUsers as APIKeyUsersModel
 from mongoengine import ValidationError, NotUniqueError
 from graphql import GraphQLError
+
+class JunctionIntergreenValue(MongoengineObjectType):
+    class Meta:
+        model = JunctionIntergreenValueModel
 
 class OTUIntergreenValue(MongoengineObjectType):
     class Meta:
@@ -447,11 +452,18 @@ class JunctionPlanInput(graphene.InputObjectType):
     system_start = graphene.NonNull(graphene.List(graphene.NonNull(JunctionPlanPhaseValueInput)))
 
 
+class JunctionIntergreenValueInput(graphene.InputObjectType):
+    phf = graphene.NonNull(graphene.String)
+    pht = graphene.NonNull(graphene.String)
+    val = graphene.NonNull(graphene.String)
+
+
 class ProjectJunctionInput(graphene.InputObjectType):
     jid = graphene.NonNull(graphene.String)
     metadata = graphene.NonNull(JunctionMetadataInput)
     sequence = graphene.List(JunctionPhasesSequenceInput)
     plans = graphene.List(JunctionPlanInput)
+    intergreens = graphene.List(JunctionIntergreenValueInput)
 
 
 class ProjectOTUInput(graphene.InputObjectType):
@@ -625,6 +637,15 @@ class CreateProject(CustomMutation):
                     db_plan.system_start = system_starts
                     junc_plans.append(db_plan)
                 otu_junc.plans = junc_plans
+            if junc.intergreens:
+                junc_inters = []
+                for inter in junc.intergreens:
+                    new_inter = JunctionIntergreenValueModel()
+                    new_inter.phfrom = inter.phf
+                    new_inter.phto = inter.pht
+                    new_inter.value = inter.val
+                    junc_inters.append(new_inter)
+                otu_junc.intergreens = junc_inters
             junctions.append(otu_junc)
         if otuin.program:
             db_progs = []

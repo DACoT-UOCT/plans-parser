@@ -25,7 +25,7 @@ class JunctionPlanIntergreenValue(EmbeddedDocument):
     phto = IntField(min_value=1, required=True)
     value = IntField(min_value=0, required=True)
 
-class OTUIntergreenValue(EmbeddedDocument):
+class JunctionIntergreenValue(EmbeddedDocument):
     phfrom = StringField(required=True)
     phto = StringField(required=True)
     value = StringField(required=True)
@@ -56,16 +56,14 @@ class JunctionMeta(EmbeddedDocument):
 class JunctionPhaseSequenceItem(EmbeddedDocument):
     phid = StringField(regex=r"^\d{1,4}!?$", required=True)
     phid_system = StringField(regex=r"^[A-Z]$", required=True)
-    type = StringField(
-        choices=["Vehicular", "Peatonal", "Flecha Verde", "Ciclista", "No Configurada"],
-        required=True,
-    )
+    type = StringField(choices=["Vehicular", "Peatonal", "Flecha Verde", "Ciclista", "No Configurada"], required=True)
 
 class Junction(EmbeddedDocument):
     jid = StringField(regex=r"J\d{6}", min_length=7, max_length=7, required=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan)
     sequence = EmbeddedDocumentListField(JunctionPhaseSequenceItem)
+    intergreens = EmbeddedDocumentListField(JunctionIntergreenValue)
 
 class ExternalCompany(Document):
     meta = {"collection": "ExternalCompany"}
@@ -203,7 +201,6 @@ class OTU(EmbeddedDocument):
     oid = StringField(regex=r"X\d{5}0", min_length=7, max_length=7, required=True)
     metadata = EmbeddedDocumentField(OTUMeta)
     programs = EmbeddedDocumentListField(OTUProgramItem)
-    intergreens = EmbeddedDocumentListField(OTUIntergreenValue)
     junctions = EmbeddedDocumentListField(Junction, required=True)
 
 
