@@ -58,11 +58,7 @@ class ExportAgent:
         # TODO: Optimization: maybe in parallel
         # TODO: Add coordinates to junctions from external source
         programs, sequences, inter, plan = models
-        count = 0
         for k, v in programs.items():
-            count = count + 1
-            if count == 3:
-                break
             state = self.__get_project(k)
             if state == 0:
                 self.__create_project(k, models)
@@ -275,12 +271,8 @@ class ExportAgent:
         executor.reset()
         self.__login_sys(executor)
         for idx, junc in enumerate(juncs):
-            idx = idx + 1
-            if idx == 3:
-                break # TODO: FIXME: Remove this in final version
             if idx % prog == 0:
                 logger.debug('[{:05.2f}%] We are at {}'.format(100 * idx / count, junc))
-                break # TODO: FIXME: Remove this in final version
             self.__get_seed_data(executor, junc)
         self.__logout_sys(executor)
         logger.debug('Using the following phase 3 execution plan: {}'.format(executor.history()))
