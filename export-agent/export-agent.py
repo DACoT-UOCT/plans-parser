@@ -117,10 +117,20 @@ class ExportAgent:
                         'systemStart: {}'.format(starts).replace("'{", '{').replace("}'", '}')
                     ]).generate()
                     qry_junc_plans.append(new_plan)
+                qry_junc_inters = []
+                if juncid in inter:
+                    for junc_inter in inter[juncid]:
+                        new_inter = GqlQuery().fields([
+                            'phf: "{}"'.format(junc_inter.phfrom),
+                            'pht: "{}"'.format(junc_inter.phto),
+                            'val: "{}"'.format(junc_inter.value)
+                        ]).generate()
+                        qry_junc_inters.append(new_inter)
                 junc = GqlQuery().fields([
                     'jid: "{}"'.format(juncid),
                     'sequence: {}'.format(jseqs).replace("'{", '{').replace("}'", '}'),
                     'plans: {}'.format(qry_junc_plans).replace("'{", '{').replace("}'", '}'),
+                    'intergreens: {}'.format(qry_junc_inters).replace("'{", '{').replace("}'", '}'),
                     default_junc_meta
                 ]).generate()
                 junctions.append(junc)
@@ -212,7 +222,7 @@ class ExportAgent:
                 for i in inter_cols:
                     for j in inter_cols:
                         if i != j:
-                            newi = dm.OTUIntergreenValue(phfrom=i, phto=j, value=v['intergreens'][i][j])
+                            newi = dm.JunctionIntergreenValue(phfrom=i, phto=j, value=v['intergreens'][i][j])
                             newi.validate()
                             inters.append(newi)
             inter[k] = inters
