@@ -26,9 +26,9 @@ class ExportAgent:
         self.__read_seed_sleep = 0.35
         self.__execution_date = datetime.now()
         self.__re_ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|[0-9]|\[[0-?]*[ -/]*[@-~])|\r|\n")
-        self.__re_ctrl_type = re.compile(r'Controller Type\s+:\s\[(?P<ctrl_type>.*)\]')
-        self.__re_intergreens_table = re.compile(r'\s(?P<phase_name>[A-Z])\s+(?P<is_demand>N|Y)\s+(?P<min_time>\d+)\s+(?P<max_time>\d+)\s+(?P<intergreens>((X|\d+)\s+)+(X|\d+))')
-        self.__re_plan = re.compile(r'^Plan\s+(?P<id>\d+)\s(?P<junction>J\d{6}).*(?P<cycle>CY\d{3})\s(?P<phases>[A-Z0-9\s,!\*]+)$')
+        self.__re_ctrl_type = re.compile(r'Controller Type\s+:\s\[(?P<ctrl_type>.*)]')
+        self.__re_intergreens_table = re.compile(r'\s(?P<phase_name>[A-Z])\s+(?P<is_demand>[NY])\s+(?P<min_time>\d+)\s+(?P<max_time>\d+)\s+(?P<intergreens>((X|\d+)\s+)+(X|\d+))')
+        self.__re_plan = re.compile(r'^Plan\s+(?P<id>\d+)\s(?P<junction>J\d{6}).*(?P<cycle>CY\d{3})\s(?P<phases>[A-Z0-9\s,!*]+)$')
         self.__re_extract_phases = re.compile(r"\s[A-Z]\s\d+")
         self.__re_extract_sequence = re.compile(r'Cyclic Check Sequence\s+:\s\[(?P<sequence>[A-Z]+)')
         self.__re_program_hour = re.compile(r"(?P<hour>\d{2}:\d{2}:\d{2}).*$")
@@ -42,11 +42,11 @@ class ExportAgent:
         logger.info('Starting FULL SESSION!')
         executor = TCE(host=self.__utc_host, logger=logger)
         logger.debug('Using TCE={}'.format(executor))
-        p1outfile = self.__phase1(executor)
-        juncs = self.__phase2(p1outfile)
-        self.__phase3(juncs, executor)
-        self.__phase4(p1outfile)
-        # p1outfile = '../../DACOT_EXPORT_FULL_OK'
+        # p1outfile = self.__phase1(executor)
+        # juncs = self.__phase2(p1outfile)
+        # self.__phase3(juncs, executor)
+        # self.__phase4(p1outfile)
+        p1outfile = '../../DACOT_EXPORT_FULL_OK_ALL_JUNCTIONS'
         results = self.__phase4(p1outfile)
         self.__phase5(p1outfile, results)
         self.__phase6(p1outfile, results)
@@ -307,7 +307,6 @@ class ExportAgent:
                     seed_start_pos = idx
                     break
             count = len(lines) - seed_start_pos
-            step = count / 20
             for idx, line in enumerate(lines[seed_start_pos:]):
                 if next_token in line:
                     next_token = self.__swap_seed_tokens(next_token)
@@ -317,7 +316,6 @@ class ExportAgent:
                     self.__extract_data_from_screen(current_screen, next_token, current_junc, results)
                     screen.reset()
                     current_junc = line.split('-')[2].split(']')[0]
-                if idx % step == 0:
                     logger.debug('[{:05.2f}%] We are at {}'.format(100 * idx / count, current_junc))
                 stream.feed(line)
             current_screen = '\n'.join(screen.display)
@@ -442,6 +440,7 @@ class ExportAgent:
             rows_match = list(self.__re_intergreens_table.finditer(screen, re.MULTILINE))
             if len(rows_match) == 0:
                 logger.error('Failed to get IntergreensData for {}'.format(junc))
+                return
             table = []
             names = []
             for row in rows_match:
@@ -452,6 +451,10 @@ class ExportAgent:
                 table.append(trow)
             column_names = ['Phase', 'IsDemand', 'MinTime', 'MaxTime']
             column_names.extend(names)
+            for row in table:
+                if len(row) != len(column_names):
+                    logger.error('Invalid row length: row={} columns={}'.format(row, len(column_names)))
+                    return
             df = pd.DataFrame(table, columns=column_names)
             df = df.set_index('Phase')
             results[junc]['intergreens'] = df
