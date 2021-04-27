@@ -506,8 +506,8 @@ class SetPhasesTypes(CustomMutation):
             msg = 'Failed to find project "{}" in status "{}". Project not found'.format(oid, phases.status)
             cls.log_action(msg, info)
             return GraphQLError(msg)
-        for junc in proj.junctions:
-            if junc == phases.jid:
+        for junc in proj.otu.junctions:
+            if junc.jid == phases.jid:
                 existing_phases = set([ph.phid for ph in junc.sequence])
                 input_phases = set([ph.phid for ph in phases.types])
                 if existing_phases != input_phases:
