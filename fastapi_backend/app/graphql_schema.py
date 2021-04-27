@@ -477,6 +477,58 @@ class CreateProjectInput(graphene.InputObjectType):
     poles = ProjectPolesInput()
     observation = graphene.NonNull(graphene.String)
 
+class DeleteControllerModelInput(graphene.InputObjectType):
+    cid = graphene.NonNull(graphene.String)
+
+class SetPhaseTypeItemInput(graphene.InputObjectType):
+    phid = graphene.NonNull(graphene.String)
+    type = graphene.NonNull(graphene.String)
+
+class SetPhaseTypesInput(graphene.InputObjectType):
+    jid = graphene.NonNull(graphene.String)
+    status = graphene.NonNull(graphene.String)
+    types = graphene.NonNull(graphene.List(graphene.NonNull(SetPhaseTypeItemInput)))
+
+#class DeleteController(CustomMutation):
+#    pass
+
+class SetPhasesTypes(CustomMutation):
+    class Arguments:
+        phases = SetPhaseTypesInput()
+
+    Output = graphene.String
+
+    @classmethod
+    def mutate(cls, root, info, phases):
+        oid = 'X{}0'.format(phases.jid[1:-1])
+        proj = ProjectModel.objects(oid=oid, metadata__status=phases.status).first()
+        if not proj:
+            msg = 'Failed to find project "{}" in status "{}". Project not found'.format(oid, phases.status)
+            cls.log_action(msg, info)
+            return GraphQLError(msg)
+        for junc in proj.junctions:
+            if junc == phases.jid:
+                existing_phases = set([ph.phid for ph in junc.sequence])
+                input_phases = set([ph.phid for ph in phases.types])
+                if existing_phases != input_phases:
+                    msg = 'Invalid phases in input. We have in DB: {} and input has: {}'.format(existing_phases, input_phases)
+                    cls.log_action(msg, info)
+                    return GraphQLError(msg)
+                for ph in phases.types:
+                    for existing in junc.sequence:
+                        if existing.phid == ph.phid:
+                            existing.type = ph.type
+                            break
+                try:
+                    proj.save()
+                except ValidationError as excep:
+                    msg = 'Failed to save project. Cause: {}'.format(str(excep))
+                    cls.log_action(msg, info)
+                    return GraphQLError(msg)
+                return phases.jid
+        msg = 'Failed to find junction "{}" in project "{}". Junction not found'.format(phases.jid, oid)
+        cls.log_action(msg, info)
+        return GraphQLError(msg)
 
 class CreateProject(CustomMutation):
     class Arguments:
@@ -1433,6 +1485,7 @@ class Mutation(graphene.ObjectType):
     accept_project = AcceptProject.Field()
     reject_project = RejectProject.Field()
     update_project = UpdateProject.Field()
+    set_phases_types = SetPhasesTypes.Field()
 
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
