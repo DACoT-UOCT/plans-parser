@@ -1,21 +1,15 @@
-import json
-from mongoengine import EmbeddedDocument, IntField, EmbeddedDocumentListField
+from datetime import datetime
+
+from mongoengine import BooleanField
 from mongoengine import Document, PointField, StringField, ListField, DateTimeField
+from mongoengine import EmbeddedDocument, IntField, EmbeddedDocumentListField
 from mongoengine import (
     EmbeddedDocumentField,
     EmailField,
     FileField,
-    LongField,
     ReferenceField,
 )
-from mongoengine import GenericReferenceField, DictField, BooleanField
 
-from mongoengine import get_connection
-
-from mongoengine.errors import ValidationError, NotUniqueError
-from pymongo.errors import DuplicateKeyError
-
-from datetime import datetime
 
 # TODO: Deletion flags (Cascade, DENY, etc)
 
@@ -25,14 +19,17 @@ class JunctionPlanIntergreenValue(EmbeddedDocument):
     phto = IntField(min_value=1, required=True)
     value = IntField(min_value=0, required=True)
 
+
 class JunctionIntergreenValue(EmbeddedDocument):
     phfrom = StringField(required=True)
     phto = StringField(required=True)
     value = StringField(required=True)
 
+
 class JunctionPlanPhaseValue(EmbeddedDocument):
     phid = IntField(min_value=1, required=True)
     value = IntField(min_value=0, required=True)
+
 
 class JunctionPlan(EmbeddedDocument):
     plid = IntField(min_value=1, required=True)
@@ -58,12 +55,15 @@ class JunctionPhaseSequenceItem(EmbeddedDocument):
     phid_system = StringField(regex=r"^[A-Z]$", required=True)
     type = StringField(choices=["Vehicular", "Peatonal", "Flecha Verde", "Ciclista", "No Configurada"], required=True)
 
+
 class Junction(EmbeddedDocument):
     jid = StringField(regex=r"J\d{6}", min_length=7, max_length=7, required=True)
     metadata = EmbeddedDocumentField(JunctionMeta, required=True)
     plans = EmbeddedDocumentListField(JunctionPlan)
     sequence = EmbeddedDocumentListField(JunctionPhaseSequenceItem)
     intergreens = EmbeddedDocumentListField(JunctionIntergreenValue)
+    veh_intergreens = EmbeddedDocumentListField(JunctionIntergreenValue)
+
 
 class ExternalCompany(Document):
     meta = {"collection": "ExternalCompany"}
@@ -197,6 +197,7 @@ class OTUMeta(EmbeddedDocument):
     link_type = StringField(choices=["Digital", "Analogo"])
     link_owner = StringField(choices=["Propio", "Compartido"])
 
+
 class OTU(EmbeddedDocument):
     oid = StringField(regex=r"X\d{5}0", min_length=7, max_length=7, required=True)
     metadata = EmbeddedDocumentField(OTUMeta)
@@ -237,6 +238,7 @@ class PlanParseFailedMessage(Document):
     date = DateTimeField(default=datetime.now, required=True)
     plans = ListField(StringField(), required=True)
     comment = EmbeddedDocumentField(Comment, required=True)
+
 
 class APIKeyUsers(Document):
     meta = {"collection": "APIKeyUsers"}

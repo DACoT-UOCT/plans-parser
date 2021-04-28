@@ -480,53 +480,48 @@ class CreateProjectInput(graphene.InputObjectType):
 class DeleteControllerModelInput(graphene.InputObjectType):
     cid = graphene.NonNull(graphene.String)
 
-class SetPhaseTypeItemInput(graphene.InputObjectType):
+class SetVehicleIntergreenItemInput(graphene.InputObjectType):
     phid = graphene.NonNull(graphene.String)
-    type = graphene.NonNull(graphene.String)
+    value = graphene.NonNull(graphene.Int)
 
-class SetPhaseTypesInput(graphene.InputObjectType):
+class SetVehicleIntergreenInput(graphene.InputObjectType):
     jid = graphene.NonNull(graphene.String)
     status = graphene.NonNull(graphene.String)
-    types = graphene.NonNull(graphene.List(graphene.NonNull(SetPhaseTypeItemInput)))
+    phases = graphene.List(graphene.NonNull(SetVehicleIntergreenItemInput))
 
 #class DeleteController(CustomMutation):
 #    pass
 
-class SetPhasesTypes(CustomMutation):
+class SetDefaultVehicleIntergreen(CustomMutation):
     class Arguments:
-        phases = SetPhaseTypesInput()
+        data = SetVehicleIntergreenInput()
 
     Output = graphene.String
 
     @classmethod
-    def mutate(cls, root, info, phases):
-        oid = 'X{}0'.format(phases.jid[1:-1])
-        proj = ProjectModel.objects(oid=oid, metadata__status=phases.status).first()
+    def mutate(cls, root, info, data):
+        oid = 'X{}0'.format(data.jid[1:-1])
+        proj = ProjectModel.objects(oid=oid, metadata__status=data.status).first()
         if not proj:
-            msg = 'Failed to find project "{}" in status "{}". Project not found'.format(oid, phases.status)
+            msg = 'Failed to find project "{}" in status "{}". Project not found'.format(oid, data.status)
             cls.log_action(msg, info)
             return GraphQLError(msg)
         for junc in proj.otu.junctions:
-            if junc.jid == phases.jid:
-                existing_phases = set([ph.phid for ph in junc.sequence])
-                input_phases = set([ph.phid for ph in phases.types])
-                if existing_phases != input_phases:
-                    msg = 'Invalid phases in input. We have in DB: {} and input has: {}'.format(existing_phases, input_phases)
-                    cls.log_action(msg, info)
-                    return GraphQLError(msg)
-                for ph in phases.types:
-                    for existing in junc.sequence:
-                        if existing.phid == ph.phid:
-                            existing.type = ph.type
-                            break
+            if junc.jid == data.jid:
+                veh_inters = []
+                for ped_inter in junc.intergreens:
+                    new_vh = ped_inter.copy()
+                    new_vh['value'] = '4'           # INFO: Default intergreen value
+                    veh_inters.append(new_vh)
+                junc.veh_intergreens = veh_inters
                 try:
                     proj.save()
                 except ValidationError as excep:
                     msg = 'Failed to save project. Cause: {}'.format(str(excep))
                     cls.log_action(msg, info)
                     return GraphQLError(msg)
-                return phases.jid
-        msg = 'Failed to find junction "{}" in project "{}". Junction not found'.format(phases.jid, oid)
+                return data.jid
+        msg = 'Failed to find junction "{}" in project "{}". Junction not found'.format(data.jid, oid)
         cls.log_action(msg, info)
         return GraphQLError(msg)
 
@@ -1485,7 +1480,7 @@ class Mutation(graphene.ObjectType):
     accept_project = AcceptProject.Field()
     reject_project = RejectProject.Field()
     update_project = UpdateProject.Field()
-    set_phases_types = SetPhasesTypes.Field()
+    set_phases_types = SetDefaultVehicleIntergreen.Field()
 
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
