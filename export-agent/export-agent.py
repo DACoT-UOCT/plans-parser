@@ -218,7 +218,7 @@ class ExportAgent:
                 for i in inter_cols:
                     for j in inter_cols:
                         if i != j:
-                            newi = dm.JunctionIntergreenValue(phfrom=i, phto=j, value=v['intergreens'][i][j])
+                            newi = dm.JunctionIntergreenValue(phfrom=j, phto=i, value=v['intergreens'][i][j])
                             newi.validate()
                             inters.append(newi)
             inter[k] = inters
