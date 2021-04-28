@@ -1480,7 +1480,7 @@ class Mutation(graphene.ObjectType):
     accept_project = AcceptProject.Field()
     reject_project = RejectProject.Field()
     update_project = UpdateProject.Field()
-    set_phases_types = SetDefaultVehicleIntergreen.Field()
+    set_default_intergreen = SetDefaultVehicleIntergreen.Field()
 
 
 dacot_schema = graphene.Schema(query=Query, mutation=Mutation)
