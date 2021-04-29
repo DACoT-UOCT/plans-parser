@@ -253,7 +253,7 @@ class Query(graphene.ObjectType):
                 isys[plid][sys.phid] = sys.value
                 if sys.phid > max_phid:
                     max_phid = sys.phid
-        logger.warning(isys)
+        #$ logger.warning(isys)
         eps = {}
         for intg in junc.intergreens:
             intgfrom = ord(intg.phfrom) - 64
@@ -261,7 +261,7 @@ class Query(graphene.ObjectType):
             if intgfrom not in eps:
                 eps[intgfrom] = {}
             eps[intgfrom][intgto] = int(intg.value)
-        logger.warning(eps)
+        #$ logger.warning(eps)
         evs = {}
         for intg in junc.veh_intergreens:
             intgfrom = ord(intg.phfrom) - 64
@@ -269,7 +269,7 @@ class Query(graphene.ObjectType):
             if intgfrom not in evs:
                 evs[intgfrom] = {}
             evs[intgfrom][intgto] = int(intg.value)
-        logger.warning(evs)
+        #$ logger.warning(evs)
         for plan in junc.plans:
             plid = plan.plid
             for phid, ph_isys in isys[plid].items():
@@ -282,7 +282,11 @@ class Query(graphene.ObjectType):
                 ifs = ph_isys + pheps - phevs
                 alpha = int(ifs > plan.cycle)
                 ifs = ifs - alpha * plan.cycle
-                logger.warning('F{} => {}'.format(phid, (plid, plan.cycle, ifs, pheps, ph_isys)))
+                iv = ifs + phevs
+                beta = int(iv > plan.cycle)
+                iv = iv - beta * plan.cycle
+                row = (plid, plan.cycle, ifs, phevs, iv, pheps, ph_isys)
+                logger.warning('F{} => {}'.format(phid, row))
 
     def resolve_compute_tables(self, info, jid, status):
         oid = 'X{}0'.format(jid[1:-1])
