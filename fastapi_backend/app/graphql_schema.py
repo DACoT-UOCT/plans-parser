@@ -290,7 +290,9 @@ class Query(graphene.ObjectType):
                 row = (plid, plan.cycle, ifs, phevs, iv, pheps, ph_isys)
                 temp_res[plid][phid] = row
                 #$ logger.warning('F{} => {}'.format(phid, row))
+        final_result = {}
         for plid, phases in temp_res.items():
+            final_result[plid] = {}
             for phid, row in phases.items():
                 if phid + 1 in phases:
                     phid_next = phid + 1
@@ -302,7 +304,20 @@ class Query(graphene.ObjectType):
                 tvp = phases[phid_next][2] - row[4] - (phases[phid_next][5] - phases[phid_next][3])
                 delta = int(tvp < 0)
                 tvp = tvp + delta * row[1]
-                logger.warning('{} | F{} => TVV={} TVP={}'.format(plid, phid, tvv, tvp))
+                new_row = (row[0], row[1], row[2], row[3], row[4], tvv, tvp, row[5], row[6])
+                final_result[plid][phid] = new_row
+                #$ logger.warning('{} | F{} => TVV={} TVP={}'.format(plid, phid, tvv, tvp))
+        return final_result
+
+    def __save_computed_plan_table(junc, table):
+        for plan in junc.plans:
+            starts = []
+            for phid, row in table[plan.plid].items():
+                start_i = JunctionPlanPhaseValueModel()
+                start_i.phid = phid
+                start_i.value = row[2]
+                starts.append(start_i)
+            plan.phase_start = starts
 
     def resolve_compute_tables(self, info, jid, status):
         oid = 'X{}0'.format(jid[1:-1])
@@ -313,9 +328,10 @@ class Query(graphene.ObjectType):
             return False
         for junc in proj.otu.junctions:
             if junc.jid == jid:
-                Query.__compute_plan_table(junc)
+                table = Query.__compute_plan_table(junc)
+                Query.__save_computed_plan_table(junc, table)
+                proj.save()
                 return True
-        proj.save()
         return False
 
     def resolve_full_schema_drop(self, info):
