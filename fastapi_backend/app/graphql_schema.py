@@ -337,9 +337,6 @@ class Query(graphene.ObjectType):
                 junc = Query.__save_computed_plan_table(junc, table)
             new_juncs.append(junc)
         proj.otu.junctions = new_juncs
-        proj.validate()
-        proj.delete()
-        proj.id = None
         proj.save()
         return True
 
