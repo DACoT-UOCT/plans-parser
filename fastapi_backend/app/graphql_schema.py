@@ -299,7 +299,10 @@ class Query(graphene.ObjectType):
                 tvv = phases[phid_next][2] - row[4]
                 gamma = int(tvv < 0)
                 tvv = tvv + gamma * row[1]
-                logger.warning('{} | F{} => TVV={}'.format(plid, phid, tvv))
+                tvp = phases[phid_next][2] - row[4] - (phases[phid_next][5] - phases[phid_next][3])
+                delta = int(tvp < 0)
+                tvp = tvp + delta * row[1]
+                logger.warning('{} | F{} => TVV={} TVP={}'.format(plid, phid, tvv, tvp))
 
     def resolve_compute_tables(self, info, jid, status):
         oid = 'X{}0'.format(jid[1:-1])
