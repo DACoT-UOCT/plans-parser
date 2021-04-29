@@ -2,7 +2,6 @@ import magic
 import base64
 import logging
 import graphene
-from graphene.relay import Node
 from datetime import datetime
 from fastapi.logger import logger
 from graphene_mongo import MongoengineObjectType
@@ -60,7 +59,11 @@ class Poles(MongoengineObjectType):
 class Project(MongoengineObjectType):
     class Meta:
         model = ProjectModel
-        interfaces = (Node,)
+        interfaces = (graphene.relay.Node,)
+
+class ProjectConnection(graphene.relay.Connection):
+    class Meta:
+        node = Project
 
 class ProjectMeta(MongoengineObjectType):
     class Meta:
@@ -223,7 +226,8 @@ class Query(graphene.ObjectType):
     junctions = graphene.List(Junction)
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
     all_projects = graphene.List(Project)
-    projects = graphene.List(Project, status=graphene.NonNull(graphene.String))
+    # projects = graphene.List(Project, status=graphene.NonNull(graphene.String))
+    projects = graphene.relay.ConnectionField(ProjectConnection)
     project = graphene.Field(
         Project,
         oid=graphene.NonNull(graphene.String),
