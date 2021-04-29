@@ -223,7 +223,8 @@ class Query(graphene.ObjectType):
     junctions = graphene.List(Junction)
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
     all_projects = graphene.List(Project)
-    projects = graphene_mongo.MongoengineConnectionField(Project, status=graphene.NonNull(graphene.String))
+    # projects = MongoengineConnectionField(Project, status=graphene.NonNull(graphene.String))
+    projects = graphene.Field(Project, status=graphene.NonNull(graphene.String))
     project = graphene.Field(
         Project,
         oid=graphene.NonNull(graphene.String),
