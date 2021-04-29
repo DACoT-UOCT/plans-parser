@@ -244,7 +244,24 @@ class Query(graphene.ObjectType):
     compute_tables = graphene.Boolean(jid=graphene.NonNull(graphene.String), status=graphene.NonNull(graphene.String))
 
     def __compute_plan_table(junc):
-        logger.warning(junc)
+        isys = {}
+        for plan in junc.plans:
+            plid = plan['plid']
+            isys[plid] = {}
+            for sys in plan.system_start:
+                isys[plid][sys.phid] = sys.plid.value
+        logger.warning(isys)
+        eps = {}
+        for intg in junc.intergreens:
+            if intg.phfrom not in eps:
+                eps[intg.phfrom] = {}
+            eps[intg.phfrom][intg.phto] = intg.value
+        logger.warning(eps)
+        for plan in junc.plans:
+            plid = plan.plid
+            for phid, ph_isys in isys[plid].items():
+                ifs = ph_isys #+ eps[phid][phid + 1]
+                logger.warning(ifs)
 
     def resolve_compute_tables(self, info, jid, status):
         oid = 'X{}0'.format(jid[1:-1])
