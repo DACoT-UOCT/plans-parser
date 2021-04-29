@@ -1,10 +1,11 @@
+import graphene_mongo
 import magic
 import base64
 import logging
 import graphene
 from datetime import datetime
 from fastapi.logger import logger
-from graphene_mongo import MongoengineObjectType
+from graphene_mongo import MongoengineObjectType, MongoengineConnectionField
 from dacot_models import User as UserModel
 from dacot_models import ExternalCompany as ExternalCompanyModel
 from dacot_models import ActionsLog as ActionsLogModel
@@ -60,11 +61,6 @@ class Project(MongoengineObjectType):
     class Meta:
         model = ProjectModel
         interfaces = (graphene.relay.Node,)
-
-class ProjectConnection(graphene.relay.Connection):
-    status = graphene.String()
-    class Meta:
-        node = Project
 
 class ProjectMeta(MongoengineObjectType):
     class Meta:
@@ -227,8 +223,7 @@ class Query(graphene.ObjectType):
     junctions = graphene.List(Junction)
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
     all_projects = graphene.List(Project)
-    # projects = graphene.List(Project, status=graphene.NonNull(graphene.String))
-    projects = graphene.relay.ConnectionField(ProjectConnection, status=graphene.NonNull(graphene.String))
+    projects = graphene_mongo.MongoengineConnectionField(Project, status=graphene.NonNull(graphene.String))
     project = graphene.Field(
         Project,
         oid=graphene.NonNull(graphene.String),
@@ -263,7 +258,6 @@ class Query(graphene.ObjectType):
                 return True
         proj.save()
         return False
-
 
     def resolve_full_schema_drop(self, info):
         logger.warning('FullSchemaDrop Requested')
@@ -326,10 +320,9 @@ class Query(graphene.ObjectType):
 
     def resolve_projects(self, info, **kwargs):
         logger.warning(kwargs)
-        return []
-#        return ProjectModel.objects(
-#            metadata__status=status, metadata__version="latest"
-#        ).all()
+        return ProjectModel.objects(
+            metadata__status=kwargs['status'], metadata__version="latest"
+        ).all()
 
     def resolve_project(self, info, oid, status):
         return ProjectModel.objects(
