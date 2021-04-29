@@ -315,15 +315,15 @@ class Query(graphene.ObjectType):
         ped_inters = []
         for inter in junc.intergreens:
             inter_i = JunctionPlanIntergreenValueModel()
-            inter_i.value = inter.value
-            inter_i.phfrom = inter.phfrom
-            inter_i.phto = inter.phto
+            inter_i.value = int(inter.value)
+            inter_i.phfrom = ord(inter.phfrom) - 64
+            inter_i.phto = ord(inter.phto) - 64
             ped_inters.append(inter_i)
         for inter in junc.veh_intergreens:
             inter_i = JunctionPlanIntergreenValueModel()
-            inter_i.value = inter.value
-            inter_i.phfrom = inter.phfrom
-            inter_i.phto = inter.phto
+            inter_i.value = int(inter.value)
+            inter_i.phfrom = ord(inter.phfrom) - 64
+            inter_i.phto = ord(inter.phto) - 64
             veh_inters.append(inter_i)
         for plan in junc.plans:
             starts = []
