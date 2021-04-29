@@ -556,8 +556,11 @@ class SetDefaultVehicleIntergreen(CustomMutation):
             if junc.jid == data.jid:
                 veh_inters = []
                 for ped_inter in junc.intergreens:
-                    ped_inter.value = '4'           # INFO: Default intergreen value
-                    veh_inters.append(ped_inter)
+                    new_inter = JunctionIntergreenValueModel()
+                    new_inter.phfrom = ped_inter.phfrom
+                    new_inter.phto = ped_inter.phto
+                    new_inter.value = '4'           # INFO: Default intergreen value
+                    veh_inters.append(new_inter)
                 junc.veh_intergreens = veh_inters
                 try:
                     proj.save()
