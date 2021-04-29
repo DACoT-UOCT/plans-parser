@@ -259,14 +259,24 @@ class Query(graphene.ObjectType):
                 eps[intgfrom] = {}
             eps[intgfrom][intgto] = int(intg.value)
         logger.warning(eps)
+        evs = {}
+        for intg in junc.veh_intergreens:
+            intgfrom = ord(intg.phfrom) - 64
+            intgto = ord(intg.phto) - 64
+            if intgfrom not in evs:
+                evs[intgfrom] = {}
+            evs[intgfrom][intgto] = int(intg.value)
+        logger.warning(evs)
         for plan in junc.plans:
             plid = plan.plid
             for phid, ph_isys in isys[plid].items():
                 if phid + 1 in eps[phid]:
                     pheps = eps[phid][phid + 1]
+                    phevs = evs[phid][phid + 1]
                 else:
                     pheps = eps[phid][1]
-                ifs = ph_isys + pheps
+                    phevs = evs[phid][1]
+                ifs = ph_isys + pheps - phevs
                 alpha = int(ifs > plan.cycle)
                 ifs = ifs - alpha * plan.cycle
                 logger.warning('F{} => {}'.format(phid, (plid, plan.cycle, ifs, pheps, ph_isys)))
