@@ -336,6 +336,8 @@ class Query(graphene.ObjectType):
                 table = Query.__compute_plan_table(junc)
                 junc = Query.__save_computed_plan_table(junc, table)
             new_juncs.append(junc)
+        for j in new_juncs:
+            logger.warning('{}'.format(j.to_mongo().to_dict()))
         proj.otu.junctions = new_juncs
         proj.save()
         return True
