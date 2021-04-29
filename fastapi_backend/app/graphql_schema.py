@@ -267,7 +267,9 @@ class Query(graphene.ObjectType):
                 else:
                     pheps = eps[phid][1]
                 ifs = ph_isys + pheps
-                logger.warning(ifs)
+                alpha = int(ifs > plan.cycle)
+                ifs = ifs - alpha * plan.cycle
+                logger.warning('F{} => {}'.format(phid, (plid, plan.cycle, ifs, pheps, ph_isys)))
 
     def resolve_compute_tables(self, info, jid, status):
         oid = 'X{}0'.format(jid[1:-1])
