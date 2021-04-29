@@ -246,10 +246,10 @@ class Query(graphene.ObjectType):
     def __compute_plan_table(junc):
         isys = {}
         for plan in junc.plans:
-            plid = plan['plid']
+            plid = plan.plid
             isys[plid] = {}
             for sys in plan.system_start:
-                isys[plid][sys.phid] = sys.plid.value
+                isys[plid][sys.phid] = sys.value
         logger.warning(isys)
         eps = {}
         for intg in junc.intergreens:
