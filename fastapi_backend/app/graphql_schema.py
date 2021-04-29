@@ -62,6 +62,7 @@ class Project(MongoengineObjectType):
         interfaces = (graphene.relay.Node,)
 
 class ProjectConnection(graphene.relay.Connection):
+    status = graphene.String()
     class Meta:
         node = Project
 
@@ -304,10 +305,12 @@ class Query(graphene.ObjectType):
             result.append(vinfo)
         return result
 
-    def resolve_projects(self, info, status):
-        return ProjectModel.objects(
-            metadata__status=status, metadata__version="latest"
-        ).all()
+    def resolve_projects(self, info, **kwargs):
+        logger.warning(kwargs)
+        return []
+#        return ProjectModel.objects(
+#            metadata__status=status, metadata__version="latest"
+#        ).all()
 
     def resolve_project(self, info, oid, status):
         return ProjectModel.objects(
