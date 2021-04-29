@@ -339,7 +339,14 @@ class Query(graphene.ObjectType):
         for j in new_juncs:
             logger.warning('{}'.format(j.to_mongo().to_dict()))
         proj.otu.junctions = new_juncs
+        logger.warning('{}'.format(proj.to_mongo().to_dict()))
         proj.save()
+        import time
+        time.sleep(2)
+        proj = ProjectModel.objects(
+            oid=oid, metadata__status=status, metadata__version="latest"
+        ).first()
+        logger.warning('{}'.format(proj.to_mongo().to_dict()))
         return True
 
     def resolve_full_schema_drop(self, info):
