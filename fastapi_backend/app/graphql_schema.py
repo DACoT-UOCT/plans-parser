@@ -247,7 +247,7 @@ class Query(graphene.ObjectType):
     full_schema_drop = graphene.Boolean()
     compute_tables = graphene.Boolean(jid=graphene.NonNull(graphene.String), status=graphene.NonNull(graphene.String))
 
-    def __compute_plan_table(self, junc):
+    def __compute_plan_table(junc):
         logger.warning(junc)
 
     def resolve_compute_tables(self, info, jid, status):
@@ -259,7 +259,7 @@ class Query(graphene.ObjectType):
             return False
         for junc in proj.otu.junctions:
             if junc.jid == jid:
-                self.__compute_plan_table(junc)
+                Query.__compute_plan_table(junc)
                 return True
         proj.save()
         return False
