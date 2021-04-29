@@ -228,7 +228,7 @@ class Query(graphene.ObjectType):
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
     all_projects = graphene.List(Project)
     # projects = graphene.List(Project, status=graphene.NonNull(graphene.String))
-    projects = graphene.relay.ConnectionField(ProjectConnection)
+    projects = graphene.relay.ConnectionField(ProjectConnection, status=graphene.NonNull(graphene.String))
     project = graphene.Field(
         Project,
         oid=graphene.NonNull(graphene.String),
@@ -245,6 +245,25 @@ class Query(graphene.ObjectType):
     )
     check_otu_exists = graphene.Boolean(oid=graphene.NonNull(graphene.String))
     full_schema_drop = graphene.Boolean()
+    compute_tables = graphene.Boolean(jid=graphene.NonNull(graphene.String), status=graphene.NonNull(graphene.String))
+
+    def __compute_plan_table(self, junc):
+        logger.warning(junc)
+
+    def resolve_compute_tables(self, info, jid, status):
+        oid = 'X{}0'.format(jid[1:-1])
+        proj = ProjectModel.objects(
+            oid=oid, metadata__status=status, metadata__version="latest"
+        ).only('otu.junctions').first()
+        if not proj:
+            return False
+        for junc in proj.otu.junctions:
+            if junc.jid == jid:
+                self.__compute_plan_table(junc)
+                return True
+        proj.save()
+        return False
+
 
     def resolve_full_schema_drop(self, info):
         logger.warning('FullSchemaDrop Requested')
