@@ -310,6 +310,7 @@ class Query(graphene.ObjectType):
         return final_result
 
     def __save_computed_plan_table(junc, table):
+        new_plans = []
         for plan in junc.plans:
             starts = []
             for phid, row in table[plan.plid].items():
@@ -318,6 +319,9 @@ class Query(graphene.ObjectType):
                 start_i.value = row[2]
                 starts.append(start_i)
             plan.phase_start = starts
+            new_plans.append(plan)
+        junc.plans = new_plans
+        return junc
 
     def resolve_compute_tables(self, info, jid, status):
         oid = 'X{}0'.format(jid[1:-1])
@@ -326,13 +330,15 @@ class Query(graphene.ObjectType):
         ).first()
         if not proj:
             return False
+        new_juncs = []
         for junc in proj.otu.junctions:
             if junc.jid == jid:
                 table = Query.__compute_plan_table(junc)
-                Query.__save_computed_plan_table(junc, table)
-                proj.save()
-                return True
-        return False
+                junc = Query.__save_computed_plan_table(junc, table)
+            new_juncs.append(junc)
+        proj.otu.junctions = new_juncs
+        proj.save()
+        return True
 
     def resolve_full_schema_drop(self, info):
         logger.warning('FullSchemaDrop Requested')

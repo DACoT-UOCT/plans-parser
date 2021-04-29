@@ -34,7 +34,6 @@ class JunctionPlanPhaseValue(EmbeddedDocument):
 class JunctionPlan(EmbeddedDocument):
     plid = IntField(min_value=1, required=True)
     cycle = IntField(min_value=1, required=True)
-    # TODO: Make all of this fields required
     phase_start = EmbeddedDocumentListField(JunctionPlanPhaseValue)
     vehicle_intergreen = EmbeddedDocumentListField(JunctionPlanIntergreenValue)
     green_start = EmbeddedDocumentListField(JunctionPlanPhaseValue)
