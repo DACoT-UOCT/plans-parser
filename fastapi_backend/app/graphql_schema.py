@@ -253,14 +253,20 @@ class Query(graphene.ObjectType):
         logger.warning(isys)
         eps = {}
         for intg in junc.intergreens:
-            if intg.phfrom not in eps:
-                eps[intg.phfrom] = {}
-            eps[intg.phfrom][intg.phto] = intg.value
+            intgfrom = ord(intg.phfrom) - 64
+            intgto = ord(intg.phto) - 64
+            if intgfrom not in eps:
+                eps[intgfrom] = {}
+            eps[intgfrom][intgto] = int(intg.value)
         logger.warning(eps)
         for plan in junc.plans:
             plid = plan.plid
             for phid, ph_isys in isys[plid].items():
-                ifs = ph_isys #+ eps[phid][phid + 1]
+                if phid + 1 in eps[phid]:
+                    pheps = eps[phid][phid + 1]
+                else:
+                    pheps = eps[phid][1]
+                ifs = ph_isys + pheps
                 logger.warning(ifs)
 
     def resolve_compute_tables(self, info, jid, status):
