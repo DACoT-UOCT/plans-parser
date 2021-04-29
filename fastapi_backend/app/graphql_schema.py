@@ -323,7 +323,7 @@ class Query(graphene.ObjectType):
         oid = 'X{}0'.format(jid[1:-1])
         proj = ProjectModel.objects(
             oid=oid, metadata__status=status, metadata__version="latest"
-        ).only('otu.junctions').first()
+        ).first()
         if not proj:
             return False
         for junc in proj.otu.junctions:
