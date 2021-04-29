@@ -244,12 +244,15 @@ class Query(graphene.ObjectType):
     compute_tables = graphene.Boolean(jid=graphene.NonNull(graphene.String), status=graphene.NonNull(graphene.String))
 
     def __compute_plan_table(junc):
+        max_phid = -1
         isys = {}
         for plan in junc.plans:
             plid = plan.plid
             isys[plid] = {}
             for sys in plan.system_start:
                 isys[plid][sys.phid] = sys.value
+                if sys.phid > max_phid:
+                    max_phid = sys.phid
         logger.warning(isys)
         eps = {}
         for intg in junc.intergreens:
@@ -270,12 +273,12 @@ class Query(graphene.ObjectType):
         for plan in junc.plans:
             plid = plan.plid
             for phid, ph_isys in isys[plid].items():
-                if phid + 1 in eps[phid]:
-                    pheps = eps[phid][phid + 1]
-                    phevs = evs[phid][phid + 1]
+                if phid - 1 in eps:
+                    pheps = eps[phid - 1][phid]
+                    phevs = evs[phid - 1][phid]
                 else:
-                    pheps = eps[phid][1]
-                    phevs = evs[phid][1]
+                    pheps = eps[max_phid][1]
+                    phevs = evs[max_phid][1]
                 ifs = ph_isys + pheps - phevs
                 alpha = int(ifs > plan.cycle)
                 ifs = ifs - alpha * plan.cycle
