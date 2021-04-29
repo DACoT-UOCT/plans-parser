@@ -253,7 +253,7 @@ class Query(graphene.ObjectType):
                 isys[plid][sys.phid] = sys.value
                 if sys.phid > max_phid:
                     max_phid = sys.phid
-        #$ logger.warning(isys)
+        logger.warning(isys)
         eps = {}
         for intg in junc.intergreens:
             intgfrom = ord(intg.phfrom) - 64
@@ -261,7 +261,7 @@ class Query(graphene.ObjectType):
             if intgfrom not in eps:
                 eps[intgfrom] = {}
             eps[intgfrom][intgto] = int(intg.value)
-        #$ logger.warning(eps)
+        logger.warning(eps)
         evs = {}
         for intg in junc.veh_intergreens:
             intgfrom = ord(intg.phfrom) - 64
@@ -269,7 +269,7 @@ class Query(graphene.ObjectType):
             if intgfrom not in evs:
                 evs[intgfrom] = {}
             evs[intgfrom][intgto] = int(intg.value)
-        #$ logger.warning(evs)
+        logger.warning(evs)
         temp_res = {}
         for plan in junc.plans:
             plid = plan.plid
@@ -289,7 +289,7 @@ class Query(graphene.ObjectType):
                 iv = iv - beta * plan.cycle
                 row = (plid, plan.cycle, ifs, phevs, iv, pheps, ph_isys)
                 temp_res[plid][phid] = row
-                #$ logger.warning('F{} => {}'.format(phid, row))
+                logger.warning('F{} => {}'.format(phid, row))
         final_result = {}
         for plid, phases in temp_res.items():
             final_result[plid] = {}
@@ -306,7 +306,7 @@ class Query(graphene.ObjectType):
                 tvp = tvp + delta * row[1]
                 new_row = (row[0], row[1], row[2], row[3], row[4], tvv, tvp, row[5], row[6])
                 final_result[plid][phid] = new_row
-                #$ logger.warning('{} | F{} => TVV={} TVP={}'.format(plid, phid, tvv, tvp))
+                logger.warning('{} | F{} => TVV={} TVP={}'.format(plid, phid, tvv, tvp))
         return final_result
 
     def __save_computed_plan_table(junc, table):
