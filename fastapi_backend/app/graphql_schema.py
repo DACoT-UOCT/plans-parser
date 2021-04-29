@@ -2,6 +2,7 @@ import magic
 import base64
 import logging
 import graphene
+from graphene.relay import Node
 from datetime import datetime
 from fastapi.logger import logger
 from graphene_mongo import MongoengineObjectType
@@ -59,7 +60,7 @@ class Poles(MongoengineObjectType):
 class Project(MongoengineObjectType):
     class Meta:
         model = ProjectModel
-
+        interfaces = (Node,)
 
 class ProjectMeta(MongoengineObjectType):
     class Meta:
