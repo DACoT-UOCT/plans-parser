@@ -270,8 +270,10 @@ class Query(graphene.ObjectType):
                 evs[intgfrom] = {}
             evs[intgfrom][intgto] = int(intg.value)
         #$ logger.warning(evs)
+        temp_res = {}
         for plan in junc.plans:
             plid = plan.plid
+            temp_res[plid] = {}
             for phid, ph_isys in isys[plid].items():
                 if phid - 1 in eps:
                     pheps = eps[phid - 1][phid]
@@ -286,7 +288,18 @@ class Query(graphene.ObjectType):
                 beta = int(iv > plan.cycle)
                 iv = iv - beta * plan.cycle
                 row = (plid, plan.cycle, ifs, phevs, iv, pheps, ph_isys)
-                logger.warning('F{} => {}'.format(phid, row))
+                temp_res[plid][phid] = row
+                #$ logger.warning('F{} => {}'.format(phid, row))
+        for plid, phases in temp_res.items():
+            for phid, row in phases.items():
+                if phid + 1 in phases:
+                    phid_next = phid + 1
+                else:
+                    phid_next = 1
+                tvv = phases[phid_next][2] - row[4]
+                gamma = int(tvv < 0)
+                tvv = tvv + gamma * row[1]
+                logger.warning('{} | F{} => TVV={}'.format(plid, phid, tvv))
 
     def resolve_compute_tables(self, info, jid, status):
         oid = 'X{}0'.format(jid[1:-1])
