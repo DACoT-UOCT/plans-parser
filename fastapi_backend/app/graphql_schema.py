@@ -224,7 +224,7 @@ class Query(graphene.ObjectType):
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
     all_projects = graphene.List(Project)
     # projects = MongoengineConnectionField(Project, status=graphene.NonNull(graphene.String))
-    projects = graphene.Field(Project, status=graphene.NonNull(graphene.String))
+    projects = graphene.List(Project, status=graphene.NonNull(graphene.String))
     project = graphene.Field(
         Project,
         oid=graphene.NonNull(graphene.String),
@@ -311,9 +311,22 @@ class Query(graphene.ObjectType):
 
     def __save_computed_plan_table(junc, table):
         new_plans = []
+        veh_inters = []
+        ped_inters = []
+        for inter in junc.intergreens:
+            inter_i = JunctionPlanIntergreenValueModel()
+            inter_i.value = inter.value
+            inter_i.phfrom = inter.phfrom
+            inter_i.phto = inter.phto
+            ped_inters.append(inter_i)
+        for inter in junc.veh_intergreens:
+            inter_i = JunctionPlanIntergreenValueModel()
+            inter_i.value = inter.value
+            inter_i.phfrom = inter.phfrom
+            inter_i.phto = inter.phto
+            veh_inters.append(inter_i)
         for plan in junc.plans:
             starts = []
-            veh_inters = []
             green_starts = []
             veh_greens = []
             ped_greens = []
@@ -338,6 +351,8 @@ class Query(graphene.ObjectType):
             plan.green_start = green_starts
             plan.vehicle_green = veh_greens
             plan.pedestrian_green = ped_greens
+            plan.vehicle_intergreen = veh_inters
+            plan.pedestrian_intergreen = ped_inters
             new_plans.append(plan)
         junc.plans = new_plans
         return junc
