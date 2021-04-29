@@ -313,12 +313,31 @@ class Query(graphene.ObjectType):
         new_plans = []
         for plan in junc.plans:
             starts = []
+            veh_inters = []
+            green_starts = []
+            veh_greens = []
+            ped_greens = []
             for phid, row in table[plan.plid].items():
                 start_i = JunctionPlanPhaseValueModel()
                 start_i.phid = phid
                 start_i.value = row[2]
                 starts.append(start_i)
+                green_st_i = JunctionPlanPhaseValueModel()
+                green_st_i.phid = phid
+                green_st_i.value = row[4]
+                green_starts.append(green_st_i)
+                veh_g_i = JunctionPlanPhaseValueModel()
+                veh_g_i.phid = phid
+                veh_g_i.value = row[5]
+                veh_greens.append(veh_g_i)
+                ped_g_i = JunctionPlanPhaseValueModel()
+                ped_g_i.phid = phid
+                ped_g_i.value = row[6]
+                ped_greens.append(ped_g_i)
             plan.phase_start = starts
+            plan.green_start = green_starts
+            plan.vehicle_green = veh_greens
+            plan.pedestrian_green = ped_greens
             new_plans.append(plan)
         junc.plans = new_plans
         return junc
