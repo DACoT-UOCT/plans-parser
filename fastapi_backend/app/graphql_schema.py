@@ -358,21 +358,29 @@ class Query(graphene.ObjectType):
         return junc
 
     def resolve_compute_tables(self, info, jid, status):
-        oid = 'X{}0'.format(jid[1:-1])
-        proj = ProjectModel.objects(
-            oid=oid, metadata__status=status, metadata__version="latest"
-        ).first()
-        if not proj:
-            return False
-        new_juncs = []
-        for junc in proj.otu.junctions:
-            if junc.jid == jid:
-                table = Query.__compute_plan_table(junc)
-                junc = Query.__save_computed_plan_table(junc, table)
-            new_juncs.append(junc)
-        proj.otu.junctions = new_juncs
-        proj.save()
-        return True
+        try:
+            oid = 'X{}0'.format(jid[1:-1])
+            proj = ProjectModel.objects(
+                oid=oid, metadata__status=status, metadata__version="latest"
+            ).first()
+            if not proj:
+                return False
+            new_juncs = []
+            found = False
+            for junc in proj.otu.junctions:
+                if junc.jid == jid:
+                    table = Query.__compute_plan_table(junc)
+                    junc = Query.__save_computed_plan_table(junc, table)
+                    found = True
+                new_juncs.append(junc)
+            if not found:
+                return found
+            proj.otu.junctions = new_juncs
+            proj.save()
+            return found
+        except Exception as excp:
+            logger.warning(excp)
+            return GraphQLError(str(excp))
 
     def resolve_full_schema_drop(self, info):
         logger.warning('FullSchemaDrop Requested')
