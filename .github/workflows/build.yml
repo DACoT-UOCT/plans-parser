@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip wheel
-          pip install --no-deps -r requirements.txt
+          pip install -r requirements.txt
           cd dacot_models && pip install . && cd ..
       - name: Run coverage tool
         run: |
