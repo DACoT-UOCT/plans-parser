@@ -1,5 +1,5 @@
---- /usr/local/lib/python3.6/site-packages/graphene/types/argument.py 2021-05-01 21:40:03.454709343 +0000
-+++ /usr/local/lib/python3.6/site-packages/graphene/types/argument.py  2021-05-01 21:40:10.890839788 +0000
+--- /usr/local/lib/python3.8/site-packages/graphene/types/argument.py 2021-05-01 21:40:03.454709343 +0000
++++ /usr/local/lib/python3.8/site-packages/graphene/types/argument.py  2021-05-01 21:40:10.890839788 +0000
 @@ -76,6 +76,8 @@
      from .field import Field
      from .inputfield import InputField
