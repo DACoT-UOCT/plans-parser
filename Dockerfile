@@ -1,4 +1,4 @@
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.6-2020-12-19
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8-slim-2020-06-06
 RUN apt update && apt install -y libmagic1 python3-testresources && rm -rf /var/lib/apt/lists/*
 RUN python -m pip install --upgrade pip
 COPY requirements.txt requirements.txt
