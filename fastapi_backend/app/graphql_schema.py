@@ -206,24 +206,43 @@ class QueryRootUtils:
         # TODO: FIXME: For now, we return the same user for all requests
         return UserModel.objects(email="seed@dacot.uoct.cl").first()
 
+RANGE_SCALAR_MAX_VALUE = 50
+
+class RangeScalar(graphene.Int):
+    def __init__(self, required=False):
+        super().__init__(required)
+
+    @staticmethod
+    def coerce_int(value):
+        num = graphene.Int.coerce_int(value)
+        if num > RANGE_SCALAR_MAX_VALUE:
+            raise ValueError('Value {} is greater than max {}'.format(num, RANGE_SCALAR_MAX_VALUE))
+        return num
+
+    @staticmethod
+    def parse_literal(ast):
+        num = graphene.Int.parse_literal(ast)
+        if num > RANGE_SCALAR_MAX_VALUE:
+            raise ValueError('Value {} is greater than max {}'.format(num, RANGE_SCALAR_MAX_VALUE))
+        return num
+
 class Query(graphene.ObjectType):
     users = graphene.List(User)
     user = graphene.Field(User, email=graphene.NonNull(graphene.String))
-    actions_logs = graphene.List(ActionsLog)
+    actions_logs = graphene.List(ActionsLog) # TODO: Add pagination
     actions_log = graphene.Field(ActionsLog, logid=graphene.NonNull(graphene.String))
     communes = graphene.List(Commune)
     companies = graphene.List(ExternalCompany)
-    failed_plans = graphene.List(PartialPlanParseFailedMessage)
-    failed_plan = graphene.Field(
-        PlanParseFailedMessage, mid=graphene.NonNull(graphene.String)
-    )
+    failed_plans = graphene.List(PartialPlanParseFailedMessage) # TODO: Add pagination
+    failed_plan = graphene.Field(PlanParseFailedMessage, mid=graphene.NonNull(graphene.String))
     controller_models = graphene.List(ControllerModel)
-    otus = graphene.List(OTU)
+    # otus = graphene.List(OTU) # Disabled for performance
     otu = graphene.Field(OTU, oid=graphene.NonNull(graphene.String))
-    junctions = graphene.List(Junction)
+    # junctions = graphene.List(Junction) # Disabled for performance
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
-    all_projects = graphene.List(Project)
-    projects = MongoengineConnectionField(Project, metadata__status=graphene.NonNull(graphene.String), metadata__version=graphene.NonNull(graphene.String))
+    # all_projects = graphene.List(Project) # Disabled for performance
+    projects = MongoengineConnectionField(Project,
+        metadata__status=graphene.NonNull(graphene.String), metadata__version=graphene.NonNull(graphene.String), first=RangeScalar(required=True))
     project = graphene.Field(
         Project,
         oid=graphene.NonNull(graphene.String),
