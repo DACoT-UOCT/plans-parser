@@ -15,7 +15,6 @@ pymongo
 graphene-mongo
 pylint
 flake8
-aiosmtplib
 python-multipart
 email-validator
 fastapi-jwt-auth
