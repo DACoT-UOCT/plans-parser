@@ -223,8 +223,7 @@ class Query(graphene.ObjectType):
     junctions = graphene.List(Junction)
     junction = graphene.Field(Junction, jid=graphene.NonNull(graphene.String))
     all_projects = graphene.List(Project)
-    # projects = MongoengineConnectionField(Project, status=graphene.NonNull(graphene.String))
-    projects = graphene.List(Project, status=graphene.NonNull(graphene.String))
+    projects = MongoengineConnectionField(Project, metadata__status=graphene.NonNull(graphene.String), metadata__version=graphene.NonNull(graphene.String))
     project = graphene.Field(
         Project,
         oid=graphene.NonNull(graphene.String),
@@ -440,12 +439,6 @@ class Query(graphene.ObjectType):
             vinfo.comment = ver.observation
             result.append(vinfo)
         return result
-
-    def resolve_projects(self, info, **kwargs):
-        logger.warning(kwargs)
-        return ProjectModel.objects(
-            metadata__status=kwargs['status'], metadata__version="latest"
-        ).all()
 
     def resolve_project(self, info, oid, status):
         return ProjectModel.objects(
