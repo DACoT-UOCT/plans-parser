@@ -13,10 +13,7 @@ oauth2client
 google-auth
 pymongo
 graphene-mongo
-pylint
-flake8
 fastapi-jwt-auth
 uvicorn[standard]
-black
 aiohttp
 gql
