@@ -15,8 +15,6 @@ pymongo
 graphene-mongo
 pylint
 flake8
-python-multipart
-email-validator
 fastapi-jwt-auth
 uvicorn[standard]
 black
