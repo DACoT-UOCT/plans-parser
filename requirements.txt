@@ -1,10 +1,6 @@
 mongoengine
-jsonpatch
-jsonpointer
-jsonschema
 fastapi
 fastapi-mail
-coverage
 python-magic
 requests
 mongomock
