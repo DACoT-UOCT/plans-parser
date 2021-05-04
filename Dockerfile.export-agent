@@ -1,5 +1,5 @@
-FROM amancevice/pandas:1.2.4-alpine
-RUN apk update && apk add python3-dev gcc libc-dev
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8-slim-2020-06-06
+RUN apt update && apt install -y libmagic1 python3-testresources patch && rm -rf /var/lib/apt/lists/*
 RUN python -m pip install --upgrade pip virtualenv poetry
 COPY poetry.lock /poetry.lock
 COPY pyproject.toml /pyproject.toml
@@ -9,4 +9,4 @@ RUN cd / && poetry add /dacot_models/
 COPY export-agent /export-agent
 COPY run-export-agent.sh /export-agent/run-export-agent.sh
 WORKDIR /export-agent
-ENTRYPOINT /usr/local/bin/poetry run /bin/sh /export-agent/run-export-agent.sh
+ENTRYPOINT /usr/local/bin/poetry run /bin/bash /export-agent/run-export-agent.sh
