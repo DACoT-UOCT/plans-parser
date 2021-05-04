@@ -4,4 +4,4 @@ gql==3.0.0a5
 gql-query-builder==0.1.5
 pymongo==3.11.3
 mongoengine==0.22.1
-aiohttp==3.7.3
+aiohttp==3.7.4
